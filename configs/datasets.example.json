@@ -1,0 +1,61 @@
+{
+  "data_root": "data",
+  "datasets": [
+    {
+      "id": "aptos2019",
+      "name": "APTOS 2019 Blindness Detection",
+      "priority": 1,
+      "primary_use": "M3 classification training",
+      "source_url": "https://www.kaggle.com/competitions/aptos2019-blindness-detection/data",
+      "root": "data/raw/aptos2019",
+      "expected_paths": [
+        "train.csv",
+        "test.csv",
+        "sample_submission.csv",
+        "train_images",
+        "test_images"
+      ],
+      "notes": "Requires Kaggle login and competition rule acceptance."
+    },
+    {
+      "id": "idrid",
+      "name": "Indian Diabetic Retinopathy Image Dataset",
+      "priority": 2,
+      "primary_use": "India-specific grading and lesion-mask validation",
+      "source_url": "https://ieee-dataport.org/open-access/indian-diabetic-retinopathy-image-dataset-idrid",
+      "root": "data/raw/idrid",
+      "expected_paths": [
+        "disease_grading",
+        "segmentation",
+        "localization"
+      ],
+      "notes": "Folder names may differ after extraction. Preserve the original archive and normalize into these folders."
+    },
+    {
+      "id": "messidor2",
+      "name": "Messidor-2",
+      "priority": 3,
+      "primary_use": "External validation images",
+      "source_url": "https://www.adcis.net/en/third-party/messidor2/",
+      "root": "data/raw/messidor2",
+      "expected_paths": [
+        "images",
+        "labels"
+      ],
+      "notes": "Official image package needs trusted labels before sensitivity/specificity can be reported."
+    },
+    {
+      "id": "drive",
+      "name": "DRIVE",
+      "priority": 4,
+      "primary_use": "Vessel segmentation validation",
+      "source_url": "https://drive.grand-challenge.org/",
+      "root": "data/raw/drive",
+      "expected_paths": [
+        "training",
+        "test"
+      ],
+      "notes": "Optional for MVP. Not a DR grading dataset."
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+venv/
+
+# MATLAB
+*.asv
+*.mlx.autosave
+slprj/
+sdi/
+*.slxc
+
+# Local data and heavy artifacts
+data/raw/**
+data/interim/**
+data/processed/**
+data/splits/**
+data/external/**
+models/**
+reports/**
+artifacts/**
+!data/**/
+!data/README.md
+!data/dataset_manifest.example.csv
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Env
+.env
+.env.*

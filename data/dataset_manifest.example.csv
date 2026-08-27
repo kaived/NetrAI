@@ -1,0 +1,6 @@
+dataset_id,name,priority,primary_use,root,source_url,requires_account
+aptos2019,APTOS 2019 Blindness Detection,1,M3 classification training,data/raw/aptos2019,https://www.kaggle.com/competitions/aptos2019-blindness-detection/data,yes
+idrid,Indian Diabetic Retinopathy Image Dataset,2,India-specific grading and lesion masks,data/raw/idrid,https://ieee-dataport.org/open-access/indian-diabetic-retinopathy-image-dataset-idrid,yes
+messidor2,Messidor-2,3,External validation images,data/raw/messidor2,https://www.adcis.net/en/third-party/messidor2/,yes
+messidor2_labels,Messidor-2 DR Grades,3,External validation labels,data/raw/messidor2/labels,https://www.kaggle.com/datasets/google-brain/messidor2-dr-grades,yes
+drive,DRIVE,4,Vessel segmentation validation,data/raw/drive,https://drive.grand-challenge.org/,yes

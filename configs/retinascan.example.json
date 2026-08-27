@@ -1,0 +1,46 @@
+{
+  "project": {
+    "name": "RetinaScan AI",
+    "mode": "demo",
+    "model_version": "stub-0.1.0"
+  },
+  "paths": {
+    "data_root": "data",
+    "model_dir": "models",
+    "report_dir": "reports"
+  },
+  "m1": {
+    "min_focus_score": 120.0,
+    "min_brightness": 0.15,
+    "max_brightness": 0.90,
+    "min_contrast": 0.05,
+    "use_clahe": true
+  },
+  "m2": {
+    "enabled": false,
+    "vessel_threshold": 0.35
+  },
+  "m3": {
+    "enabled": true,
+    "referable_threshold": 0.50,
+    "model_path": "models/dr_classifier.onnx"
+  },
+  "m4": {
+    "enabled": true,
+    "method": "grad_cam"
+  },
+  "m5": {
+    "patients_per_year_target": 100000,
+    "working_days_per_year": 250,
+    "cameras": 4,
+    "images_per_patient": 2,
+    "capture_minutes_per_patient": 3.0,
+    "inference_seconds_per_image": 4.0,
+    "ophthalmologist_review_seconds_per_positive": 30.0,
+    "expected_positive_rate": 0.18
+  },
+  "report": {
+    "include_disclaimer": true,
+    "disclaimer": "Screening support only. Final clinical decision requires ophthalmologist review."
+  }
+}
