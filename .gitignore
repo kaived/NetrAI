@@ -16,6 +16,7 @@ sdi/
 
 # Local data and heavy artifacts
 data/raw/**
+data/indexes/**
 data/interim/**
 data/processed/**
 data/splits/**
@@ -32,7 +33,20 @@ artifacts/**
 Thumbs.db
 .vscode/
 .idea/
+.gcloud/
 
 # Env
 .env
 .env.*
+!.env.example
+!backend/.env.example
+!frontend/.env.example
+backend/runtime_storage/
+backend/.venv/
+frontend/dist/
+frontend/node_modules/
+backend/models/*.onnx
+backend/models/*.mat
+backend/models/*.h5
+backend/models/*.pt
+backend/models/*.pth

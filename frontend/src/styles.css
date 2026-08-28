@@ -1,0 +1,80 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-fundus-bg: #0d0705;
+  }
+
+  body {
+    @apply bg-slate-50 text-slate-900 min-h-screen antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+}
+
+/* Custom Retinal Image Filters */
+.filter-green-channel {
+  filter: contrast(160%) brightness(110%) hue-rotate(90deg) saturate(180%);
+}
+
+.filter-inverted {
+  filter: invert(100%) hue-rotate(180deg);
+}
+
+.filter-clahe-sim {
+  filter: contrast(145%) brightness(105%) saturate(125%);
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbars — Webkit (Chrome, Edge, Safari) */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1cbd8;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Custom scrollbars — Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #c1cbd8 transparent;
+}
+
+/* Print Styles for Clinical Triage Reports */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    padding: 0 !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .print-card {
+    border: 1px solid #94a3b8 !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+}

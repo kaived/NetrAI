@@ -3,6 +3,7 @@ function startup()
 
 rootDir = fileparts(mfilename('fullpath'));
 addpath(rootDir);
+addpath(fullfile(rootDir, 'scripts'));
 
 fprintf('RetinaScan AI MATLAB path initialized: %s\n', rootDir);
 end

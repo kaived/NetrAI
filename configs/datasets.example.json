@@ -53,7 +53,7 @@
       "root": "data/raw/drive",
       "expected_paths": [
         "training",
-        "test"
+        "testing"
       ],
       "notes": "Optional for MVP. Not a DR grading dataset."
     }

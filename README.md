@@ -1,69 +1,102 @@
 # RetinaScan AI
 
-Explainable diabetic retinopathy screening pipeline for rural primary health centers.
+Explainable diabetic retinopathy screening for rural primary health centers.
 
-This repository is structured for a MathWorks/SIH-style build: MATLAB is the primary demo and integration layer, while `python_prototype/` is reserved for rapid model experiments before porting or wrapping.
+## Architecture
 
-## Build Shape
+```text
+frontend/   React screening console
+backend/    FastAPI API, ONNX Runtime inference, Cloud Storage/Firestore switches
+matlab/     model development, preprocessing experiments, ONNX export helpers
+data/       local dataset metadata and raw dataset folders
+configs/    dataset and pipeline configuration
+scripts/    setup and verification helpers
+docs/       product, API, dataset, and deployment docs
+```
 
-- `matlab/`: MATLAB package code for the five proposal modules.
-- `python_prototype/`: Python reference/prototype lane for training, metrics, and experiments.
-- `configs/`: Runtime configuration and thresholds.
-- `docs/`: Architecture, MVP scope, dataset plan, validation plan, and submission checklist.
-- `data/`: Local dataset metadata and raw dataset folders. Do not commit datasets.
-- `models/`: Generated locally when trained weights are available. Do not commit large model files.
-- `reports/`: Generated locally for metrics and demo outputs.
+## Current Goal
 
-## Refined MVP
+Build a production-ready vertical slice:
 
-The first working version should prove four things:
+```text
+fundus image
+  -> FastAPI upload
+  -> ONNX model exported from MATLAB
+  -> quality result
+  -> DR prediction
+  -> report JSON
+  -> frontend result screen
+```
 
-1. Image quality gate can accept, enhance, or reject a fundus image.
-2. Classifier can output ICDR grade plus referable DR decision.
-3. Explanation output can show why the model decided, even if lesion-level segmentation is partial.
-4. Throughput simulation can justify district-scale screening assumptions.
+## Key Docs
 
-Lesion segmentation, full clinical report formatting, and polished deployment packaging should come after this MVP is stable.
+- `docs/PROJECT_PLAN.md`
+- `docs/DATASETS.md`
+- `docs/API_CONTRACT.md`
+- `docs/DEPLOYMENT.md`
+- `docs/FIREBASE_SETUP.md`
+- `docs/GCP_SETUP.md`
+- `docs/FIRST_ML_MILESTONE.md`
 
-## Quick Start
-
-Dataset setup:
+## Dataset Check
 
 ```bash
-python scripts/check_datasets.py --init
 python scripts/check_datasets.py
 ```
 
-See `docs/DATA_COLLECTION.md` for download sources and placement rules.
+Install Python 3.11+ first if `python` is not recognized in PowerShell.
 
-Implementation guide:
-
-```text
-docs/IMPLEMENTATION_ROADMAP.md
-```
-
-MATLAB:
+## MATLAB
 
 ```matlab
-cd('D:/RetinaScan AI/matlab')
+cd(fullfile('<repo-root>', 'matlab'))
 startup
-result = run_retinascan_demo()
+indexTable = build_aptos_index();
+stores = create_aptos_datastores();
+[trainedNet, info, metrics] = train_aptos_resnet18_baseline();
 ```
 
-Python prototype:
+Test one image after training:
+
+```matlab
+imagePath = fullfile('<repo-root>', 'data', 'raw', 'aptos2019', 'train_images', '000c1434d8d7.png');
+result = predict_aptos_sample(imagePath);
+```
+
+## Backend
 
 ```bash
-cd "D:/RetinaScan AI/python_prototype"
-python -m retinascan_ai.cli
+cd backend
+python -m venv .venv
+.venv/Scripts/activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8080
 ```
 
-## Submission Framing
+## Frontend
 
-Use cautious clinical language:
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-- This is a screening support system, not an autonomous diagnosis tool.
-- Referable DR positives should be reviewed by an ophthalmologist.
-- The demo should report sensitivity and specificity, not just accuracy.
-- Grad-CAM should be described as model attention unless lesion masks are quantitatively validated.
+## Local Full Stack
 
-See `docs/` before implementing new modules.
+```bash
+docker compose up --build
+```
+
+Then open:
+
+```text
+http://localhost:5173
+```
+
+## Safety
+
+- Do not commit raw datasets.
+- Do not commit large model files.
+- Do not claim final diagnosis.
+- Keep uploaded medical images private.
+- Every result must include ophthalmologist-review disclaimer.
