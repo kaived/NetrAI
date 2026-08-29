@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { X, BookOpen, ShieldAlert, CheckCircle, AlertTriangle, HelpCircle } from 'lucide-react';
 
 interface ClinicalGuideModalProps {
@@ -7,6 +7,28 @@ interface ClinicalGuideModalProps {
 }
 
 export const ClinicalGuideModal: React.FC<ClinicalGuideModalProps> = ({ isOpen, onClose }) => {
+  useEffect(() => {
+    if (!isOpen) return;
+
+    // Lock page background scrolling when modal is open
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    // Handle Escape key to dismiss modal
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
@@ -116,7 +138,7 @@ export const ClinicalGuideModal: React.FC<ClinicalGuideModalProps> = ({ isOpen, 
               <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-1">
                 <span className="font-bold text-slate-800 block">Centering Protocol</span>
                 <p className="text-slate-600">
-                  Capture standard 45° macula-centered or optic-disc-centered fields without eyelid / eyelash obstruction.
+                  Capture macula-centered or optic-disc-centered fundus fields without eyelid / eyelash obstruction.
                 </p>
               </div>
               <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-1">
@@ -124,30 +146,6 @@ export const ClinicalGuideModal: React.FC<ClinicalGuideModalProps> = ({ isOpen, 
                 <p className="text-slate-600">
                   In non-mydriatic cameras, ensure the exam room is dimmed to allow natural pupillary dilation to &gt;4mm.
                 </p>
-              </div>
-            </div>
-          </section>
-
-          {/* Section 3: Safe AI Screening Terminology */}
-          <section className="bg-slate-100 p-3.5 rounded-xl text-xs space-y-2">
-            <span className="font-bold text-slate-800 block">Safe Medical Screening Terminology</span>
-            <div className="grid sm:grid-cols-2 gap-2 text-[11px]">
-              <div>
-                <strong className="text-emerald-700">Recommended Phrasing:</strong>
-                <ul className="list-disc list-inside text-slate-600 mt-1 space-y-0.5">
-                  <li>Screening decision support</li>
-                  <li>Referable DR prioritization</li>
-                  <li>Ophthalmologist review recommended</li>
-                  <li>Model attention heatmap</li>
-                </ul>
-              </div>
-              <div>
-                <strong className="text-rose-700">Strictly Avoid:</strong>
-                <ul className="list-disc list-inside text-slate-600 mt-1 space-y-0.5">
-                  <li>Definitive clinical diagnosis</li>
-                  <li>Doctor replacement</li>
-                  <li>100% guaranteed accuracy</li>
-                </ul>
               </div>
             </div>
           </section>

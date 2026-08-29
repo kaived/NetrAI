@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-from PIL import Image, ImageOps
+from PIL import Image, ImageFilter, ImageOps
 
 from app.config import Settings
 from app.schemas import PredictionResult, QualityResult
@@ -82,8 +82,24 @@ class ImagePipeline:
             label=CLASS_NAMES[grade],
             referable_dr=grade >= 2,
             confidence=confidence,
+            confidence_level=confidence_level(confidence),
             model_version=self.settings.model_version,
         )
+
+    def generate_attention_heatmap(self, image_bytes: bytes) -> bytes:
+        image = self.load_image(image_bytes)
+        array = np.asarray(image, dtype=np.uint8)
+
+        try:
+            import cv2
+
+            heatmap = self._generate_cv_lesion_heatmap(array, cv2)
+        except Exception:
+            heatmap = self._generate_fallback_attention_heatmap(image)
+
+        output = BytesIO()
+        heatmap.save(output, format="PNG")
+        return output.getvalue()
 
     def load_image(self, image_bytes: bytes) -> Image.Image:
         image = Image.open(BytesIO(image_bytes))
@@ -123,6 +139,110 @@ class ImagePipeline:
             array[:, :, 1] = np.asarray(ImageOps.equalize(green), dtype=np.uint8)
 
         return Image.fromarray(array)
+
+    def _generate_cv_lesion_heatmap(self, array: np.ndarray, cv2) -> Image.Image:
+        hsv = cv2.cvtColor(array, cv2.COLOR_RGB2HSV)
+        fundus_mask = ((hsv[:, :, 1] > 18) & (hsv[:, :, 2] > 20)).astype(np.uint8)
+
+        close_kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (25, 25))
+        fundus_mask = cv2.morphologyEx(fundus_mask, cv2.MORPH_CLOSE, close_kernel)
+        fundus_mask = cv2.morphologyEx(fundus_mask, cv2.MORPH_OPEN, close_kernel)
+
+        contours, _ = cv2.findContours(fundus_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        if contours:
+            largest = max(contours, key=cv2.contourArea)
+            refined_mask = np.zeros_like(fundus_mask)
+            cv2.drawContours(refined_mask, [largest], -1, 1, thickness=cv2.FILLED)
+            fundus_mask = refined_mask
+
+        height, width = fundus_mask.shape
+        erosion_size = max(15, make_odd(int(min(height, width) * 0.025)))
+        edge_kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (erosion_size, erosion_size))
+        analysis_mask = cv2.erode(fundus_mask, edge_kernel)
+
+        green = array[:, :, 1]
+        red = array[:, :, 0]
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+        enhanced_green = clahe.apply(green)
+        optic_disc_mask = self._detect_optic_disc_mask(array, enhanced_green, analysis_mask, cv2)
+        analysis_mask = np.where(optic_disc_mask > 0, 0, analysis_mask).astype(np.uint8)
+
+        background = cv2.GaussianBlur(enhanced_green, (0, 0), sigmaX=14, sigmaY=14)
+        bright_lesions = cv2.subtract(enhanced_green, background).astype(np.float32)
+        dark_lesions = cv2.subtract(background, enhanced_green).astype(np.float32)
+        red_excess = cv2.subtract(red, green).astype(np.float32)
+
+        bright_map = normalize_attention_map(bright_lesions, analysis_mask, low_percentile=91, high_percentile=99.6)
+        dark_map = normalize_attention_map(dark_lesions, analysis_mask, low_percentile=92, high_percentile=99.4)
+        red_map = normalize_attention_map(red_excess, analysis_mask, low_percentile=88, high_percentile=99.0)
+
+        saliency = (0.46 * bright_map) + (0.34 * dark_map) + (0.20 * red_map)
+        saliency *= analysis_mask.astype(np.float32)
+        saliency = cv2.GaussianBlur(saliency, (0, 0), sigmaX=6, sigmaY=6)
+
+        max_value = float(np.max(saliency))
+        if max_value > 1e-6:
+            saliency = saliency / max_value
+
+        heat = np.clip(saliency * 255.0, 0, 255).astype(np.uint8)
+        colored = cv2.applyColorMap(heat, cv2.COLORMAP_JET)
+        colored = cv2.cvtColor(colored, cv2.COLOR_BGR2RGB)
+        alpha = np.where(heat > 18, np.clip(heat * 0.75, 0, 190), 0).astype(np.uint8)
+
+        rgba = np.dstack([colored, alpha])
+        return Image.fromarray(rgba, mode="RGBA")
+
+    def _detect_optic_disc_mask(self, array: np.ndarray, enhanced_green: np.ndarray, mask: np.ndarray, cv2) -> np.ndarray:
+        if not np.any(mask):
+            return np.zeros_like(mask, dtype=np.uint8)
+
+        red = array[:, :, 0]
+        mask_bool = mask.astype(bool)
+        red_threshold = float(np.percentile(red[mask_bool], 98.7))
+        green_threshold = float(np.percentile(enhanced_green[mask_bool], 96.5))
+
+        candidates = ((red >= red_threshold) & (enhanced_green >= green_threshold) & mask_bool).astype(np.uint8)
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (17, 17))
+        candidates = cv2.morphologyEx(candidates, cv2.MORPH_CLOSE, kernel)
+
+        contours, _ = cv2.findContours(candidates, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        if not contours:
+            return np.zeros_like(mask, dtype=np.uint8)
+
+        image_area = mask.shape[0] * mask.shape[1]
+        eligible = [
+            contour
+            for contour in contours
+            if image_area * 0.0008 <= cv2.contourArea(contour) <= image_area * 0.08
+        ]
+        if not eligible:
+            return np.zeros_like(mask, dtype=np.uint8)
+
+        disc_contour = max(eligible, key=cv2.contourArea)
+        disc_mask = np.zeros_like(mask, dtype=np.uint8)
+        cv2.drawContours(disc_mask, [disc_contour], -1, 1, thickness=cv2.FILLED)
+
+        dilation_size = max(31, make_odd(int(min(mask.shape) * 0.045)))
+        dilation_kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (dilation_size, dilation_size))
+        return cv2.dilate(disc_mask, dilation_kernel)
+
+    def _generate_fallback_attention_heatmap(self, image: Image.Image) -> Image.Image:
+        gray = ImageOps.grayscale(image)
+        blurred = gray.filter(ImageFilter.GaussianBlur(radius=14))
+
+        gray_array = np.asarray(gray, dtype=np.float32)
+        blur_array = np.asarray(blurred, dtype=np.float32)
+        saliency = np.abs(gray_array - blur_array)
+        saliency = normalize_attention_map(saliency, np.ones_like(saliency, dtype=np.uint8), 90, 99.5)
+
+        heat = np.clip(saliency * 255.0, 0, 255).astype(np.uint8)
+        alpha = np.where(heat > 18, np.clip(heat * 0.70, 0, 180), 0).astype(np.uint8)
+        rgba = np.zeros((*heat.shape, 4), dtype=np.uint8)
+        rgba[:, :, 0] = heat
+        rgba[:, :, 1] = np.clip(255 - np.abs(heat.astype(np.int16) - 128) * 2, 0, 255).astype(np.uint8)
+        rgba[:, :, 2] = 255 - heat
+        rgba[:, :, 3] = alpha
+        return Image.fromarray(rgba, mode="RGBA")
 
     def _resolved_layout(self) -> str:
         if self.settings.model_layout != "auto":
@@ -180,6 +300,43 @@ def softmax(scores: np.ndarray) -> np.ndarray:
     shifted = scores - np.max(scores)
     exp_scores = np.exp(shifted)
     return exp_scores / np.sum(exp_scores)
+
+
+def confidence_level(confidence: float) -> str:
+    if confidence < 0.50:
+        return "low"
+    if confidence < 0.70:
+        return "moderate"
+    return "high"
+
+
+def normalize_attention_map(
+    values: np.ndarray,
+    mask: np.ndarray,
+    low_percentile: float,
+    high_percentile: float,
+) -> np.ndarray:
+    values = values.astype(np.float32)
+    mask_bool = mask.astype(bool)
+
+    if not np.any(mask_bool):
+        return np.zeros_like(values, dtype=np.float32)
+
+    masked_values = values[mask_bool]
+    low = float(np.percentile(masked_values, low_percentile))
+    high = float(np.percentile(masked_values, high_percentile))
+
+    if high <= low:
+        return np.zeros_like(values, dtype=np.float32)
+
+    normalized = (values - low) / (high - low)
+    normalized = np.clip(normalized, 0.0, 1.0)
+    normalized[~mask_bool] = 0.0
+    return normalized.astype(np.float32)
+
+
+def make_odd(value: int) -> int:
+    return value if value % 2 == 1 else value + 1
 
 
 def parse_gcs_uri(uri: str) -> tuple[str, str]:

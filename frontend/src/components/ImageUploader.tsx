@@ -4,8 +4,10 @@ import {
   RefreshCw,
   Play,
   RotateCcw,
+  FileCheck,
+  ChevronDown,
 } from 'lucide-react';
-import type { PatientInfo } from '../types';
+import type { EyeCode, PatientInfo, ScreeningFormErrors } from '../types';
 
 interface ImageUploaderProps {
   file: File | null;
@@ -16,6 +18,12 @@ interface ImageUploaderProps {
   onPatientInfoChange: (info: PatientInfo) => void;
   onAnalyze: () => void;
   onReset: () => void;
+  hasResult: boolean;
+  caseId: string;
+  validationErrors: ScreeningFormErrors;
+  completedEyes: EyeCode[];
+  nextEye: EyeCode | null;
+  isCaseComplete: boolean;
 }
 
 export const ImageUploader: React.FC<ImageUploaderProps> = ({
@@ -27,14 +35,43 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
   onPatientInfoChange,
   onAnalyze,
   onReset,
+  hasResult,
+  caseId,
+  validationErrors,
+  completedEyes,
+  nextEye,
+  isCaseComplete,
 }) => {
-  const [filterMode, setFilterMode] = useState<'normal' | 'green' | 'clahe' | 'inverted'>('normal');
-  const [zoomLevel, setZoomLevel] = useState<1 | 1.5 | 2>(1);
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const inputBaseClass = 'w-full h-10 px-3 text-xs sm:text-sm bg-white border rounded-lg outline-none focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500';
+  const isDemographicsLocked = isLoading || completedEyes.length > 0;
+
+  const getInputClass = (field: keyof ScreeningFormErrors, extra = '') => (
+    `${inputBaseClass} ${
+      validationErrors[field]
+        ? 'border-rose-300 focus:ring-rose-500 focus:border-rose-500'
+        : 'border-slate-200'
+    } ${extra}`
+  );
+
+  const getDescribedBy = (field: keyof ScreeningFormErrors, helpId?: string) => (
+    [helpId, validationErrors[field] ? `${field}-error` : null].filter(Boolean).join(' ') || undefined
+  );
+
+  const renderError = (field: keyof ScreeningFormErrors) => (
+    validationErrors[field] ? (
+      <p id={`${field}-error`} className="mt-1.5 text-xs font-medium text-rose-700" role="alert">
+        {validationErrors[field]}
+      </p>
+    ) : null
+  );
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+    if (isCaseComplete || isLoading) {
+      return;
+    }
     setIsDragOver(true);
   };
 
@@ -45,33 +82,78 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
+    if (isCaseComplete || isLoading) {
+      return;
+    }
     const droppedFile = e.dataTransfer.files?.[0];
     if (droppedFile && droppedFile.type.startsWith('image/')) {
       onFileChange(droppedFile);
     }
   };
 
+  const handleDropzoneKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (isCaseComplete || isLoading) {
+      return;
+    }
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      fileInputRef.current?.click();
+    }
+  };
+
+  const renderEyeButton = (eye: EyeCode, label: string, roundedClass: string) => {
+    const isSelected = patientInfo.eye === eye;
+    const isCompleted = completedEyes.includes(eye);
+    const isDisabled = isLoading || isCompleted || isCaseComplete;
+
+    return (
+      <button
+        type="button"
+        role="radio"
+        aria-checked={isSelected}
+        aria-disabled={isDisabled}
+        onClick={() => {
+          if (!isDisabled) {
+            onPatientInfoChange({ ...patientInfo, eye });
+          }
+        }}
+        disabled={isDisabled}
+        className={`flex-1 px-3 text-xs sm:text-sm font-bold border transition-colors ${roundedClass} ${
+          isCompleted
+            ? 'bg-emerald-50 text-emerald-800 border-emerald-200 cursor-not-allowed'
+            : isSelected
+            ? 'bg-teal-600 text-white border-teal-600'
+            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+        }`}
+        title={isCompleted ? `${eye} screening completed` : `${eye} - ${label}`}
+      >
+        {isCompleted ? `${eye} Done` : label}
+      </button>
+    );
+  };
+
   return (
     <div className="bg-white border border-slate-200 rounded-2xl p-6 lg:p-8 shadow-sm space-y-6">
       {/* Panel Header */}
-      <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-        <div className="flex items-center gap-3.5">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-teal-50 text-teal-700">
-            <UploadCloud className="w-6 h-6" />
+      <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-4">
+        <div className="flex items-start gap-4 sm:gap-5 min-w-0">
+          <div className="flex h-12 w-12 sm:h-13 sm:w-13 items-center justify-center rounded-2xl bg-teal-50 text-teal-700 shrink-0 mt-0.5 shadow-2xs">
+            <UploadCloud className="w-6 h-6 sm:w-7 sm:h-7" />
           </div>
-          <div>
-            <h2 className="text-xl font-bold text-slate-900">Patient Intake & Retinal Scan Acquisition</h2>
-            <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Enter case information and load standard 45°/50° digital fundus photograph for automated screening.</p>
+          <div className="space-y-1 sm:space-y-1.5">
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 leading-tight">Patient Intake & Retinal Scan Acquisition</h2>
+            <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">Enter case information and load digital fundus photograph for automated screening.</p>
           </div>
         </div>
-        {file && (
+        {(file || previewUrl || hasResult) && (
           <button
             onClick={onReset}
             disabled={isLoading}
-            className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-slate-500 hover:text-slate-800 transition-colors px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50"
+            className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 shrink-0 mt-0.5 shadow-2xs"
+            title={hasResult ? 'Clear this case and begin another screening' : 'Clear selected image and patient details'}
           >
             <RotateCcw className="w-4 h-4" />
-            Reset
+            <span>{hasResult ? 'New Screening' : 'Reset'}</span>
           </button>
         )}
       </div>
@@ -80,80 +162,124 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
         {/* Left Column (Patient Metadata) */}
         <div className="flex flex-col h-full">
-          {/* Patient Metadata 2x2 Grid */}
+          {/* Patient Metadata Grid */}
           <div className="h-full bg-slate-50/70 p-5 sm:p-6 rounded-2xl border border-slate-200 flex flex-col justify-center">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-                  Patient / Case ID
+                <label htmlFor="case-id" className="block text-xs font-semibold text-slate-600 mb-1.5">
+                  Case ID
                 </label>
                 <input
+                  id="case-id"
+                  name="caseId"
                   type="text"
-                  value={patientInfo.patientId}
-                  onChange={(e) => onPatientInfoChange({ ...patientInfo, patientId: e.target.value })}
-                  placeholder="e.g. PHC-WB-0412"
-                  disabled={isLoading}
-                  className="w-full h-10 px-3 text-xs sm:text-sm bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 font-mono"
+                  value={caseId}
+                  readOnly
+                  aria-readonly="true"
+                  aria-invalid={Boolean(validationErrors.caseId)}
+                  aria-describedby={getDescribedBy('caseId')}
+                  className={getInputClass('caseId', 'font-mono text-slate-700 bg-slate-100 cursor-default')}
+                  title={caseId}
                 />
+                {renderError('caseId')}
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-                  PHC Center Code
+                <label htmlFor="patient-age" className="block text-xs font-semibold text-slate-600 mb-1.5">
+                  Patient Age
                 </label>
                 <input
-                  type="text"
-                  value={patientInfo.phcCenter}
-                  onChange={(e) => onPatientInfoChange({ ...patientInfo, phcCenter: e.target.value })}
-                  placeholder="e.g. PHC-BISHNUPUR-01"
-                  disabled={isLoading}
-                  className="w-full h-10 px-3 text-xs sm:text-sm bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-                  Patient Age / History
-                </label>
-                <input
+                  id="patient-age"
+                  name="patientAge"
                   type="text"
                   value={patientInfo.patientAge}
                   onChange={(e) => onPatientInfoChange({ ...patientInfo, patientAge: e.target.value })}
-                  placeholder="e.g. 54y (Type 2 DM, 8 yrs)"
-                  disabled={isLoading}
-                  className="w-full h-10 px-3 text-xs sm:text-sm bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  placeholder="Enter Patient Age"
+                  disabled={isDemographicsLocked}
+                  autoComplete="off"
+                  inputMode="numeric"
+                  spellCheck={false}
+                  aria-invalid={Boolean(validationErrors.patientAge)}
+                  aria-describedby={getDescribedBy('patientAge')}
+                  className={getInputClass('patientAge')}
                 />
+                {renderError('patientAge')}
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-                  Eye Examined
+                <label htmlFor="diabetes-type" className="block text-xs font-semibold text-slate-600 mb-1.5">
+                  Diabetes Type
                 </label>
-                <div className="flex rounded-lg shadow-xs h-10" role="group">
-                  <button
-                    type="button"
-                    onClick={() => onPatientInfoChange({ ...patientInfo, eye: 'OD' })}
-                    disabled={isLoading}
-                    className={`flex-1 px-3 text-xs sm:text-sm font-bold rounded-l-lg border ${
-                      patientInfo.eye === 'OD'
-                        ? 'bg-teal-600 text-white border-teal-600'
-                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-                    }`}
-                    title="OD - Right Eye (Oculus Dexter)"
+                <div className="relative">
+                  <select
+                    id="diabetes-type"
+                    name="diabetesType"
+                    value={patientInfo.diabetesType}
+                    onChange={(e) => onPatientInfoChange({ ...patientInfo, diabetesType: e.target.value })}
+                    disabled={isDemographicsLocked}
+                    aria-invalid={Boolean(validationErrors.diabetesType)}
+                    aria-describedby={getDescribedBy('diabetesType')}
+                    className={getInputClass('diabetesType', `appearance-none pr-9 cursor-pointer ${!patientInfo.diabetesType ? 'text-slate-400' : 'text-slate-800 font-medium'}`)}
                   >
-                    OD Right
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onPatientInfoChange({ ...patientInfo, eye: 'OS' })}
-                    disabled={isLoading}
-                    className={`flex-1 px-3 text-xs sm:text-sm font-bold rounded-r-lg border-t border-b border-r ${
-                      patientInfo.eye === 'OS'
-                        ? 'bg-teal-600 text-white border-teal-600'
-                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-                    }`}
-                    title="OS - Left Eye (Oculus Sinister)"
-                  >
-                    OS Left
-                  </button>
+                    <option value="" disabled hidden>Select Diabetes Type</option>
+                    <option value="Type 1 Diabetes" className="text-slate-800">Type 1 Diabetes</option>
+                    <option value="Type 2 Diabetes" className="text-slate-800">Type 2 Diabetes</option>
+                    <option value="Gestational Diabetes" className="text-slate-800">Gestational Diabetes</option>
+                    <option value="Pre-Diabetes" className="text-slate-800">Pre-Diabetes / Impaired FBG</option>
+                    <option value="Secondary / Other" className="text-slate-800">Secondary / Other</option>
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
+                {renderError('diabetesType')}
+              </div>
+              <div>
+                <label htmlFor="diabetic-duration" className="block text-xs font-semibold text-slate-600 mb-1.5">
+                  Years Since Diagnosis
+                </label>
+                <input
+                  id="diabetic-duration"
+                  name="diabeticDuration"
+                  type="text"
+                  value={patientInfo.diabeticDuration}
+                  onChange={(e) => onPatientInfoChange({ ...patientInfo, diabeticDuration: e.target.value })}
+                  placeholder="Enter Years Since Diagnosis"
+                  disabled={isDemographicsLocked}
+                  autoComplete="off"
+                  inputMode="decimal"
+                  spellCheck={false}
+                  aria-invalid={Boolean(validationErrors.diabeticDuration)}
+                  aria-describedby={getDescribedBy('diabeticDuration')}
+                  className={getInputClass('diabeticDuration')}
+                />
+                {renderError('diabeticDuration')}
+              </div>
+              <div className="sm:col-span-2">
+                <span id="eye-examined-label" className="block text-xs font-semibold text-slate-600 mb-1.5">
+                  Eye Examined
+                </span>
+                <div
+                  id="eye-examined-group"
+                  role="radiogroup"
+                  aria-labelledby="eye-examined-label"
+                  className="flex rounded-lg shadow-xs h-10"
+                >
+                  {renderEyeButton('OD', 'OD (Right)', 'rounded-l-lg')}
+                  {renderEyeButton('OS', 'OS (Left)', 'rounded-r-lg border-l-0')}
+                </div>
+                {renderError('eye')}
+                <p className="text-xs sm:text-sm text-slate-600 mt-1.5 leading-relaxed">
+                  {isCaseComplete ? (
+                    <>
+                      <span className="font-bold text-emerald-800">Both eyes completed.</span> Start a new screening for the next case.
+                    </>
+                  ) : nextEye ? (
+                    <>
+                      <span className="font-bold text-slate-800">Next capture:</span> {nextEye === 'OD' ? 'OD Right Eye' : 'OS Left Eye'}.
+                    </>
+                  ) : (
+                    <>
+                      <span className="font-bold text-slate-800">Note:</span> OD = Oculus Dexter (Right Eye). OS = Oculus Sinister (Left Eye).
+                    </>
+                  )}
+                </p>
               </div>
             </div>
           </div>
@@ -161,11 +287,17 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
 
         {/* Right Column (Dropzone/Preview + Action Button directly below it) */}
         <div className="flex flex-col gap-3 h-full">
+          <label htmlFor="fundus-file-input" className="sr-only">
+            Upload Retinal Fundus Photograph
+          </label>
           <input
+            id="fundus-file-input"
+            name="fundusFileInput"
             ref={fileInputRef}
             type="file"
             accept="image/png,image/jpeg,image/jpg,image/webp"
             className="hidden"
+            disabled={isLoading || isCaseComplete}
             onChange={(e) => {
               const selected = e.target.files?.[0];
               if (selected) onFileChange(selected);
@@ -177,10 +309,23 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => {
+                if (!isCaseComplete) {
+                  fileInputRef.current?.click();
+                }
+              }}
+              onKeyDown={handleDropzoneKeyDown}
+              role="button"
+              tabIndex={0}
+              aria-invalid={Boolean(validationErrors.image)}
+              aria-describedby={getDescribedBy('image', 'fundus-file-help')}
               className={`flex-1 border-2 border-dashed rounded-2xl p-5 text-center cursor-pointer transition-all flex flex-col items-center justify-center min-h-[200px] ${
-                isDragOver
+                isCaseComplete
+                  ? 'border-slate-200 bg-slate-100/70 cursor-not-allowed opacity-80'
+                  : isDragOver
                   ? 'border-teal-500 bg-teal-50/50 scale-[0.99]'
+                  : validationErrors.image
+                  ? 'border-rose-400 bg-rose-50/30 hover:bg-rose-50/50'
                   : 'border-slate-300 bg-slate-50/50 hover:bg-slate-100/60 hover:border-slate-400'
               }`}
             >
@@ -190,112 +335,50 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
               <h4 className="text-sm font-bold text-slate-900">
                 Drag and drop fundus photograph here
               </h4>
-              <p className="text-xs text-slate-500 mt-1 max-w-xs leading-relaxed">
-                Supports standard 45° / 50° captures (PNG, JPEG).
+              <p id="fundus-file-help" className="text-xs text-slate-500 mt-1 max-w-xs leading-relaxed">
+                Supports fundus photograph captures (PNG, JPEG, WebP). Max 12MB.
               </p>
               <button
                 type="button"
+                disabled={isCaseComplete}
                 className="mt-3 px-3.5 py-1.5 text-xs font-bold text-teal-700 bg-white border border-teal-200 rounded-lg shadow-xs hover:bg-teal-50 transition-colors"
               >
-                Select Fundus Image
+                {isCaseComplete ? 'Case Completed' : 'Select Fundus Image'}
               </button>
+              {renderError('image')}
             </div>
           ) : (
-            <div className="flex-1 relative rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 min-h-[200px] flex items-center justify-center">
+            <div className="flex-1 relative rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 min-h-[200px] flex items-center justify-center p-2">
               <img
                 src={previewUrl}
                 alt="Selected Retinal Fundus"
-                className={`max-h-[200px] max-w-full object-contain transition-all duration-200 ${
-                  filterMode === 'green'
-                    ? 'filter-green-channel'
-                    : filterMode === 'clahe'
-                    ? 'filter-clahe-sim'
-                    : filterMode === 'inverted'
-                    ? 'filter-inverted'
-                    : ''
-                }`}
-                style={{ transform: `scale(${zoomLevel})` }}
+                className="max-h-[220px] max-w-full object-contain"
               />
 
               {/* Top Viewport Badge */}
-              <div className="absolute top-3 left-3 bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-lg text-xs text-white font-mono flex items-center gap-2 border border-white/10 max-w-[70%]">
+              <div className="absolute top-3 left-3 bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-lg text-xs text-white font-semibold flex items-center gap-2 border border-white/10 max-w-[70%]">
                 <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-                <span className="truncate">{file?.name || 'fundus_scan.png'}</span>
+                <span className="truncate">Fundus image loaded</span>
               </div>
 
               {/* Change Image Button */}
               <button
                 onClick={() => fileInputRef.current?.click()}
-                disabled={isLoading}
+                disabled={isLoading || isCaseComplete}
                 className="absolute top-3 right-3 bg-black/70 backdrop-blur-md hover:bg-black/90 text-white text-xs px-2.5 py-1 rounded-lg border border-white/20 transition-all flex items-center gap-1.5"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 Change
               </button>
-
-              {/* Bottom Inspection Toolbar */}
-              <div className="absolute bottom-2.5 inset-x-2.5 flex flex-wrap items-center justify-between gap-2 bg-black/75 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/15 text-white">
-                <div className="flex items-center gap-1 text-xs">
-                  <span className="text-[11px] text-slate-300 mr-1 hidden sm:inline">Filter:</span>
-                  <button
-                    onClick={() => setFilterMode('normal')}
-                    className={`px-2 py-0.5 rounded text-xs font-semibold transition-all ${
-                      filterMode === 'normal' ? 'bg-teal-500 text-white' : 'text-slate-300 hover:text-white'
-                    }`}
-                  >
-                    Color
-                  </button>
-                  <button
-                    onClick={() => setFilterMode('green')}
-                    className={`px-2 py-0.5 rounded text-xs font-semibold transition-all ${
-                      filterMode === 'green' ? 'bg-emerald-500 text-white' : 'text-slate-300 hover:text-white'
-                    }`}
-                    title="Green-channel enhancement"
-                  >
-                    Green
-                  </button>
-                  <button
-                    onClick={() => setFilterMode('clahe')}
-                    className={`px-2 py-0.5 rounded text-xs font-semibold transition-all ${
-                      filterMode === 'clahe' ? 'bg-amber-500 text-white' : 'text-slate-300 hover:text-white'
-                    }`}
-                    title="CLAHE Contrast"
-                  >
-                    CLAHE
-                  </button>
-                  <button
-                    onClick={() => setFilterMode('inverted')}
-                    className={`px-2 py-0.5 rounded text-xs font-semibold transition-all ${
-                      filterMode === 'inverted' ? 'bg-indigo-500 text-white' : 'text-slate-300 hover:text-white'
-                    }`}
-                  >
-                    Invert
-                  </button>
-                </div>
-
-                <div className="flex items-center gap-1 text-xs">
-                  {([1, 1.5, 2] as const).map((lvl) => (
-                    <button
-                      key={lvl}
-                      onClick={() => setZoomLevel(lvl)}
-                      className={`px-2 py-0.5 rounded text-xs font-semibold ${
-                        zoomLevel === lvl ? 'bg-white/30 text-white' : 'text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      {lvl}x
-                    </button>
-                  ))}
-                </div>
-              </div>
             </div>
           )}
 
           {/* Primary Action Button directly under Photograph Select */}
           <button
             onClick={onAnalyze}
-            disabled={!file || isLoading}
+            disabled={!file || isLoading || isCaseComplete || completedEyes.includes(patientInfo.eye)}
             className={`w-full min-h-[46px] py-2.5 px-4 rounded-xl font-bold text-sm shadow-md flex items-center justify-center gap-2 transition-all shrink-0 ${
-              !file || isLoading
+              !file || isLoading || isCaseComplete || completedEyes.includes(patientInfo.eye)
                 ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
                 : 'bg-gradient-to-r from-teal-700 via-teal-600 to-teal-700 text-white hover:from-teal-800 hover:to-teal-800 active:scale-[0.99] shadow-teal-700/20'
             }`}
@@ -304,6 +387,21 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
               <>
                 <RefreshCw className="w-4 h-4 animate-spin" />
                 <span>Processing Fundus Scan...</span>
+              </>
+            ) : isCaseComplete ? (
+              <>
+                <FileCheck className="w-4 h-4" />
+                <span>Both Eyes Completed - Start New Screening</span>
+              </>
+            ) : !file && hasResult ? (
+              <>
+                <FileCheck className="w-4 h-4" />
+                <span>{nextEye ? `Select ${nextEye} Image to Continue` : 'Saved Screening Report Restored'}</span>
+              </>
+            ) : !file ? (
+              <>
+                <UploadCloud className="w-4 h-4" />
+                <span>Select Fundus Image to Start</span>
               </>
             ) : (
               <>

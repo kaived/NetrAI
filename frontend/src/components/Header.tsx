@@ -1,10 +1,8 @@
 import React from 'react';
 import { BookOpen } from 'lucide-react';
 import netrAiLogo from '../assets/NetrAI_Logo.webp';
-import type { HealthResponse } from '../types';
 
 interface HeaderProps {
-  health: HealthResponse | null;
   onOpenGuide: () => void;
 }
 
@@ -14,9 +12,9 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm no-print">
       <div className="max-w-[1760px] mx-auto px-4 sm:px-6 lg:px-10">
-        <div className="flex min-h-14 items-center justify-between gap-3 py-1 sm:min-h-16 sm:gap-5">
+        <div className="flex min-h-16 items-center justify-between gap-3 py-1.5 sm:min-h-[72px] sm:py-2 sm:gap-5">
           <div className="flex min-w-0 items-center justify-start">
-            <div className="relative h-[42px] w-[165px] overflow-hidden sm:h-[50px] sm:w-[200px] lg:h-[58px] lg:w-[230px]">
+            <div className="relative h-[46px] w-[180px] overflow-hidden sm:h-[54px] sm:w-[215px] lg:h-[62px] lg:w-[245px]">
               <img
                 src={netrAiLogo}
                 alt="NetrAI Logo"

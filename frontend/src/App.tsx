@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, ShieldAlert, Sparkles, FileText } from 'lucide-react';
-import { getHealth, predictImage } from './api';
-import type { CaseResult, HealthResponse, PatientInfo } from './types';
+import { ShieldAlert, FileText } from 'lucide-react';
+import { ApiError, getCase, predictImage, resolveApiAssetUrl } from './api';
+import type { CaseResult, PatientInfo, ScreeningFormErrors } from './types';
 import { Header } from './components/Header';
 import { PipelineFlow } from './components/PipelineFlow';
 import { ImageUploader } from './components/ImageUploader';
@@ -9,60 +9,135 @@ import { QualityGateCard } from './components/QualityGateCard';
 import { PredictionCard } from './components/PredictionCard';
 import { ExplainabilityViewer } from './components/ExplainabilityViewer';
 import { ClinicalReportCard } from './components/ClinicalReportCard';
+import { EyeProgressCard } from './components/EyeProgressCard';
 import { ClinicalGuideModal } from './components/ClinicalGuideModal';
+import { generateCaseId } from './utils/caseId';
+import { validateScreeningInput } from './validation/screening';
+
+const DEFAULT_PATIENT_INFO: PatientInfo = {
+  eye: 'OD',
+  patientAge: '',
+  diabetesType: '',
+  diabeticDuration: '',
+};
 
 export function App() {
-  const [health, setHealth] = useState<HealthResponse | null>(null);
+  const [initialCaseId] = useState<string | null>(() => getCaseIdFromUrl());
+  const [activeCaseId, setActiveCaseId] = useState<string | null>(() => initialCaseId);
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [result, setResult] = useState<CaseResult | null>(null);
+  const [generatedCaseId, setGeneratedCaseId] = useState<string>(() => initialCaseId || generateCaseId());
   const [isLoading, setIsLoading] = useState(false);
+  const [isRestoringCase, setIsRestoringCase] = useState(() => Boolean(initialCaseId));
   const [error, setError] = useState<string | null>(null);
-
-  // Patient metadata
-  const [patientInfo, setPatientInfo] = useState<PatientInfo>({
-    patientId: 'PHC-WB-0412',
-    phcCenter: 'PHC-BISHNUPUR-01',
-    eye: 'OD',
-    patientAge: '54y (Type 2 DM, 8 yrs)',
-    diabeticDuration: '8 yrs',
-  });
-
-  // Modals
+  const [fieldErrors, setFieldErrors] = useState<ScreeningFormErrors>({});
+  const [patientInfo, setPatientInfo] = useState<PatientInfo>(() => createFreshPatientInfo());
   const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const completedEyes = result?.completed_eyes ?? [];
+  const nextEye = result?.next_eye ?? null;
+  const isCaseComplete = Boolean(result?.is_case_complete);
+  const resultPreviewUrl = result ? getResultPreviewUrl(result) : previewUrl;
 
-  // Health poll on load and every 20 seconds
-  useEffect(() => {
-    const checkHealth = () => {
-      getHealth()
-        .then(setHealth)
-        .catch(() => setHealth(null));
-    };
-
-    checkHealth();
-    const interval = setInterval(checkHealth, 20000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Update object URL when file changes
   useEffect(() => {
     if (!file) {
-      setPreviewUrl(null);
       return;
     }
+
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
     return () => URL.revokeObjectURL(url);
   }, [file]);
 
+  useEffect(() => {
+    if (!initialCaseId) {
+      return;
+    }
+
+    let isCancelled = false;
+    let retryTimer: number | undefined;
+    let restoreAttempts = 0;
+    setIsRestoringCase(true);
+
+    const restoreCase = () => {
+      restoreAttempts += 1;
+
+      getCase(initialCaseId)
+        .then((caseResult) => {
+          if (isCancelled) {
+            return;
+          }
+
+          setResult(caseResult);
+          setGeneratedCaseId(caseResult.case_id);
+          setPatientInfo(createPatientInfoFromResult(caseResult));
+          setPreviewUrl(null);
+          setError(null);
+          setFieldErrors({});
+          setIsRestoringCase(false);
+        })
+        .catch((err) => {
+          if (isCancelled) {
+            return;
+          }
+
+          setGeneratedCaseId(initialCaseId);
+          if (err instanceof ApiError && [404, 409].includes(err.status) && restoreAttempts < 20) {
+            setError('This screening is still processing. The report will restore automatically when it is ready.');
+            retryTimer = window.setTimeout(restoreCase, 3000);
+            return;
+          }
+
+          setError(err instanceof Error ? err.message : 'Could not restore screening case.');
+          setIsRestoringCase(false);
+        });
+    };
+
+    restoreCase();
+
+    return () => {
+      isCancelled = true;
+      if (retryTimer) {
+        window.clearTimeout(retryTimer);
+      }
+    };
+  }, [initialCaseId]);
+
   const handleAnalyze = async () => {
-    if (!file) return;
+    if (completedEyes.includes(patientInfo.eye)) {
+      setFieldErrors({ eye: `${patientInfo.eye} is already completed for this case.` });
+      setError('Select the pending eye or start a new screening.');
+      return;
+    }
+
+    const validation = validateScreeningInput(patientInfo, file, generatedCaseId);
+    if (!validation.success) {
+      setFieldErrors(validation.errors);
+      setError('Please fix the highlighted intake fields before running screening.');
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
+    setFieldErrors({});
 
     try {
-      const res = await predictImage(file);
+      setPatientInfo(validation.patientInfo);
+      setGeneratedCaseId(validation.caseId);
+      setActiveCaseId(validation.caseId);
+      setCaseIdInUrl(validation.caseId);
+
+      const res = await predictImage(validation.file, validation.patientInfo, validation.caseId);
       setResult(res);
+      setGeneratedCaseId(res.case_id);
+      setActiveCaseId(res.case_id);
+      setCaseIdInUrl(res.case_id);
+      setFile(null);
+      setPreviewUrl(null);
+      setPatientInfo({
+        ...validation.patientInfo,
+        eye: res.next_eye ?? validation.patientInfo.eye,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Prediction failed.');
     } finally {
@@ -75,17 +150,19 @@ export function App() {
     setPreviewUrl(null);
     setResult(null);
     setError(null);
+    setFieldErrors({});
+    setGeneratedCaseId(generateCaseId());
+    setPatientInfo(createFreshPatientInfo());
+    setActiveCaseId(null);
+    clearCaseIdFromUrl();
   };
 
   return (
     <div className="min-h-screen bg-[#f5f8fb] flex flex-col font-sans text-slate-950">
-      <Header
-        health={health}
-        onOpenGuide={() => setIsGuideOpen(true)}
-      />
+      <Header onOpenGuide={() => setIsGuideOpen(true)} />
 
       <main className="flex-1 w-full max-w-[1760px] mx-auto px-6 lg:px-10 py-8 space-y-8">
-        <PipelineFlow isLoading={isLoading} result={result} />
+        <PipelineFlow isLoading={isLoading || isRestoringCase} result={result} />
 
         {error && (
           <div className="bg-rose-50 border border-rose-200 rounded-xl p-5 flex items-start gap-4 text-rose-900 shadow-sm">
@@ -106,57 +183,66 @@ export function App() {
           </div>
         )}
 
-        {/* 1. Patient Intake & Retinal Scan Acquisition Section */}
         <section className="no-print">
           <ImageUploader
             file={file}
             previewUrl={previewUrl}
             patientInfo={patientInfo}
-            isLoading={isLoading}
+            isLoading={isLoading || isRestoringCase}
+            hasResult={Boolean(result || activeCaseId)}
+            caseId={result?.case_id ?? generatedCaseId}
+            validationErrors={fieldErrors}
+            completedEyes={completedEyes}
+            nextEye={nextEye}
+            isCaseComplete={isCaseComplete}
             onFileChange={(f) => {
               setFile(f);
-              setResult(null);
+              if (!f) {
+                setPreviewUrl(null);
+              }
+              setError(null);
+              setFieldErrors({});
+              if (!activeCaseId) {
+                setResult(null);
+                setGeneratedCaseId(generateCaseId());
+                clearCaseIdFromUrl();
+              }
+            }}
+            onPatientInfoChange={(next) => {
+              setPatientInfo(next);
+              setFieldErrors({});
               setError(null);
             }}
-            onPatientInfoChange={setPatientInfo}
             onAnalyze={handleAnalyze}
             onReset={handleReset}
           />
         </section>
 
-        {/* 2. Screening Report Section Below */}
         <section className="space-y-6">
           {result ? (
             <div className="space-y-6">
-              {/* Row 1: Quality Gate & Prediction / Triage */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
                 <QualityGateCard quality={result.quality} />
-                <PredictionCard
-                  prediction={result.prediction}
-                  isGradeable={result.quality.is_gradeable}
-                />
+                <PredictionCard prediction={result.prediction} isGradeable={result.quality.is_gradeable} />
               </div>
 
-              {/* Row 2: Explainability Heatmap & Official Clinical Referral Report */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
                 <ExplainabilityViewer
-                  previewUrl={previewUrl}
+                  previewUrl={resultPreviewUrl}
                   explanation={result.explanation}
                   isGradeable={result.quality.is_gradeable}
-                  icdrGrade={result.prediction.icdr_grade}
                 />
-                <ClinicalReportCard result={result} patientInfo={patientInfo} />
+                {result.is_case_complete ? (
+                  <ClinicalReportCard result={result} patientInfo={patientInfo} previewUrl={resultPreviewUrl} />
+                ) : (
+                  <EyeProgressCard result={result} />
+                )}
               </div>
             </div>
           ) : (
             <div className="bg-white border border-slate-200 rounded-3xl p-8 sm:p-12 lg:p-16 shadow-sm flex flex-col items-center justify-center text-center min-h-[480px] space-y-9 w-full">
-              <div className="relative">
-                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-teal-50 text-teal-600 flex items-center justify-center shadow-inner">
-                  <FileText className="w-10 h-10 sm:w-12 sm:h-12" />
-                </div>
-                <div className="absolute -bottom-1.5 -right-1.5 p-2 bg-teal-600 text-white rounded-full shadow-md">
-                  <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
-                </div>
+              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-teal-50 text-teal-600 flex items-center justify-center shadow-inner">
+                <FileText className="w-10 h-10 sm:w-12 sm:h-12" />
               </div>
 
               <div className="max-w-3xl space-y-3">
@@ -171,7 +257,6 @@ export function App() {
                 </p>
               </div>
 
-              {/* 4 Full-Width Deliverable Cards with Generous Spacing */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 lg:gap-6 w-full text-left">
                 <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200/90 space-y-2.5 hover:bg-slate-100/70 transition-all shadow-xs">
                   <div className="font-bold text-teal-900 flex items-center gap-2.5 text-base">
@@ -218,7 +303,6 @@ export function App() {
         </section>
       </main>
 
-      {/* Footer */}
       <footer className="mt-auto border-t border-slate-200 bg-white py-4 sm:py-5 no-print">
         <div className="max-w-[1760px] mx-auto px-4 sm:px-6 lg:px-10 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-4">
           <p className="text-xs sm:text-sm text-slate-600 text-center sm:text-left">
@@ -232,13 +316,49 @@ export function App() {
         </div>
       </footer>
 
-      {/* Clinical Reference Modal */}
-      <ClinicalGuideModal
-        isOpen={isGuideOpen}
-        onClose={() => setIsGuideOpen(false)}
-      />
+      <ClinicalGuideModal isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
     </div>
   );
 }
 
 export default App;
+
+function createFreshPatientInfo(): PatientInfo {
+  return { ...DEFAULT_PATIENT_INFO };
+}
+
+function createPatientInfoFromResult(result: CaseResult): PatientInfo {
+  return {
+    ...DEFAULT_PATIENT_INFO,
+    eye: result.next_eye ?? (result.patient?.eye === 'OS' ? 'OS' : 'OD'),
+    patientAge: result.patient?.patient_age || '',
+    diabetesType: result.patient?.diabetes_type || '',
+    diabeticDuration: result.patient?.diabetic_duration || '',
+  };
+}
+
+function getResultPreviewUrl(result: CaseResult): string | null {
+  const eye = result.patient?.eye;
+  if (eye === 'OD' || eye === 'OS') {
+    return resolveApiAssetUrl(`/cases/${result.case_id}/eyes/${eye}/input`);
+  }
+
+  return resolveApiAssetUrl(`/cases/${result.case_id}/input`);
+}
+
+function getCaseIdFromUrl(): string | null {
+  const caseId = new URLSearchParams(window.location.search).get('case_id')?.trim();
+  return caseId || null;
+}
+
+function setCaseIdInUrl(caseId: string) {
+  const url = new URL(window.location.href);
+  url.searchParams.set('case_id', caseId);
+  window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+}
+
+function clearCaseIdFromUrl() {
+  const url = new URL(window.location.href);
+  url.searchParams.delete('case_id');
+  window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+}

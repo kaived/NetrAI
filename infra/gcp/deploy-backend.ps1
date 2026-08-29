@@ -64,7 +64,11 @@ $envVars = @(
     "MODEL_CHANNEL_ORDER=rgb",
     "MODEL_LAYOUT=auto",
     "MODEL_INPUT_SCALE=0_1",
-    "MODEL_APPLY_CLAHE=true"
+    "MODEL_APPLY_CLAHE=true",
+    "QUALITY_MIN_FOCUS_SCORE=1.0",
+    "QUALITY_MIN_BRIGHTNESS=0.15",
+    "QUALITY_MAX_BRIGHTNESS=0.90",
+    "QUALITY_MIN_CONTRAST=0.05"
 ) -join ","
 
 Write-Host "Deploying $ServiceName to Cloud Run in $Region..."
@@ -76,7 +80,7 @@ Invoke-Gcloud run deploy $ServiceName `
     --allow-unauthenticated `
     --memory 2Gi `
     --cpu 2 `
-    --min-instances 0 `
+    --min-instances 1 `
     --max-instances 5 `
     --set-env-vars $envVars
 

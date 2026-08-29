@@ -33,12 +33,13 @@ class Settings(BaseSettings):
     model_input_scale: str = Field(default="0_1", pattern="^(0_1|0_255)$")
     model_apply_clahe: bool = True
 
-    quality_min_focus_score: float = 120.0
+    quality_min_focus_score: float = 1.0
     quality_min_brightness: float = 0.15
     quality_max_brightness: float = 0.90
     quality_min_contrast: float = 0.05
 
     local_storage_dir: str = "runtime_storage"
+    max_upload_bytes: int = 12 * 1024 * 1024
 
     @property
     def cors_origins(self) -> list[str]:

@@ -11,19 +11,10 @@
     @apply bg-slate-50 text-slate-900 min-h-screen antialiased;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
-}
 
-/* Custom Retinal Image Filters */
-.filter-green-channel {
-  filter: contrast(160%) brightness(110%) hue-rotate(90deg) saturate(180%);
-}
-
-.filter-inverted {
-  filter: invert(100%) hue-rotate(180deg);
-}
-
-.filter-clahe-sim {
-  filter: contrast(145%) brightness(105%) saturate(125%);
+  input, button, select, textarea {
+    outline: none !important;
+  }
 }
 
 /* Smooth scrolling */

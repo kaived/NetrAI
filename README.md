@@ -36,7 +36,7 @@ fundus image
 - `docs/DEPLOYMENT.md`
 - `docs/FIREBASE_SETUP.md`
 - `docs/GCP_SETUP.md`
-- `docs/FIRST_ML_MILESTONE.md`
+- `docs/MODEL_DEVELOPMENT.md`
 
 ## Dataset Check
 
@@ -54,6 +54,13 @@ startup
 indexTable = build_aptos_index();
 stores = create_aptos_datastores();
 [trainedNet, info, metrics] = train_aptos_resnet18_baseline();
+```
+
+Train the more stable v2 model:
+
+```matlab
+splitTable = create_aptos_fixed_split();
+[trainedNet, info, metrics] = train_aptos_resnet18_stable_v2();
 ```
 
 Test one image after training:

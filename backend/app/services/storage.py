@@ -39,6 +39,33 @@ class StorageService:
         path.write_bytes(content)
         return str(path)
 
+    def save_output_bytes(
+        self,
+        case_id: str,
+        filename: str,
+        content: bytes,
+        content_type: str | None = None,
+    ) -> str:
+        object_name = f"outputs/cases/{case_id}/{safe_filename(filename)}"
+        if self.settings.gcs_enabled:
+            return self._upload_bytes(self.settings.gcs_output_bucket, object_name, content, content_type=content_type)
+
+        path = self.local_dir / object_name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(content)
+        return str(path)
+
+    def read_uri(self, uri: str) -> bytes:
+        if uri.startswith("gs://"):
+            bucket_name, blob_name = parse_gcs_uri(uri)
+            client = self._get_storage_client()
+            return client.bucket(bucket_name).blob(blob_name).download_as_bytes()
+
+        path = Path(uri)
+        if not path.is_absolute():
+            path = Path.cwd() / path
+        return path.read_bytes()
+
     def _upload_bytes(
         self,
         bucket_name: str,
@@ -65,3 +92,15 @@ class StorageService:
 
 def safe_filename(filename: str) -> str:
     return Path(filename).name.replace(" ", "_") or "file"
+
+
+def parse_gcs_uri(uri: str) -> tuple[str, str]:
+    if not uri.startswith("gs://"):
+        raise ValueError("GCS URI must start with gs://")
+
+    path = uri.removeprefix("gs://")
+    bucket_name, separator, blob_name = path.partition("/")
+    if not bucket_name or not separator or not blob_name:
+        raise ValueError("GCS URI must look like gs://bucket/path/to/object")
+
+    return bucket_name, blob_name

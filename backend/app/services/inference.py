@@ -4,11 +4,13 @@ from app.config import Settings
 from app.schemas import (
     CaseResult,
     ExplanationResult,
+    PatientMetadata,
     PredictionResult,
     ReportResult,
     StorageResult,
 )
 from app.services.image_pipeline import ImagePipeline
+from app.services.image_pipeline import confidence_level as classify_confidence
 from app.services.storage import StorageService
 
 
@@ -24,7 +26,13 @@ class InferenceService:
     def prepare_model(self) -> None:
         self.image_pipeline.prepare_model()
 
-    async def predict(self, case_id: str, image_bytes: bytes, filename: str) -> CaseResult:
+    async def predict(
+        self,
+        case_id: str,
+        image_bytes: bytes,
+        filename: str,
+        patient: PatientMetadata | None = None,
+    ) -> CaseResult:
         quality = self.image_pipeline.run_quality(image_bytes)
 
         if not quality.is_gradeable:
@@ -33,6 +41,7 @@ class InferenceService:
                 label="ungradeable",
                 referable_dr=False,
                 confidence=0.0,
+                confidence_level="not_applicable",
                 model_version=self.settings.model_version,
             )
             explanation = ExplanationResult(
@@ -47,12 +56,13 @@ class InferenceService:
             )
             report_uri = self.storage_service.save_output_json(
                 case_id,
-                "report.json",
+                self._artifact_name(patient, "report.json"),
                 report.model_dump(mode="json"),
             )
             return CaseResult(
                 case_id=case_id,
                 status="rejected_ungradeable",
+                patient=patient,
                 quality=quality,
                 prediction=prediction,
                 explanation=explanation,
@@ -61,36 +71,55 @@ class InferenceService:
             )
 
         if self.settings.inference_mode == "onnx":
-            return self._predict_with_onnx(case_id, image_bytes, quality)
+            return self._predict_with_onnx(case_id, image_bytes, quality, patient)
 
-        return self._predict_stub(case_id, quality)
+        return self._predict_stub(case_id, quality, patient)
 
-    def _predict_with_onnx(self, case_id: str, image_bytes: bytes, quality) -> CaseResult:
+    def _predict_with_onnx(
+        self,
+        case_id: str,
+        image_bytes: bytes,
+        quality,
+        patient: PatientMetadata | None,
+    ) -> CaseResult:
         prediction = self.image_pipeline.predict_onnx(image_bytes)
+        heatmap_bytes = self.image_pipeline.generate_attention_heatmap(image_bytes)
+        heatmap_uri = self.storage_service.save_output_bytes(
+            case_id,
+            self._artifact_name(patient, "attention_heatmap.png"),
+            heatmap_bytes,
+            content_type="image/png",
+        )
         explanation = ExplanationResult(
-            method="grad_cam_pending",
-            heatmap_url=None,
-            text="ONNX inference completed. Grad-CAM will be added after the exported model is stable.",
+            method="cv_lesion_attention_v1",
+            heatmap_url=self._heatmap_url(case_id, patient),
+            text="Computer-vision lesion attention heatmap generated from contrast-enhanced fundus features. This is a fast explainability layer for screening review.",
         )
         report = self._build_report(prediction, explanation)
-        report_uri = self.storage_service.save_output_json(case_id, "report.json", report.model_dump(mode="json"))
+        report_uri = self.storage_service.save_output_json(
+            case_id,
+            self._artifact_name(patient, "report.json"),
+            report.model_dump(mode="json"),
+        )
 
         return CaseResult(
             case_id=case_id,
             status="completed",
+            patient=patient,
             quality=quality,
             prediction=prediction,
             explanation=explanation,
             report=report,
-            storage=StorageResult(report_uri=report_uri),
+            storage=StorageResult(heatmap_uri=heatmap_uri, report_uri=report_uri),
         )
 
-    def _predict_stub(self, case_id: str, quality) -> CaseResult:
+    def _predict_stub(self, case_id: str, quality, patient: PatientMetadata | None) -> CaseResult:
         prediction = PredictionResult(
             icdr_grade=2,
             label="moderate",
             referable_dr=True,
             confidence=0.91,
+            confidence_level="high",
             model_version=self.settings.model_version,
         )
         explanation = ExplanationResult(
@@ -100,11 +129,16 @@ class InferenceService:
         )
         report = self._build_report(prediction, explanation)
 
-        report_uri = self.storage_service.save_output_json(case_id, "report.json", report.model_dump(mode="json"))
+        report_uri = self.storage_service.save_output_json(
+            case_id,
+            self._artifact_name(patient, "report.json"),
+            report.model_dump(mode="json"),
+        )
 
         return CaseResult(
             case_id=case_id,
             status="completed",
+            patient=patient,
             quality=quality,
             prediction=prediction,
             explanation=explanation,
@@ -113,12 +147,42 @@ class InferenceService:
         )
 
     def _build_report(self, prediction: PredictionResult, explanation: ExplanationResult) -> ReportResult:
+        level = prediction.confidence_level
+        if level == "unknown":
+            level = classify_confidence(prediction.confidence)
+
         if prediction.referable_dr:
-            summary = f"Referable DR suspected: {prediction.label}, confidence {prediction.confidence:.2f}."
-            recommendation = "Ophthalmologist review recommended."
+            if level == "low":
+                summary = (
+                    f"Possible referable DR suspected: {prediction.label}, "
+                    f"low model confidence {prediction.confidence:.2f}."
+                )
+                recommendation = "Ophthalmologist review recommended; verify manually because model confidence is low."
+            elif level == "moderate":
+                summary = (
+                    f"Referable DR suspected: {prediction.label}, "
+                    f"moderate model confidence {prediction.confidence:.2f}."
+                )
+                recommendation = "Ophthalmologist review recommended. Treat as triage-positive screening."
+            else:
+                summary = f"Referable DR suspected: {prediction.label}, high model confidence {prediction.confidence:.2f}."
+                recommendation = "Ophthalmologist review recommended."
         else:
-            summary = f"No referable DR detected: {prediction.label}, confidence {prediction.confidence:.2f}."
-            recommendation = "Routine screening follow-up recommended according to local protocol."
+            if level == "low":
+                summary = (
+                    f"No referable DR detected: {prediction.label}, "
+                    f"but model confidence is low at {prediction.confidence:.2f}."
+                )
+                recommendation = "Repeat capture or ophthalmologist review recommended before routine follow-up."
+            elif level == "moderate":
+                summary = (
+                    f"No referable DR detected: {prediction.label}, "
+                    f"moderate model confidence {prediction.confidence:.2f}."
+                )
+                recommendation = "Routine follow-up may be used with clinical review if symptoms or risk factors are present."
+            else:
+                summary = f"No referable DR detected: {prediction.label}, high model confidence {prediction.confidence:.2f}."
+                recommendation = "Routine screening follow-up recommended according to local protocol."
 
         if prediction.icdr_grade is None:
             summary = "No DR grade assigned."
@@ -129,3 +193,15 @@ class InferenceService:
             recommendation=recommendation,
             disclaimer="Screening support only. Not a final diagnosis.",
         )
+
+    @staticmethod
+    def _artifact_name(patient: PatientMetadata | None, filename: str) -> str:
+        if patient and patient.eye in {"OD", "OS"}:
+            return f"{patient.eye}_{filename}"
+        return filename
+
+    @staticmethod
+    def _heatmap_url(case_id: str, patient: PatientMetadata | None) -> str:
+        if patient and patient.eye in {"OD", "OS"}:
+            return f"/cases/{case_id}/eyes/{patient.eye}/heatmap"
+        return f"/cases/{case_id}/heatmap"

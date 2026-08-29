@@ -11,6 +11,7 @@ export type PredictionResult = {
   label: string;
   referable_dr: boolean;
   confidence: number;
+  confidence_level?: string;
   model_version: string;
 };
 
@@ -32,9 +33,19 @@ export type StorageResult = {
   report_uri: string | null;
 };
 
-export type CaseResult = {
-  case_id: string;
+export type PatientMetadata = {
+  eye: string | null;
+  patient_age: string | null;
+  diabetes_type?: string | null;
+  diabetic_duration: string | null;
+};
+
+export type EyeCode = 'OD' | 'OS';
+
+export type EyeScreeningResult = {
+  eye: EyeCode;
   status: string;
+  patient: PatientMetadata | null;
   quality: QualityResult;
   prediction: PredictionResult;
   explanation: ExplanationResult;
@@ -42,20 +53,38 @@ export type CaseResult = {
   storage: StorageResult;
 };
 
-export type HealthResponse = {
+export type FinalReportResult = {
+  summary: string;
+  recommendation: string;
+  disclaimer: string;
+  referable_dr: boolean;
+  worst_eye: EyeCode | null;
+  worst_icdr_grade: number | null;
+  worst_label: string | null;
+  completed_eyes: EyeCode[];
+};
+
+export type CaseResult = {
+  case_id: string;
   status: string;
-  environment: string;
-  firestore_enabled: boolean;
-  gcs_enabled: boolean;
-  inference_mode: string;
-  model_version: string;
-  model_loaded: boolean;
+  patient: PatientMetadata | null;
+  quality: QualityResult;
+  prediction: PredictionResult;
+  explanation: ExplanationResult;
+  report: ReportResult;
+  storage: StorageResult;
+  completed_eyes: EyeCode[];
+  next_eye: EyeCode | null;
+  is_case_complete: boolean;
+  eyes: Partial<Record<EyeCode, EyeScreeningResult>>;
+  final_report: FinalReportResult | null;
 };
 
 export interface PatientInfo {
-  patientId: string;
-  phcCenter: string;
-  eye: 'OD' | 'OS'; // OD = Right Eye, OS = Left Eye
+  eye: 'OD' | 'OS';
   patientAge: string;
+  diabetesType: string;
   diabeticDuration: string;
 }
+
+export type ScreeningFormErrors = Partial<Record<keyof PatientInfo | 'caseId' | 'image', string>>;

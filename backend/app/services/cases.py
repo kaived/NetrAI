@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 from uuid import uuid4
 
 from app.config import Settings
-from app.schemas import CaseResult
+from app.schemas import CaseResult, EyeScreeningResult, FinalReportResult
+
+EYE_ORDER = ("OD", "OS")
+
+CASE_ID_TIMEZONE = timezone(timedelta(hours=5, minutes=30), name="IST")
 
 
 class CaseRepository:
@@ -18,8 +22,8 @@ class CaseRepository:
         self.collection_name = settings.firestore_cases_collection
 
     def new_case_id(self) -> str:
-        timestamp = datetime.now(UTC).strftime("%Y%m%d%H%M%S")
-        return f"case_{timestamp}_{uuid4().hex[:8]}"
+        timestamp = datetime.now(CASE_ID_TIMEZONE).strftime("%Y%m%d-%H%M%S")
+        return f"CASE-{timestamp}-{uuid4().hex[:6].upper()}"
 
     def create_case(self, case_id: str, filename: str, status: str) -> None:
         self._write_case(
@@ -38,10 +42,20 @@ class CaseRepository:
         case["updated_at"] = datetime.now(UTC).isoformat()
         self._write_case(case_id, case)
 
-    def save_result(self, result: CaseResult) -> None:
-        data = result.model_dump(mode="json")
+    def save_result(self, result: CaseResult) -> CaseResult:
+        aggregate_result = self._build_aggregate_result(result)
+        data = aggregate_result.model_dump(mode="json")
         data["updated_at"] = datetime.now(UTC).isoformat()
         self._write_case(result.case_id, data)
+        return aggregate_result
+
+    @staticmethod
+    def is_eye_completed(case: dict | None, eye: str) -> bool:
+        if not case:
+            return False
+
+        eye_result = _get_eye_result(case, eye)
+        return bool(eye_result and eye_result.status == "completed" and eye_result.quality.is_gradeable)
 
     def get_case(self, case_id: str) -> dict | None:
         if self.settings.firestore_enabled:
@@ -84,3 +98,136 @@ class CaseRepository:
 
             self._firestore_client = firestore.client()
         return self._firestore_client
+
+    def _build_aggregate_result(self, result: CaseResult) -> CaseResult:
+        eye = result.patient.eye if result.patient and result.patient.eye else None
+        if eye not in EYE_ORDER:
+            return result
+
+        existing_case = self.get_case(result.case_id) or {}
+        eyes = _parse_eye_results(existing_case.get("eyes"))
+        eyes[eye] = EyeScreeningResult(
+            eye=eye,
+            status=result.status,
+            patient=result.patient,
+            quality=result.quality,
+            prediction=result.prediction,
+            explanation=result.explanation,
+            report=result.report,
+            storage=result.storage,
+        )
+
+        completed_eyes = _completed_eyes(eyes)
+        final_report = _build_final_report(eyes, completed_eyes)
+        next_eye = _next_eye(eye, completed_eyes, result)
+        status = "completed" if final_report else _case_status(result)
+
+        return CaseResult(
+            case_id=result.case_id,
+            status=status,
+            patient=result.patient,
+            quality=result.quality,
+            prediction=result.prediction,
+            explanation=result.explanation,
+            report=result.report,
+            storage=result.storage,
+            completed_eyes=completed_eyes,
+            next_eye=next_eye,
+            is_case_complete=final_report is not None,
+            eyes=eyes,
+            final_report=final_report,
+        )
+
+
+def _get_eye_result(case: dict, eye: str) -> EyeScreeningResult | None:
+    eyes = _parse_eye_results(case.get("eyes"))
+    return eyes.get(eye)
+
+
+def _parse_eye_results(raw_eyes: object) -> dict[str, EyeScreeningResult]:
+    if not isinstance(raw_eyes, dict):
+        return {}
+
+    parsed: dict[str, EyeScreeningResult] = {}
+    for eye, payload in raw_eyes.items():
+        normalized_eye = str(eye).upper()
+        if normalized_eye not in EYE_ORDER:
+            continue
+        try:
+            parsed[normalized_eye] = EyeScreeningResult.model_validate(payload)
+        except Exception:
+            continue
+    return parsed
+
+
+def _completed_eyes(eyes: dict[str, EyeScreeningResult]) -> list[str]:
+    return [
+        eye
+        for eye in EYE_ORDER
+        if eye in eyes and eyes[eye].status == "completed" and eyes[eye].quality.is_gradeable
+    ]
+
+
+def _build_final_report(
+    eyes: dict[str, EyeScreeningResult],
+    completed_eyes: list[str],
+) -> FinalReportResult | None:
+    if any(eye not in completed_eyes for eye in EYE_ORDER):
+        return None
+
+    completed_results = [eyes[eye] for eye in EYE_ORDER]
+    worst_result = max(
+        completed_results,
+        key=lambda item: item.prediction.icdr_grade if item.prediction.icdr_grade is not None else -1,
+    )
+    worst_grade = worst_result.prediction.icdr_grade
+    worst_label = worst_result.prediction.label
+    referable = any(item.prediction.referable_dr for item in completed_results)
+    low_confidence = any((item.prediction.confidence_level or "").lower() == "low" for item in completed_results)
+
+    if referable:
+        summary = (
+            "Final two-eye screening: referable diabetic retinopathy suspected. "
+            f"Worst eye {_eye_label(worst_result.eye)}: {worst_label} (Grade {worst_grade})."
+        )
+        recommendation = "Ophthalmologist review recommended. Treat as triage-positive because at least one eye is referable."
+    else:
+        summary = (
+            "Final two-eye screening: no referable diabetic retinopathy detected in either eye. "
+            f"Worst finding: {worst_label} (Grade {worst_grade})."
+        )
+        recommendation = "Routine screening follow-up may be used unless symptoms or clinical risk factors require review."
+
+    if low_confidence:
+        recommendation += " At least one eye has low model confidence, so manual verification is recommended."
+
+    return FinalReportResult(
+        summary=summary,
+        recommendation=recommendation,
+        disclaimer="Screening support only. Not a final diagnosis.",
+        referable_dr=referable,
+        worst_eye=worst_result.eye,
+        worst_icdr_grade=worst_grade,
+        worst_label=worst_label,
+        completed_eyes=completed_eyes,
+    )
+
+
+def _next_eye(current_eye: str, completed_eyes: list[str], result: CaseResult) -> str | None:
+    if result.status != "completed" or not result.quality.is_gradeable:
+        return current_eye
+
+    for eye in EYE_ORDER:
+        if eye not in completed_eyes:
+            return eye
+    return None
+
+
+def _case_status(result: CaseResult) -> str:
+    if result.status == "rejected_ungradeable":
+        return "rejected_ungradeable"
+    return "in_progress"
+
+
+def _eye_label(eye: str) -> str:
+    return "OD Right" if eye == "OD" else "OS Left"
