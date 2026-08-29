@@ -84,6 +84,7 @@ Do this while the MATLAB model is still training:
 ```
 
 This deploys the real FastAPI backend with Firebase and GCS enabled, but prediction uses the temporary demo stub.
+The deployment script also allows browser requests from `https://netr-ai.orbionixtech.com`.
 
 Use this to verify:
 
@@ -128,6 +129,7 @@ and deploys Cloud Run with:
 ```text
 INFERENCE_MODE=onnx
 MODEL_GCS_URI=gs://retinascan-ai-f620e-models/models/dr_classifier.onnx
+API_CORS_ORIGINS=https://netr-ai.orbionixtech.com,https://www.netr-ai.orbionixtech.com,http://localhost:5173,http://localhost:4173
 ```
 
 ## 5. Cloudflare Pages Frontend

@@ -53,6 +53,7 @@ INFERENCE_MODE=onnx
 MODEL_VERSION=aptos-baseline-v1
 MODEL_PATH=models/dr_classifier.onnx
 MODEL_GCS_URI=gs://your-model-bucket/models/dr_classifier.onnx
+API_CORS_ORIGINS=https://netr-ai.orbionixtech.com,https://www.netr-ai.orbionixtech.com,http://localhost:5173,http://localhost:4173
 MODEL_LAYOUT=auto
 MODEL_INPUT_SCALE=0_1
 MODEL_APPLY_CLAHE=true
@@ -64,6 +65,12 @@ FIRESTORE_CASES_COLLECTION=cases
 ```
 
 Firestore stores the case/report metadata. Cloud Storage stores uploaded images and report JSON files when enabled.
+
+For CORS, use the exact browser origin without a trailing slash. For the production frontend, that is:
+
+```text
+https://netr-ai.orbionixtech.com
+```
 
 ## Model Flow
 

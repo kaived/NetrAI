@@ -8,7 +8,7 @@ param(
     [string]$ModelBucket = "$ProjectId-models",
     [string]$InputBucket = "$ProjectId-inputs",
     [string]$OutputBucket = "$ProjectId-outputs",
-    [string]$CorsOrigins = "*",
+    [string]$CorsOrigins = "https://netr-ai.orbionixtech.com,https://www.netr-ai.orbionixtech.com,http://localhost:5173,http://localhost:4173",
     [string]$ModelVersion = "demo-stub-v0"
 )
 
