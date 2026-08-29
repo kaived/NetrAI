@@ -32,11 +32,15 @@ class Settings(BaseSettings):
     model_layout: str = Field(default="auto", pattern="^(auto|nchw|nhwc)$")
     model_input_scale: str = Field(default="0_1", pattern="^(0_1|0_255)$")
     model_apply_clahe: bool = True
+    model_referable_threshold: float = 0.50
 
     quality_min_focus_score: float = 1.0
     quality_min_brightness: float = 0.15
     quality_max_brightness: float = 0.90
     quality_min_contrast: float = 0.05
+    quality_min_compatibility_score: float = 0.55
+    quality_max_edge_artifact_ratio: float = 0.52
+    quality_max_green_dominance_ratio: float = 0.42
 
     local_storage_dir: str = "runtime_storage"
     max_upload_bytes: int = 12 * 1024 * 1024

@@ -8,7 +8,7 @@ if nargin < 5 || isempty(classNames)
     classNames = ["no_dr", "mild", "moderate", "severe", "proliferative_dr"];
 end
 
-if nargin < 6 || strlength(string(datasetName)) == 0
+if nargin < 6 || isempty(datasetName) || strlength(string(datasetName)) == 0
     datasetName = "aptos2019_validation_split";
 end
 
@@ -123,7 +123,7 @@ if ~isnan(bestReferableThreshold)
         bestReferableThreshold, thresholdSensitivity, thresholdSpecificity);
 end
 
-if nargin >= 4 && strlength(string(outputJsonPath)) > 0
+if nargin >= 4 && ~isempty(outputJsonPath) && strlength(string(outputJsonPath)) > 0
     outputDir = fileparts(outputJsonPath);
     if ~isempty(outputDir) && ~isfolder(outputDir)
         mkdir(outputDir);

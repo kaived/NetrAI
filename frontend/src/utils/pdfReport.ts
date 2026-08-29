@@ -1,3 +1,4 @@
+import { resolveApiAssetUrl } from '../api';
 import type { CaseResult, EyeCode, EyeScreeningResult } from '../types';
 
 type PdfReportContext = {
@@ -31,10 +32,39 @@ const TOP_Y = 738;
 const BOTTOM_Y = 54;
 
 export async function downloadClinicalReportPdf(result: CaseResult, context: PdfReportContext) {
-  const evidenceImage = context.previewUrl && context.heatmapUrl
-    ? await createEvidenceImage(context.previewUrl, context.heatmapUrl)
-    : null;
-  const pdf = buildClinicalReportPdf(result, context, evidenceImage);
+  const eyeResults = getEyeResults(result);
+  const evidenceList: Array<{ eyeLabel: string; image: PdfEvidenceImage }> = [];
+
+  if (eyeResults.length > 0) {
+    for (const eyeRes of eyeResults) {
+      const eyeCode = eyeRes.eye;
+      const eyeInputUrl =
+        resolveApiAssetUrl(`/cases/${result.case_id}/eyes/${eyeCode}/input`) ||
+        (result.patient?.eye === eyeCode ? context.previewUrl : null);
+      const eyeHeatmapUrl =
+        resolveApiAssetUrl(eyeRes.explanation.heatmap_url) ||
+        resolveApiAssetUrl(`/cases/${result.case_id}/eyes/${eyeCode}/heatmap`);
+
+      if (eyeInputUrl && eyeHeatmapUrl) {
+        const img = await createEvidenceImage(eyeInputUrl, eyeHeatmapUrl);
+        if (img) {
+          evidenceList.push({
+            eyeLabel: eyeCode === 'OD' ? 'OD (Right Eye)' : 'OS (Left Eye)',
+            image: img,
+          });
+        }
+      }
+    }
+  }
+
+  if (evidenceList.length === 0 && context.previewUrl && context.heatmapUrl) {
+    const singleImg = await createEvidenceImage(context.previewUrl, context.heatmapUrl);
+    if (singleImg) {
+      evidenceList.push({ eyeLabel: context.eyeLabel, image: singleImg });
+    }
+  }
+
+  const pdf = buildClinicalReportPdf(result, context, evidenceList);
   const blob = new Blob([pdf], { type: 'application/pdf' });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
@@ -50,17 +80,20 @@ export async function downloadClinicalReportPdf(result: CaseResult, context: Pdf
 function buildClinicalReportPdf(
   result: CaseResult,
   context: PdfReportContext,
-  evidenceImage: PdfEvidenceImage | null,
+  evidenceList: Array<{ eyeLabel: string; image: PdfEvidenceImage }>,
 ): ArrayBuffer {
   const generatedAt = new Date().toLocaleString();
   const finalReport = result.final_report;
   const isFinalReport = Boolean(finalReport);
-  const referableLabel = (finalReport?.referable_dr ?? result.prediction.referable_dr) ? 'Referral required' : 'Routine follow-up';
-  const gradeLabel = finalReport?.worst_icdr_grade !== undefined && finalReport?.worst_icdr_grade !== null
-    ? `${finalReport.worst_icdr_grade} (${finalReport.worst_label ?? 'worst eye'})`
-    : result.prediction.icdr_grade === null
-    ? 'N/A'
-    : `${result.prediction.icdr_grade} (${result.prediction.label})`;
+  const referableLabel = (finalReport?.referable_dr ?? result.prediction.referable_dr)
+    ? 'Referral required'
+    : 'Routine follow-up';
+  const gradeLabel =
+    finalReport?.worst_icdr_grade !== undefined && finalReport?.worst_icdr_grade !== null
+      ? `Grade ${finalReport.worst_icdr_grade} (${finalReport.worst_label ?? 'worst eye'})`
+      : result.prediction.icdr_grade === null || result.prediction.icdr_grade === undefined
+      ? 'No Grade'
+      : `Grade ${result.prediction.icdr_grade} (${result.prediction.label})`;
   const confidence = `${(result.prediction.confidence * 100).toFixed(1)}%`;
   const confidenceLevel = result.prediction.confidence_level || 'unknown';
   const eyeResults = getEyeResults(result);
@@ -81,7 +114,7 @@ function buildClinicalReportPdf(
 
     section('Case Details'),
     field('Case ID', result.case_id),
-    field('Eye Examined', context.eyeLabel),
+    field('Eye Examined', eyeResults.length > 1 ? 'Both Eyes (OD + OS)' : context.eyeLabel),
     field('Patient Age', context.patientAge),
     field('Diabetes Type', context.diabetesType),
     field('Years Since Diagnosis', context.diabeticDuration),
@@ -91,12 +124,23 @@ function buildClinicalReportPdf(
     field('Focus Score', result.quality.focus_score.toFixed(3)),
     field('Brightness', result.quality.brightness.toFixed(3)),
     field('Contrast', result.quality.contrast.toFixed(3)),
-    field('Quality Notes', result.quality.reasons.length ? result.quality.reasons.join('; ') : 'No quality rejection reasons.'),
+    field('Fundus Compatibility', `${Math.round((result.quality.compatibility_score ?? 1) * 100)}%`),
+    field('Supported Fundus Style', result.quality.is_supported_fundus === false ? 'No' : 'Yes'),
+    field(
+      'Compatibility Warnings',
+      result.quality.warnings?.length ? result.quality.warnings.join('; ') : 'No compatibility warnings.',
+    ),
+    field(
+      'Quality Notes',
+      result.quality.reasons.length ? result.quality.reasons.join('; ') : 'No quality rejection reasons.',
+    ),
 
-    ...(isFinalReport ? [
-      section('Per-Eye Results'),
-      ...eyeResults.map((eyeResult) => field(formatEyeLabel(eyeResult.eye), formatEyeResult(eyeResult))),
-    ] : []),
+    ...(eyeResults.length > 0
+      ? [
+          section('Per-Eye Results'),
+          ...eyeResults.map((eyeResult) => field(formatEyeLabel(eyeResult.eye), formatEyeResult(eyeResult))),
+        ]
+      : []),
 
     section('Diagnostic Triage'),
     field('ICDR DR Grade', gradeLabel),
@@ -112,14 +156,16 @@ function buildClinicalReportPdf(
 
     section('Explainability'),
     field('Method', result.explanation.method),
-    field('Heatmap', evidenceImage ? 'Included on visual evidence page.' : 'Not available for this PDF.'),
+    field('Heatmap', evidenceList.length > 0 ? 'Included on visual evidence page(s).' : 'Not available for this PDF.'),
     paragraph(result.explanation.text),
 
     section('Medical Disclaimer'),
-    paragraph(`${finalReport?.disclaimer ?? result.report.disclaimer} NetrAI is a screening support tool only and does not replace examination by a certified ophthalmologist.`),
+    paragraph(
+      `${finalReport?.disclaimer ?? result.report.disclaimer} NetrAI is a screening support tool only and does not replace examination by a certified ophthalmologist.`,
+    ),
   ];
 
-  return createPdf(lines, evidenceImage);
+  return createPdf(lines, evidenceList);
 }
 
 function getEyeResults(result: CaseResult): EyeScreeningResult[] {
@@ -133,10 +179,13 @@ function formatEyeLabel(eye: EyeCode) {
 }
 
 function formatEyeResult(eyeResult: EyeScreeningResult) {
-  const grade = eyeResult.prediction.icdr_grade ?? 'N/A';
+  const grade =
+    eyeResult.prediction.icdr_grade !== null && eyeResult.prediction.icdr_grade !== undefined
+      ? `Grade ${eyeResult.prediction.icdr_grade}`
+      : 'No Grade';
   const confidence = (eyeResult.prediction.confidence * 100).toFixed(1);
   const referral = eyeResult.prediction.referable_dr ? 'Referable' : 'Routine';
-  return `Grade ${grade} (${eyeResult.prediction.label}), ${confidence}% confidence, ${referral}`;
+  return `${grade} (${eyeResult.prediction.label}), ${confidence}% confidence, ${referral}`;
 }
 
 function section(text: string): PdfLine {
@@ -167,14 +216,17 @@ function paragraph(text: string): PdfLine {
   };
 }
 
-function createPdf(lines: PdfLine[], evidenceImage: PdfEvidenceImage | null): ArrayBuffer {
-  const pages: string[] = [];
+function createPdf(
+  lines: PdfLine[],
+  evidenceList: Array<{ eyeLabel: string; image: PdfEvidenceImage }>,
+): ArrayBuffer {
+  const pageDefs: Array<{ stream: string; xObjectResource?: string }> = [];
   let currentPage = '';
   let y = TOP_Y;
 
   const addPage = () => {
     if (currentPage.trim()) {
-      pages.push(currentPage);
+      pageDefs.push({ stream: currentPage });
     }
     currentPage = '';
     y = TOP_Y;
@@ -204,11 +256,22 @@ function createPdf(lines: PdfLine[], evidenceImage: PdfEvidenceImage | null): Ar
 
   addPage();
 
-  if (evidenceImage) {
-    pages.push(drawEvidencePage(evidenceImage));
-  }
+  const imageEntries: Array<{
+    xObjectName: string;
+    image: PdfEvidenceImage;
+  }> = [];
 
-  return writePdfDocument(pages, evidenceImage);
+  evidenceList.forEach((ev, idx) => {
+    const xObjectName = `Im${idx + 1}`;
+    imageEntries.push({ xObjectName, image: ev.image });
+    const evidenceStream = drawEvidencePage(ev.image, ev.eyeLabel, xObjectName);
+    pageDefs.push({
+      stream: evidenceStream,
+      xObjectResource: `/XObject << /${xObjectName} %%IMG_OBJ_ID_${idx}%% 0 R >>`,
+    });
+  });
+
+  return writePdfDocument(pageDefs, imageEntries);
 }
 
 function drawText(text: string, x: number, y: number, line: PdfLine): string {
@@ -255,15 +318,15 @@ function wrapText(text: string, maxWidth: number, fontSize: number): string[] {
   return lines.length ? lines : [''];
 }
 
-function drawEvidencePage(image: PdfEvidenceImage): string {
+function drawEvidencePage(image: PdfEvidenceImage, eyeLabel: string, xObjectName: string): string {
   const title: PdfLine = {
-    text: 'Visual Evidence - Fundus Attention Heatmap',
+    text: `Visual Evidence - ${eyeLabel} Fundus Attention Heatmap`,
     size: 16,
     bold: true,
     color: [15, 118, 110],
   };
   const caption: PdfLine = {
-    text: 'Composite view of uploaded fundus image with backend-generated lesion-attention heatmap overlay.',
+    text: `Composite view of ${eyeLabel} fundus image with backend-generated lesion-attention heatmap overlay.`,
     size: 10,
     color: [71, 85, 105],
   };
@@ -283,7 +346,7 @@ function drawEvidencePage(image: PdfEvidenceImage): string {
   return [
     drawText(title.text, MARGIN_X, TOP_Y, title),
     drawText(caption.text, MARGIN_X, TOP_Y - 22, caption),
-    `q ${displayWidth.toFixed(2)} 0 0 ${displayHeight.toFixed(2)} ${x.toFixed(2)} ${y.toFixed(2)} cm /Im1 Do Q`,
+    `q ${displayWidth.toFixed(2)} 0 0 ${displayHeight.toFixed(2)} ${x.toFixed(2)} ${y.toFixed(2)} cm /${xObjectName} Do Q`,
     '',
   ].join('\n');
 }
@@ -354,7 +417,10 @@ function base64ToHex(base64: string) {
   return hex;
 }
 
-function writePdfDocument(pageStreams: string[], evidenceImage: PdfEvidenceImage | null): ArrayBuffer {
+function writePdfDocument(
+  pageDefs: Array<{ stream: string; xObjectResource?: string }>,
+  imageEntries: Array<{ xObjectName: string; image: PdfEvidenceImage }>,
+): ArrayBuffer {
   const objects: string[] = [];
   const pageObjectIds: number[] = [];
   let nextObjectId = 5;
@@ -363,26 +429,33 @@ function writePdfDocument(pageStreams: string[], evidenceImage: PdfEvidenceImage
   objects[3] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>';
   objects[4] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>';
 
-  const imageObjectId = evidenceImage ? nextObjectId++ : null;
-  if (evidenceImage && imageObjectId) {
-    const imageStream = `${evidenceImage.dataHex}>`;
-    objects[imageObjectId] = [
+  const imageObjectIds: number[] = [];
+
+  imageEntries.forEach((entry) => {
+    const imgObjId = nextObjectId++;
+    imageObjectIds.push(imgObjId);
+    const imageStream = `${entry.image.dataHex}>`;
+    objects[imgObjId] = [
       '<< /Type /XObject',
       '/Subtype /Image',
-      `/Width ${evidenceImage.width}`,
-      `/Height ${evidenceImage.height}`,
+      `/Width ${entry.image.width}`,
+      `/Height ${entry.image.height}`,
       '/ColorSpace /DeviceRGB',
       '/BitsPerComponent 8',
       '/Filter [/ASCIIHexDecode /DCTDecode]',
       `/Length ${imageStream.length}`,
       `>>\nstream\n${imageStream}\nendstream`,
     ].join(' ');
-  }
+  });
 
-  pageStreams.forEach((stream) => {
+  pageDefs.forEach((pDef) => {
     const pageId = nextObjectId++;
     const contentId = nextObjectId++;
-    const xObjectResource = imageObjectId ? `/XObject << /Im1 ${imageObjectId} 0 R >>` : '';
+
+    let xObjectResource = pDef.xObjectResource ?? '';
+    imageObjectIds.forEach((imgId, idx) => {
+      xObjectResource = xObjectResource.replace(`%%IMG_OBJ_ID_${idx}%%`, String(imgId));
+    });
 
     pageObjectIds.push(pageId);
     objects[pageId] = [
@@ -393,7 +466,7 @@ function writePdfDocument(pageStreams: string[], evidenceImage: PdfEvidenceImage
       `/Contents ${contentId} 0 R`,
       '>>',
     ].join(' ');
-    objects[contentId] = `<< /Length ${stream.length} >>\nstream\n${stream}endstream`;
+    objects[contentId] = `<< /Length ${pDef.stream.length} >>\nstream\n${pDef.stream}endstream`;
   });
 
   objects[2] = `<< /Type /Pages /Kids [${pageObjectIds.map((id) => `${id} 0 R`).join(' ')}] /Count ${pageObjectIds.length} >>`;

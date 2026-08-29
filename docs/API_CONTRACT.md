@@ -93,10 +93,15 @@ Output:
   },
   "quality": {
     "is_gradeable": true,
+    "is_supported_fundus": true,
     "focus_score": 184.2,
     "brightness": 0.52,
     "contrast": 0.18,
-    "reasons": []
+    "compatibility_score": 0.96,
+    "fundus_area_ratio": 0.64,
+    "edge_artifact_ratio": 0.08,
+    "reasons": [],
+    "warnings": []
   },
   "prediction": {
     "icdr_grade": 2,
@@ -133,6 +138,14 @@ Output:
   "final_report": null
 }
 ```
+
+`referable_dr` is computed from the model's referable probability:
+
+```text
+P(grade 2) + P(grade 3) + P(grade 4) >= MODEL_REFERABLE_THRESHOLD
+```
+
+The default threshold is `0.50`. IDRiD can be used to calibrate this threshold without retraining the model.
 
 ## GET /cases/{case_id}
 

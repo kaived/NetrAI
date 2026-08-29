@@ -1,37 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { ShieldCheck, Cpu, GitCommit, FileCheck, Layers, Loader2, ShieldAlert } from 'lucide-react';
-import type { CaseResult } from '../types';
+import type { CaseResult, EyeCode, EyeScreeningResult } from '../types';
 
 interface PipelineFlowProps {
   isLoading: boolean;
+  isRestoring?: boolean;
   result: CaseResult | null;
+  activeEye?: EyeCode;
 }
 
-export const PipelineFlow: React.FC<PipelineFlowProps> = ({ isLoading, result }) => {
-  const [activeStepIndex, setActiveStepIndex] = useState<number>(0);
+export const PipelineFlow: React.FC<PipelineFlowProps> = ({ isLoading, isRestoring = false, result, activeEye }) => {
+  const targetEye = activeEye ?? (result?.patient?.eye as EyeCode | undefined);
+  const eyeResult: EyeScreeningResult | CaseResult | null =
+    targetEye && result?.eyes?.[targetEye]
+      ? result.eyes[targetEye]!
+      : result?.patient?.eye === targetEye
+      ? result
+      : result;
 
-  // Sequentially animate through the 5 stages during loading
-  useEffect(() => {
-    if (!isLoading) {
-      setActiveStepIndex(0);
-      return;
-    }
-
-    setActiveStepIndex(0);
-    const interval = setInterval(() => {
-      setActiveStepIndex((prev) => (prev < 4 ? prev + 1 : prev));
-    }, 450);
-
-    return () => clearInterval(interval);
-  }, [isLoading]);
-
-  const stageMessages = [
-    'Stage 1/5: Image Quality Gate...',
-    'Stage 2/5: Retinal Preprocessing & Normalization...',
-    'Stage 3/5: ONNX Deep Neural Net Classification...',
-    'Stage 4/5: ICDR Clinical Referral Triage...',
-    'Stage 5/5: Compiling Diagnostic Summary & Grad-CAM...',
-  ];
+  const isEyePending = Boolean(result && targetEye && !result.eyes?.[targetEye] && result.patient?.eye !== targetEye);
 
   const steps = [
     {
@@ -73,56 +60,59 @@ export const PipelineFlow: React.FC<PipelineFlowProps> = ({ isLoading, result })
     }
 
     if (isLoading) {
-      if (index === activeStepIndex) return 'processing';
-      if (index < activeStepIndex) return 'success';
-      return 'pending';
+      return index === 0 ? 'processing' : 'pending';
     }
 
-    if (!result) return 'pending';
+    if (!result || isEyePending || !eyeResult) return 'pending';
 
     if (index === 0) {
-      return result.quality.is_gradeable ? 'success' : 'failed';
+      return eyeResult.quality.is_gradeable ? 'success' : 'failed';
     }
 
-    if (!result.quality.is_gradeable) {
+    if (!eyeResult.quality.is_gradeable) {
       return 'skipped';
     }
 
     if (index === 1) return 'success';
-    if (index === 2) return result.prediction.icdr_grade !== null ? 'success' : 'skipped';
-    if (index === 3) return result.prediction.referable_dr ? 'warning' : 'success';
+    if (index === 2) return eyeResult.prediction.icdr_grade !== null ? 'success' : 'skipped';
+    if (index === 3) return eyeResult.prediction.referable_dr ? 'warning' : 'success';
     if (index === 4) return 'success';
 
     return 'success';
   };
 
   const getStatusBadge = () => {
+    if (isRestoring) {
+      return (
+        <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200 shadow-xs">
+          <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-500" />
+          <span>Status: Restoring Saved Screening</span>
+        </span>
+      );
+    }
+
     if (isLoading) {
       return (
         <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-teal-50 text-teal-700 border border-teal-200 shadow-xs animate-pulse">
           <Loader2 className="w-3.5 h-3.5 animate-spin text-teal-600" />
-          <span>{stageMessages[activeStepIndex] || 'Status: Processing Pipeline...'}</span>
+          <span>Status: Running Image Quality Gate (1/5 Stages)</span>
         </span>
       );
     }
-    if (result) {
-      const isPass = result.quality.is_gradeable;
-      if (result.is_case_complete) {
-        return (
-          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-xs">
-            <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
-            <span>Status: Final Two-Eye Report Ready</span>
-          </span>
-        );
-      }
-      if (isPass && result.next_eye) {
-        return (
-          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200 shadow-xs">
-            <span className="h-2 w-2 rounded-full bg-sky-500"></span>
-            <span>Status: {result.patient?.eye ?? 'Eye'} Complete, Capture {result.next_eye}</span>
-          </span>
-        );
-      }
+
+    if (isEyePending && targetEye) {
+      return (
+        <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200 shadow-xs">
+          <span className="h-2 w-2 rounded-full bg-slate-400"></span>
+          <span>Status: {targetEye === 'OD' ? 'OD Right Eye' : 'OS Left Eye'} (Pending Capture)</span>
+        </span>
+      );
+    }
+
+    if (eyeResult) {
+      const isPass = eyeResult.quality.is_gradeable;
+      const eyePrefix = targetEye ? `${targetEye === 'OD' ? 'OD' : 'OS'}: ` : '';
+
       return (
         <span
           className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold ${
@@ -132,10 +122,11 @@ export const PipelineFlow: React.FC<PipelineFlowProps> = ({ isLoading, result })
           } shadow-xs`}
         >
           <span className={`h-2 w-2 rounded-full ${isPass ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
-          <span>{isPass ? 'Status: Complete (5/5 Stages)' : 'Status: Quality Gate Flagged (1/5 Stages)'}</span>
+          <span>{isPass ? `Status: ${eyePrefix}Complete (5/5 Stages)` : `Status: ${eyePrefix}Quality Gate Flagged (1/5 Stages)`}</span>
         </span>
       );
     }
+
     return (
       <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200 shadow-xs">
         <span className="h-2 w-2 rounded-full bg-slate-400"></span>
@@ -158,9 +149,9 @@ export const PipelineFlow: React.FC<PipelineFlowProps> = ({ isLoading, result })
           const status = getStepStatus(index);
           const Icon = status === 'failed' && step.failedIcon ? step.failedIcon : step.icon;
 
-          let badgeBg = 'bg-slate-50 text-slate-600 border-slate-200';
+          let badgeBg = 'bg-slate-50 text-slate-700 border-slate-200';
           let iconColor = 'text-slate-400';
-          let titleColor = 'text-slate-900';
+          let titleColor = 'text-slate-800 font-semibold';
           let descColor = 'text-slate-500';
 
           if (status === 'processing') {
@@ -184,10 +175,10 @@ export const PipelineFlow: React.FC<PipelineFlowProps> = ({ isLoading, result })
             titleColor = 'text-red-950 font-bold';
             descColor = 'text-red-700';
           } else if (status === 'skipped') {
-            badgeBg = 'bg-slate-100 text-slate-400 border-slate-200 opacity-60';
-            iconColor = 'text-slate-300';
-            titleColor = 'text-slate-400';
-            descColor = 'text-slate-400';
+            badgeBg = 'bg-slate-50/90 text-slate-600 border-slate-200';
+            iconColor = 'text-slate-400';
+            titleColor = 'text-slate-600 font-medium';
+            descColor = 'text-slate-500';
           }
 
           return (

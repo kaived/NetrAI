@@ -14,7 +14,7 @@ function [trainedNet, info, metrics] = train_aptos_resnet18_stable_v2(repoRoot)
 %   startup
 %   [trainedNet, info, metrics] = train_aptos_resnet18_stable_v2();
 
-if nargin < 1 || strlength(string(repoRoot)) == 0
+if nargin < 1 || isempty(repoRoot) || strlength(string(repoRoot)) == 0
     scriptDir = fileparts(mfilename('fullpath'));
     repoRoot = fileparts(fileparts(scriptDir));
 end

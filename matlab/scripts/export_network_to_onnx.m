@@ -28,7 +28,7 @@ end
 
 modelData = load(networkMatPath);
 
-if strlength(string(variableName)) > 0
+if ~isempty(variableName) && strlength(string(variableName)) > 0
     assert(isfield(modelData, variableName), 'Variable not found in MAT file: %s', variableName);
     net = modelData.(variableName);
 else

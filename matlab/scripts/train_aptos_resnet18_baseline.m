@@ -11,7 +11,7 @@ function [trainedNet, info, metrics] = train_aptos_resnet18_baseline(repoRoot)
 %   backend/models/dr_classifier.onnx, if ONNX export support is installed
 %   reports/aptos_baseline_metrics.json
 
-if nargin < 1 || strlength(string(repoRoot)) == 0
+if nargin < 1 || isempty(repoRoot) || strlength(string(repoRoot)) == 0
     scriptDir = fileparts(mfilename('fullpath'));
     repoRoot = fileparts(fileparts(scriptDir));
 end

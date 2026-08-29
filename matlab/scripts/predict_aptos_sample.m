@@ -8,7 +8,7 @@ function result = predict_aptos_sample(imagePath, modelMatPath)
 scriptDir = fileparts(mfilename('fullpath'));
 repoRoot = fileparts(fileparts(scriptDir));
 
-if nargin < 2 || strlength(string(modelMatPath)) == 0
+if nargin < 2 || isempty(modelMatPath) || strlength(string(modelMatPath)) == 0
     modelMatPath = fullfile(repoRoot, 'models', 'trained_dr_network.mat');
 end
 

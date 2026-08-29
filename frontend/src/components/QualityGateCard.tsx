@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, ShieldAlert, CheckCircle, AlertTriangle } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, CheckCircle, AlertTriangle, ScanEye } from 'lucide-react';
 import type { QualityResult } from '../types';
 
 interface QualityGateCardProps {
@@ -19,6 +19,9 @@ export const QualityGateCard: React.FC<QualityGateCardProps> = ({ quality }) => 
   const focusPercent = Math.min(100, Math.round((quality.focus_score / (QUALITY_THRESHOLDS.minFocusScore * 4)) * 100));
   const brightnessPercent = Math.round(quality.brightness * 100);
   const contrastPercent = Math.min(100, Math.round((quality.contrast / (QUALITY_THRESHOLDS.minContrast * 4)) * 100));
+  const compatibilityScore = quality.compatibility_score ?? 1;
+  const compatibilityPercent = Math.round(compatibilityScore * 100);
+  const compatibilityPasses = isGradeable && (quality.is_supported_fundus ?? true);
   const focusPasses = quality.focus_score >= QUALITY_THRESHOLDS.minFocusScore;
   const brightnessPasses =
     quality.brightness >= QUALITY_THRESHOLDS.minBrightness &&
@@ -56,16 +59,16 @@ export const QualityGateCard: React.FC<QualityGateCardProps> = ({ quality }) => 
                   {isGradeable ? 'PASS • Gradeable' : 'REJECTED • Ungradeable'}
                 </span>
               </div>
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">Automated pre-inference clarity and artifact assessment</p>
+              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">Automated pre-inference clarity, artifact, and fundus compatibility assessment</p>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
           <div className="bg-slate-50 p-5 rounded-xl border border-slate-200">
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm font-semibold text-slate-600">Focus Score</span>
-              <span className="text-lg font-mono font-bold text-slate-900">
+              <span className="text-lg font-extrabold text-slate-900">
                 {quality.focus_score.toFixed(1)}
               </span>
             </div>
@@ -86,7 +89,7 @@ export const QualityGateCard: React.FC<QualityGateCardProps> = ({ quality }) => 
           <div className="bg-slate-50 p-5 rounded-xl border border-slate-200">
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm font-semibold text-slate-600">Brightness</span>
-              <span className="text-lg font-mono font-bold text-slate-900">
+              <span className="text-lg font-extrabold text-slate-900">
                 {quality.brightness.toFixed(2)}
               </span>
             </div>
@@ -109,7 +112,7 @@ export const QualityGateCard: React.FC<QualityGateCardProps> = ({ quality }) => 
           <div className="bg-slate-50 p-5 rounded-xl border border-slate-200">
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm font-semibold text-slate-600">Contrast</span>
-              <span className="text-lg font-mono font-bold text-slate-900">
+              <span className="text-lg font-extrabold text-slate-900">
                 {quality.contrast.toFixed(2)}
               </span>
             </div>
@@ -126,10 +129,45 @@ export const QualityGateCard: React.FC<QualityGateCardProps> = ({ quality }) => 
               <span>Min {QUALITY_THRESHOLDS.minContrast.toFixed(2)}</span>
             </div>
           </div>
+
+          <div className="bg-slate-50 p-5 rounded-xl border border-slate-200">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-semibold text-slate-600">Compatibility</span>
+              <span className="text-lg font-extrabold text-slate-900">
+                {compatibilityPercent}%
+              </span>
+            </div>
+            <div className="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+              <div
+                className={`h-2.5 rounded-full ${
+                  compatibilityPasses ? 'bg-emerald-500' : 'bg-rose-500'
+                }`}
+                style={{ width: `${Math.max(10, compatibilityPercent)}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-xs text-slate-400 mt-2">
+              <span>Unsupported</span>
+              <span>APTOS-style</span>
+            </div>
+          </div>
         </div>
       </div>
 
       <div className="mt-5">
+        {quality.warnings && quality.warnings.length > 0 && (
+          <div className="mb-4 bg-amber-50/80 border border-amber-200 rounded-xl p-5 text-base text-amber-950 space-y-3">
+            <div className="font-bold flex items-center gap-2">
+              <ScanEye className="w-5 h-5 text-amber-700" />
+              Compatibility Warnings
+            </div>
+            <ul className="list-disc list-inside space-y-2 pl-1 text-sm text-amber-800">
+              {quality.warnings.map((warning, idx) => (
+                <li key={idx}>{warning}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {!isGradeable && quality.reasons.length > 0 && (
           <div className="bg-rose-100/70 border border-rose-300 rounded-xl p-5 text-base text-rose-900 space-y-3">
             <div className="font-bold flex items-center gap-2">

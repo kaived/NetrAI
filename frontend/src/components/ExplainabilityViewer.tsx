@@ -86,7 +86,7 @@ export const ExplainabilityViewer: React.FC<ExplainabilityViewerProps> = ({
               <Layers className="w-4 h-4 sm:w-5 sm:h-5 text-slate-500 shrink-0" />
               <span>Heatmap Blend Opacity:</span>
             </div>
-            <span className="font-mono font-bold text-teal-700 text-xs sm:text-sm">{overlayOpacity}%</span>
+            <span className="font-bold text-teal-700 text-xs sm:text-sm">{overlayOpacity}%</span>
           </div>
           <label htmlFor="heatmap-opacity-range" className="sr-only">
             Heatmap Blend Opacity

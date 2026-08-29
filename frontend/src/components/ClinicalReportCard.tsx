@@ -38,6 +38,10 @@ export const ClinicalReportCard: React.FC<ClinicalReportCardProps> = ({ result, 
   const eyeResults = getEyeResults(result);
 
   const handleCopySummary = () => {
+    const gradeVal = finalReport?.worst_icdr_grade ?? result.prediction.icdr_grade;
+    const gradeDisplay = gradeVal !== null && gradeVal !== undefined ? `Grade ${gradeVal}` : 'No Grade';
+    const labelDisplay = finalReport?.worst_label ?? result.prediction.label;
+
     const text = `
 NETRAI - CLINICAL SCREENING SUMMARY
 =========================================
@@ -51,10 +55,12 @@ Date: ${new Date().toLocaleDateString()}
 QUALITY GATE: ${result.quality.is_gradeable ? 'PASSED (Gradeable)' : 'REJECTED (Ungradeable)'}
 - Focus Score: ${result.quality.focus_score.toFixed(1)}
 - Brightness: ${result.quality.brightness.toFixed(2)}
+- Fundus Compatibility: ${Math.round((result.quality.compatibility_score ?? 1) * 100)}%
+- Compatibility Warnings: ${result.quality.warnings?.length ? result.quality.warnings.join('; ') : 'None'}
 
 DIAGNOSTIC TRIAGE:
 - Referral Decision: ${referable ? 'REFERRAL REQUIRED (Urgent)' : 'NO REFERRAL REQUIRED (Routine)'}
-- ICDR DR Grade: ${finalReport?.worst_icdr_grade ?? result.prediction.icdr_grade ?? 'N/A'} (${finalReport?.worst_label ?? result.prediction.label})
+- ICDR DR Grade: ${gradeDisplay} (${labelDisplay})
 - Model Confidence: ${isFinalReport ? 'See per-eye confidence below' : `${(result.prediction.confidence * 100).toFixed(1)}% (${confidenceLevel})`}
 
 PER-EYE RESULTS:
@@ -180,7 +186,7 @@ ${reportDisclaimer}
         </div>
       </div>
 
-      {isFinalReport && eyeResults.length > 0 && (
+      {(isFinalReport || eyeResults.length > 1) && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {eyeResults.map((eyeResult) => (
             <div key={eyeResult.eye} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
@@ -190,7 +196,10 @@ ${reportDisclaimer}
                     {eyeResult.eye === 'OD' ? 'OD Right Eye' : 'OS Left Eye'}
                   </span>
                   <div className="mt-1 text-lg font-extrabold text-slate-950">
-                    Grade {eyeResult.prediction.icdr_grade ?? 'N/A'} • {eyeResult.prediction.label}
+                    {eyeResult.prediction.icdr_grade !== null && eyeResult.prediction.icdr_grade !== undefined
+                      ? `Grade ${eyeResult.prediction.icdr_grade}`
+                      : 'No Grade'}{' '}
+                    • {eyeResult.prediction.label}
                   </div>
                 </div>
                 <span
@@ -286,8 +295,11 @@ function getEyeResults(result: CaseResult): EyeScreeningResult[] {
 
 function formatEyeSummary(eyeResult: EyeScreeningResult): string {
   const eyeLabel = eyeResult.eye === 'OD' ? 'OD Right Eye' : 'OS Left Eye';
-  const grade = eyeResult.prediction.icdr_grade ?? 'N/A';
+  const grade =
+    eyeResult.prediction.icdr_grade !== null && eyeResult.prediction.icdr_grade !== undefined
+      ? `Grade ${eyeResult.prediction.icdr_grade}`
+      : 'No Grade';
   const confidence = (eyeResult.prediction.confidence * 100).toFixed(1);
   const referral = eyeResult.prediction.referable_dr ? 'Referable' : 'Routine';
-  return `- ${eyeLabel}: Grade ${grade} (${eyeResult.prediction.label}), ${confidence}% confidence, ${referral}`;
+  return `- ${eyeLabel}: ${grade} (${eyeResult.prediction.label}), ${confidence}% confidence, ${referral}`;
 }

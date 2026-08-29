@@ -276,7 +276,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
                     </>
                   ) : (
                     <>
-                      <span className="font-bold text-slate-800">Note:</span> OD = Oculus Dexter (Right Eye), OS = Oculus Sinister (Left Eye).
+                      <span className="font-bold text-slate-800">Note:</span> OD = Oculus Dexter (Right Eye), OS = Oculus Sinister (Left Eye)
                     </>
                   )}
                 </p>
@@ -354,12 +354,6 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
                 alt="Selected Retinal Fundus"
                 className="max-h-[220px] max-w-full object-contain"
               />
-
-              {/* Top Viewport Badge */}
-              <div className="absolute top-3 left-3 bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-lg text-xs text-white font-semibold flex items-center gap-2 border border-white/10 max-w-[70%]">
-                <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-                <span className="truncate">Fundus image loaded</span>
-              </div>
 
               {/* Change Image Button */}
               <button

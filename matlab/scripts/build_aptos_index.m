@@ -9,7 +9,7 @@ function indexTable = build_aptos_index(repoRoot)
 % Output:
 %   <repo-root>/data/indexes/aptos2019_train.csv
 
-if nargin < 1 || strlength(string(repoRoot)) == 0
+if nargin < 1 || isempty(repoRoot) || strlength(string(repoRoot)) == 0
     scriptDir = fileparts(mfilename('fullpath'));
     repoRoot = fileparts(fileparts(scriptDir));
 end

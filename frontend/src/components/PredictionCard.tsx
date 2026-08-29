@@ -92,7 +92,7 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, isGr
           <div className="flex flex-wrap sm:flex-nowrap lg:flex-col items-center sm:items-end justify-between gap-2.5 w-full lg:w-auto pt-3.5 lg:pt-0 border-t lg:border-t-0 border-inherit/40 shrink-0">
             <span className="text-xs sm:text-sm font-semibold opacity-80 whitespace-nowrap">Model Confidence</span>
             <div className="flex items-baseline gap-1 my-0.5">
-              <span className="text-3xl sm:text-4xl lg:text-5xl font-black font-mono leading-none">{confidencePercent}%</span>
+              <span className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-none">{confidencePercent}%</span>
             </div>
             <span className={`rounded-full px-2.5 sm:px-3 py-0.5 text-[10px] sm:text-xs font-extrabold uppercase whitespace-nowrap shadow-2xs ${confidenceTone}`}>
               {confidenceLevel} confidence
@@ -108,29 +108,29 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, isGr
           </span>
           <span className="text-xs sm:text-sm text-slate-500 whitespace-nowrap">
             Predicted Grade:{' '}
-            <strong className="text-slate-900 font-bold font-mono">
-              {grade !== null ? `Grade ${grade} (${prediction.label})` : 'N/A'}
+            <strong className="text-slate-900 font-bold">
+              {grade !== null && grade !== undefined ? `Grade ${grade} (${prediction.label})` : 'No Grade'}
             </strong>
           </span>
         </div>
 
-        <div className="overflow-x-auto pb-2 pt-0.5 flex sm:grid sm:grid-cols-5 gap-2.5 sm:gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-2.5 sm:gap-3">
           {ICDR_STAGES.map((stage) => {
             const isSelected = isGradeable && grade === stage.grade;
 
             return (
               <div
                 key={stage.grade}
-                className={`min-h-[108px] sm:min-h-[126px] min-w-[105px] sm:min-w-0 flex-1 p-2.5 sm:p-3.5 rounded-xl border text-center transition-all flex flex-col justify-between shrink-0 sm:shrink ${
+                className={`min-h-[116px] sm:min-h-[128px] p-3 rounded-xl border text-center transition-all flex flex-col justify-between ${
                   isSelected
                     ? `${stage.border} bg-slate-900 text-white shadow-md ring-2 ring-teal-500/50 scale-[1.02] z-10`
                     : 'border-slate-200 bg-slate-50/80 text-slate-700 hover:border-slate-300'
                 }`}
               >
                 <div>
-                  <div className="flex items-center justify-center gap-1.5 mb-1.5 sm:mb-2">
+                  <div className="flex items-center justify-center gap-1.5 mb-1.5">
                     <span
-                      className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full ${stage.color} ${
+                      className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full shrink-0 ${stage.color} ${
                         isSelected ? 'ring-1 sm:ring-2 ring-white' : ''
                       }`}
                     ></span>
@@ -138,16 +138,16 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, isGr
                       Grade {stage.grade}
                     </span>
                   </div>
-                  <div className={`text-xs sm:text-base font-bold leading-tight ${isSelected ? 'text-teal-300' : 'text-slate-800'}`}>
+                  <div className={`text-xs sm:text-sm font-bold leading-tight ${isSelected ? 'text-teal-300' : 'text-slate-800'}`}>
                     {stage.label}
                   </div>
-                  <div className={`text-[10px] sm:text-xs hidden md:block mt-1.5 leading-4 sm:leading-5 ${isSelected ? 'text-slate-300' : 'text-slate-500'}`}>
+                  <div className={`text-[10px] sm:text-xs mt-1.5 leading-4 ${isSelected ? 'text-slate-300' : 'text-slate-500'}`}>
                     {stage.desc}
                   </div>
                 </div>
                 {isSelected && (
-                  <div className="mt-2 sm:mt-3 inline-flex items-center justify-center gap-1 px-2 sm:px-2.5 py-0.5 sm:py-1 text-[10px] sm:text-xs font-bold bg-teal-500 text-white rounded-full shadow-xs mx-auto">
-                    <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                  <div className="mt-2.5 inline-flex items-center justify-center gap-1 px-2.5 py-0.5 text-[10px] sm:text-xs font-bold bg-teal-500 text-white rounded-full shadow-xs mx-auto">
+                    <Check className="w-3 h-3" />
                     <span>MATCH</span>
                   </div>
                 )}
@@ -166,12 +166,12 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, isGr
         <div className="flex items-center gap-2 flex-wrap">
           <Cpu className="w-4 h-4 sm:w-5 sm:h-5 text-teal-600 shrink-0" />
           <span>Model Architecture:</span>
-          <span className="font-mono font-semibold text-slate-800 bg-slate-100 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-lg text-xs sm:text-sm">
+          <span className="font-bold text-slate-800 bg-slate-100 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-lg text-xs sm:text-sm">
             {prediction.model_version}
           </span>
         </div>
         <div className="text-xs sm:text-sm text-slate-400">
-          Trained on APTOS 2019 / Messidor-2 benchmarks
+          Trained on APTOS 2019 Blindness Detection benchmark
         </div>
       </div>
     </div>

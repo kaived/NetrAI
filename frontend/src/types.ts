@@ -1,9 +1,14 @@
 export type QualityResult = {
   is_gradeable: boolean;
+  is_supported_fundus?: boolean;
   focus_score: number;
   brightness: number;
   contrast: number;
+  compatibility_score?: number;
+  fundus_area_ratio?: number | null;
+  edge_artifact_ratio?: number | null;
   reasons: string[];
+  warnings?: string[];
 };
 
 export type PredictionResult = {

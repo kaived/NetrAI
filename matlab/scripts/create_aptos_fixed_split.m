@@ -7,7 +7,7 @@ function splitTable = create_aptos_fixed_split(repoRoot, validationRatio, seed, 
 % Output:
 %   data/splits/aptos2019_split_v1.csv
 
-if nargin < 1 || strlength(string(repoRoot)) == 0
+if nargin < 1 || isempty(repoRoot) || strlength(string(repoRoot)) == 0
     scriptDir = fileparts(mfilename('fullpath'));
     repoRoot = fileparts(fileparts(scriptDir));
 end
@@ -20,7 +20,7 @@ if nargin < 3 || isempty(seed)
     seed = 20260828;
 end
 
-if nargin < 4 || strlength(string(splitName)) == 0
+if nargin < 4 || isempty(splitName) || strlength(string(splitName)) == 0
     splitName = "aptos2019_split_v1";
 end
 

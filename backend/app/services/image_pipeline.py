@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
 from typing import Any
@@ -12,6 +13,16 @@ from app.schemas import PredictionResult, QualityResult
 
 
 CLASS_NAMES = ["no_dr", "mild", "moderate", "severe", "proliferative_dr"]
+
+
+@dataclass(frozen=True)
+class FundusCompatibility:
+    is_supported: bool
+    score: float
+    fundus_area_ratio: float | None
+    edge_artifact_ratio: float | None
+    reasons: list[str]
+    warnings: list[str]
 
 
 class ImagePipeline:
@@ -53,12 +64,118 @@ class ImagePipeline:
         if contrast < self.settings.quality_min_contrast:
             reasons.append("Image contrast is too low. Please recapture or improve focus/illumination.")
 
+        compatibility = self.assess_fundus_compatibility(image)
+        reasons.extend(compatibility.reasons)
+
         return QualityResult(
             is_gradeable=not reasons,
+            is_supported_fundus=compatibility.is_supported,
             focus_score=focus_score,
             brightness=brightness,
             contrast=contrast,
+            compatibility_score=compatibility.score,
+            fundus_area_ratio=compatibility.fundus_area_ratio,
+            edge_artifact_ratio=compatibility.edge_artifact_ratio,
             reasons=reasons,
+            warnings=compatibility.warnings,
+        )
+
+    def assess_fundus_compatibility(self, image: Image.Image) -> FundusCompatibility:
+        width, height = image.size
+        reasons: list[str] = []
+        warnings: list[str] = []
+        score = 1.0
+
+        if min(width, height) < self.settings.model_input_size:
+            score -= 0.35
+            reasons.append("Image resolution is too small for reliable retinal screening. Please upload a clearer fundus image.")
+
+        analysis_image = image
+        max_dim = max(width, height)
+        if max_dim > 640:
+            scale = 640 / max_dim
+            analysis_image = image.resize((max(1, int(width * scale)), max(1, int(height * scale))), Image.Resampling.BILINEAR)
+
+        array = np.asarray(analysis_image.convert("RGB"), dtype=np.uint8)
+        red = array[:, :, 0].astype(np.float32)
+        green = array[:, :, 1].astype(np.float32)
+        blue = array[:, :, 2].astype(np.float32)
+        value = np.max(array, axis=2).astype(np.float32) / 255.0
+        saturation = (np.max(array, axis=2).astype(np.float32) - np.min(array, axis=2).astype(np.float32)) / np.maximum(
+            np.max(array, axis=2).astype(np.float32),
+            1.0,
+        )
+
+        fundus_mask = self._estimate_fundus_mask(array, saturation, value)
+        fundus_area_ratio = float(np.mean(fundus_mask)) if fundus_mask.size else None
+
+        edge_artifact_ratio = self._edge_artifact_ratio(value)
+        corner_dark_ratio = self._corner_dark_ratio(value)
+        white_edge_ratio = self._white_edge_ratio(array, value, saturation)
+
+        if fundus_area_ratio is None or fundus_area_ratio < 0.20:
+            score -= 0.70
+            reasons.append("No clear fundus field was detected. Upload a standard retinal fundus photograph.")
+        elif fundus_area_ratio < 0.32:
+            score -= 0.25
+            warnings.append("Only a small retinal field is visible, so automated grading may be less reliable.")
+
+        mask_bool = fundus_mask.astype(bool)
+        green_dominance_ratio = 0.0
+        red_green_balance = 1.0
+        if np.any(mask_bool):
+            green_dominance_ratio = float(np.mean((green[mask_bool] > red[mask_bool] + 12) & (green[mask_bool] > blue[mask_bool] + 18)))
+            mean_red = float(np.mean(red[mask_bool]))
+            mean_green = float(np.mean(green[mask_bool]))
+            red_green_balance = mean_red / max(mean_green, 1.0)
+
+        if white_edge_ratio > 0.04:
+            score -= min(0.25, white_edge_ratio * 2.2)
+            warnings.append("Bright text, frame, or capture border is visible near the image edge. Crop the retinal field before screening.")
+
+        if edge_artifact_ratio > self.settings.quality_max_edge_artifact_ratio:
+            score -= 0.25
+            warnings.append("Large border or peripheral artifact detected. A centered standard fundus capture is preferred.")
+
+        obvious_nonstandard_capture = (
+            fundus_area_ratio is not None
+            and fundus_area_ratio > 0.90
+            and edge_artifact_ratio > 0.58
+            and (corner_dark_ratio < 0.18 or white_edge_ratio > 0.04)
+        )
+        unsupported_widefield = (
+            fundus_area_ratio is not None
+            and fundus_area_ratio > 0.72
+            and edge_artifact_ratio > 0.38
+            and corner_dark_ratio < 0.22
+        )
+        unsupported_color = green_dominance_ratio > self.settings.quality_max_green_dominance_ratio or red_green_balance < 0.88
+
+        if obvious_nonstandard_capture or (unsupported_widefield and unsupported_color):
+            score -= 0.55
+            reasons.append(
+                "Unsupported widefield or non-standard retina capture suspected. "
+                "Please use a standard macula/disc-centered fundus image for automated DR grading."
+            )
+        elif unsupported_widefield:
+            score -= 0.30
+            warnings.append("Widefield or non-standard retinal capture suspected; model confidence should be manually verified.")
+
+        if unsupported_color:
+            score -= 0.25
+            warnings.append("Strong green/yellow color cast detected; this may not match the training camera style.")
+
+        score = float(np.clip(score, 0.0, 1.0))
+        if score < self.settings.quality_min_compatibility_score and not any("Unsupported" in reason for reason in reasons):
+            reasons.append("Image does not match the supported fundus capture style closely enough for automated grading.")
+
+        return FundusCompatibility(
+            is_supported=score >= self.settings.quality_min_compatibility_score and not reasons,
+            score=score,
+            fundus_area_ratio=fundus_area_ratio,
+            edge_artifact_ratio=edge_artifact_ratio,
+            reasons=reasons,
+            warnings=warnings,
         )
 
     def predict_onnx(self, image_bytes: bytes) -> PredictionResult:
@@ -76,11 +193,13 @@ class ImagePipeline:
 
         grade = int(np.argmax(probabilities))
         confidence = float(probabilities[grade])
+        referable_probability = float(np.sum(probabilities[2:]))
+        referable_dr = referable_probability >= self.settings.model_referable_threshold
 
         return PredictionResult(
             icdr_grade=grade,
             label=CLASS_NAMES[grade],
-            referable_dr=grade >= 2,
+            referable_dr=referable_dr,
             confidence=confidence,
             confidence_level=confidence_level(confidence),
             model_version=self.settings.model_version,
@@ -139,6 +258,66 @@ class ImagePipeline:
             array[:, :, 1] = np.asarray(ImageOps.equalize(green), dtype=np.uint8)
 
         return Image.fromarray(array)
+
+    def _estimate_fundus_mask(self, array: np.ndarray, saturation: np.ndarray, value: np.ndarray) -> np.ndarray:
+        base_mask = ((saturation > 0.10) & (value > 0.08)).astype(np.uint8)
+
+        try:
+            import cv2
+
+            height, width = base_mask.shape
+            kernel_size = max(9, make_odd(int(min(height, width) * 0.045)))
+            kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size))
+            mask = cv2.morphologyEx(base_mask, cv2.MORPH_CLOSE, kernel)
+            mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+
+            contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            if not contours:
+                return base_mask
+
+            largest = max(contours, key=cv2.contourArea)
+            refined = np.zeros_like(base_mask)
+            cv2.drawContours(refined, [largest], -1, 1, thickness=cv2.FILLED)
+            return refined.astype(np.uint8)
+        except Exception:
+            _ = array
+            return base_mask
+
+    @staticmethod
+    def _edge_artifact_ratio(value: np.ndarray) -> float:
+        band = max(4, int(min(value.shape) * 0.08))
+        edge_mask = np.zeros_like(value, dtype=bool)
+        edge_mask[:band, :] = True
+        edge_mask[-band:, :] = True
+        edge_mask[:, :band] = True
+        edge_mask[:, -band:] = True
+        return float(np.mean(value[edge_mask] > 0.22))
+
+    @staticmethod
+    def _corner_dark_ratio(value: np.ndarray) -> float:
+        band = max(4, int(min(value.shape) * 0.12))
+        corner_mask = np.zeros_like(value, dtype=bool)
+        corner_mask[:band, :band] = True
+        corner_mask[:band, -band:] = True
+        corner_mask[-band:, :band] = True
+        corner_mask[-band:, -band:] = True
+        return float(np.mean(value[corner_mask] < 0.13))
+
+    @staticmethod
+    def _white_edge_ratio(array: np.ndarray, value: np.ndarray, saturation: np.ndarray) -> float:
+        band = max(4, int(min(value.shape) * 0.08))
+        edge_mask = np.zeros_like(value, dtype=bool)
+        edge_mask[:band, :] = True
+        edge_mask[-band:, :] = True
+        edge_mask[:, :band] = True
+        edge_mask[:, -band:] = True
+
+        red = array[:, :, 0]
+        green = array[:, :, 1]
+        blue = array[:, :, 2]
+        bright_neutral = (value > 0.72) & (saturation < 0.16)
+        bright_label = (red > 185) & (green > 185) & (blue > 170)
+        return float(np.mean((bright_neutral | bright_label)[edge_mask]))
 
     def _generate_cv_lesion_heatmap(self, array: np.ndarray, cv2) -> Image.Image:
         hsv = cv2.cvtColor(array, cv2.COLOR_RGB2HSV)

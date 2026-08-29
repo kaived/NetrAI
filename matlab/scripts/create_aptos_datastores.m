@@ -6,7 +6,7 @@ function stores = create_aptos_datastores(repoRoot, inputSize, validationRatio, 
 %   startup
 %   stores = create_aptos_datastores();
 
-if nargin < 1 || strlength(string(repoRoot)) == 0
+if nargin < 1 || isempty(repoRoot) || strlength(string(repoRoot)) == 0
     scriptDir = fileparts(mfilename('fullpath'));
     repoRoot = fileparts(fileparts(scriptDir));
 end
@@ -39,7 +39,7 @@ indexTable = readtable(indexPath, 'TextType', 'string');
 classNames = ["no_dr", "mild", "moderate", "severe", "proliferative_dr"];
 
 splitTable = [];
-if strlength(string(splitPath)) > 0
+if ~isempty(splitPath) && strlength(string(splitPath)) > 0
     splitPath = char(string(splitPath));
     if ~isfile(splitPath)
         splitPath = fullfile(repoRoot, splitPath);

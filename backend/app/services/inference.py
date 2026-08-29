@@ -6,6 +6,7 @@ from app.schemas import (
     ExplanationResult,
     PatientMetadata,
     PredictionResult,
+    QualityResult,
     ReportResult,
     StorageResult,
 )
@@ -51,7 +52,8 @@ class InferenceService:
             )
             report = ReportResult(
                 summary="Image rejected by quality gate.",
-                recommendation=" ".join(quality.reasons),
+                recommendation=" ".join(quality.reasons)
+                or "Please recapture a standard macula/disc-centered retinal fundus image.",
                 disclaimer="Screening support only. Not a final diagnosis.",
             )
             report_uri = self.storage_service.save_output_json(
@@ -79,10 +81,11 @@ class InferenceService:
         self,
         case_id: str,
         image_bytes: bytes,
-        quality,
+        quality: QualityResult,
         patient: PatientMetadata | None,
     ) -> CaseResult:
         prediction = self.image_pipeline.predict_onnx(image_bytes)
+        self._apply_prediction_safety_review(prediction, quality)
         heatmap_bytes = self.image_pipeline.generate_attention_heatmap(image_bytes)
         heatmap_uri = self.storage_service.save_output_bytes(
             case_id,
@@ -93,7 +96,7 @@ class InferenceService:
         explanation = ExplanationResult(
             method="cv_lesion_attention_v1",
             heatmap_url=self._heatmap_url(case_id, patient),
-            text="Computer-vision lesion attention heatmap generated from contrast-enhanced fundus features. This is a fast explainability layer for screening review.",
+            text=self._build_explanation_text(quality),
         )
         report = self._build_report(prediction, explanation)
         report_uri = self.storage_service.save_output_json(
@@ -113,7 +116,7 @@ class InferenceService:
             storage=StorageResult(heatmap_uri=heatmap_uri, report_uri=report_uri),
         )
 
-    def _predict_stub(self, case_id: str, quality, patient: PatientMetadata | None) -> CaseResult:
+    def _predict_stub(self, case_id: str, quality: QualityResult, patient: PatientMetadata | None) -> CaseResult:
         prediction = PredictionResult(
             icdr_grade=2,
             label="moderate",
@@ -193,6 +196,25 @@ class InferenceService:
             recommendation=recommendation,
             disclaimer="Screening support only. Not a final diagnosis.",
         )
+
+    @staticmethod
+    def _apply_prediction_safety_review(prediction: PredictionResult, quality: QualityResult) -> None:
+        if not quality.warnings:
+            return
+
+        severe_grade = prediction.icdr_grade is not None and prediction.icdr_grade >= 3
+        if severe_grade and prediction.confidence < 0.70:
+            prediction.confidence_level = "low"
+
+    @staticmethod
+    def _build_explanation_text(quality: QualityResult) -> str:
+        text = (
+            "Computer-vision lesion attention heatmap generated from contrast-enhanced fundus features. "
+            "This is a fast explainability layer for screening review."
+        )
+        if quality.warnings:
+            text += " Image compatibility warnings were detected; manual verification is recommended."
+        return text
 
     @staticmethod
     def _artifact_name(patient: PatientMetadata | None, filename: str) -> str:

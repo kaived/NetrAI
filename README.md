@@ -70,6 +70,15 @@ imagePath = fullfile('<repo-root>', 'data', 'raw', 'aptos2019', 'train_images', 
 result = predict_aptos_sample(imagePath);
 ```
 
+Validate the current APTOS-trained model on IDRiD:
+
+```matlab
+indexTable = build_idrid_index();
+stores = create_idrid_datastore([], [224 224 3], "testing");
+metrics = validate_idrid_with_model([], '../models/trained_dr_network.mat', "testing");
+calibration = calibrate_idrid_referable_threshold([], '../models/trained_dr_network.mat', "testing", 0.90);
+```
+
 ## Backend
 
 ```bash

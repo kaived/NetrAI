@@ -55,6 +55,11 @@ def root() -> dict[str, str]:
     }
 
 
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon() -> Response:
+    return Response(status_code=204)
+
+
 @app.on_event("startup")
 def prepare_model() -> None:
     inference_service.prepare_model()

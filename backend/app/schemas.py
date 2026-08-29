@@ -30,10 +30,15 @@ class HealthResponse(BaseModel):
 
 class QualityResult(BaseModel):
     is_gradeable: bool
+    is_supported_fundus: bool = True
     focus_score: float
     brightness: float
     contrast: float
+    compatibility_score: float = 1.0
+    fundus_area_ratio: float | None = None
+    edge_artifact_ratio: float | None = None
     reasons: list[str] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
 
 
 class PredictionResult(BaseModel):
