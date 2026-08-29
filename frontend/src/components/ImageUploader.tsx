@@ -276,7 +276,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
                     </>
                   ) : (
                     <>
-                      <span className="font-bold text-slate-800">Note:</span> OD = Oculus Dexter (Right Eye). OS = Oculus Sinister (Left Eye).
+                      <span className="font-bold text-slate-800">Note:</span> OD = Oculus Dexter (Right Eye), OS = Oculus Sinister (Left Eye).
                     </>
                   )}
                 </p>
