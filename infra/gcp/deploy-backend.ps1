@@ -45,31 +45,38 @@ if ($InferenceMode -eq "onnx") {
 $serviceAccountEmail = "$ServiceAccountName@$ProjectId.iam.gserviceaccount.com"
 $modelGcsUri = if ($InferenceMode -eq "onnx") { "gs://$ModelBucket/models/dr_classifier.onnx" } else { "" }
 
-$envVars = @(
-    "ENVIRONMENT=production",
-    "API_CORS_ORIGINS=$CorsOrigins",
-    "GCP_PROJECT_ID=$ProjectId",
-    "FIREBASE_PROJECT_ID=$ProjectId",
-    "FIRESTORE_ENABLED=true",
-    "FIRESTORE_CASES_COLLECTION=cases",
-    "GCS_ENABLED=true",
-    "GCS_INPUT_BUCKET=$InputBucket",
-    "GCS_OUTPUT_BUCKET=$OutputBucket",
-    "INFERENCE_MODE=$InferenceMode",
-    "MODEL_VERSION=$ModelVersion",
-    "MODEL_PATH=models/dr_classifier.onnx",
-    "MODEL_GCS_URI=$modelGcsUri",
-    "MODEL_INPUT_SIZE=224",
-    "MODEL_OUTPUT_FORMAT=logits",
-    "MODEL_CHANNEL_ORDER=rgb",
-    "MODEL_LAYOUT=auto",
-    "MODEL_INPUT_SCALE=0_1",
-    "MODEL_APPLY_CLAHE=true",
-    "QUALITY_MIN_FOCUS_SCORE=1.0",
-    "QUALITY_MIN_BRIGHTNESS=0.15",
-    "QUALITY_MAX_BRIGHTNESS=0.90",
-    "QUALITY_MIN_CONTRAST=0.05"
-) -join ","
+$envVars = [ordered]@{
+    ENVIRONMENT = "production"
+    API_CORS_ORIGINS = $CorsOrigins
+    GCP_PROJECT_ID = $ProjectId
+    FIREBASE_PROJECT_ID = $ProjectId
+    FIRESTORE_ENABLED = "true"
+    FIRESTORE_CASES_COLLECTION = "cases"
+    GCS_ENABLED = "true"
+    GCS_INPUT_BUCKET = $InputBucket
+    GCS_OUTPUT_BUCKET = $OutputBucket
+    INFERENCE_MODE = $InferenceMode
+    MODEL_VERSION = $ModelVersion
+    MODEL_PATH = "models/dr_classifier.onnx"
+    MODEL_GCS_URI = $modelGcsUri
+    MODEL_INPUT_SIZE = "224"
+    MODEL_OUTPUT_FORMAT = "logits"
+    MODEL_CHANNEL_ORDER = "rgb"
+    MODEL_LAYOUT = "auto"
+    MODEL_INPUT_SCALE = "0_1"
+    MODEL_APPLY_CLAHE = "true"
+    QUALITY_MIN_FOCUS_SCORE = "1.0"
+    QUALITY_MIN_BRIGHTNESS = "0.15"
+    QUALITY_MAX_BRIGHTNESS = "0.90"
+    QUALITY_MIN_CONTRAST = "0.05"
+}
+
+$envVarsFile = Join-Path $env:CLOUDSDK_CONFIG "cloud-run-env.yaml"
+$envFileLines = foreach ($entry in $envVars.GetEnumerator()) {
+    $escapedValue = ([string]$entry.Value).Replace("\", "\\").Replace('"', '\"')
+    "$($entry.Key): ""$escapedValue"""
+}
+Set-Content -Path $envVarsFile -Value $envFileLines -Encoding utf8
 
 Write-Host "Deploying $ServiceName to Cloud Run in $Region..."
 Invoke-Gcloud run deploy $ServiceName `
@@ -82,7 +89,7 @@ Invoke-Gcloud run deploy $ServiceName `
     --cpu 2 `
     --min-instances 1 `
     --max-instances 5 `
-    --set-env-vars $envVars
+    --env-vars-file $envVarsFile
 
 Write-Host ""
 Write-Host "Deployment complete. Copy the Cloud Run URL and use it as VITE_API_BASE_URL for Cloudflare Pages."
