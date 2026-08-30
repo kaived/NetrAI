@@ -50,6 +50,12 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const inputBaseClass = 'w-full h-10 px-3 text-xs sm:text-sm bg-white border rounded-lg outline-none focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500';
   const isDemographicsLocked = isLoading || completedEyes.length > 0;
+  const canUseHeaderAction = !isLoading && (!hasResult || isCaseComplete);
+  const headerActionTitle = hasResult
+    ? isCaseComplete
+      ? 'Clear this case and begin another screening'
+      : 'Complete both OD and OS eyes before starting a new screening'
+    : 'Clear selected image and patient details';
 
   const getInputClass = (field: keyof ScreeningFormErrors, extra = '') => (
     `${inputBaseClass} ${
@@ -167,11 +173,15 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
         {(file || previewUrl || hasResult) && (
           <button
             onClick={onReset}
-            disabled={isLoading}
-            className="inline-flex items-center justify-center gap-2 text-sm font-bold text-white transition-all px-4 py-2.5 min-h-[40px] rounded-xl bg-teal-700 hover:bg-teal-800 active:bg-teal-900 shadow-sm border border-teal-700 shrink-0 w-full sm:w-auto self-start lg:self-auto mt-1 sm:mt-1.5 lg:mt-0.5"
-            title={hasResult ? 'Clear this case and begin another screening' : 'Clear selected image and patient details'}
+            disabled={!canUseHeaderAction}
+            className={`inline-flex items-center justify-center gap-2 text-sm font-bold transition-all px-4 py-2.5 min-h-[40px] rounded-xl shadow-sm border shrink-0 w-full sm:w-auto self-start lg:self-auto mt-1 sm:mt-1.5 lg:mt-0.5 ${
+              canUseHeaderAction
+                ? 'text-white bg-teal-700 hover:bg-teal-800 active:bg-teal-900 border-teal-700'
+                : 'text-slate-400 bg-slate-100 border-slate-200 cursor-not-allowed shadow-none'
+            }`}
+            title={headerActionTitle}
           >
-            <RotateCcw className="w-4 h-4 text-white" />
+            <RotateCcw className={`w-4 h-4 ${canUseHeaderAction ? 'text-white' : 'text-slate-400'}`} />
             <span>{hasResult ? 'New Screening' : 'Reset'}</span>
           </button>
         )}

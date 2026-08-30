@@ -71,6 +71,20 @@ export function App() {
     : previewUrl;
 
   useEffect(() => {
+    if (!result || activeEyeResult) {
+      return;
+    }
+
+    const firstAvailableEye = (['OD', 'OS'] as EyeCode[]).find((eyeCode) =>
+      Boolean(result.eyes?.[eyeCode] || result.patient?.eye === eyeCode),
+    );
+
+    if (firstAvailableEye) {
+      setActiveViewEye(firstAvailableEye);
+    }
+  }, [activeEyeResult, activeViewEye, result]);
+
+  useEffect(() => {
     if (!file) {
       return;
     }
@@ -317,7 +331,7 @@ export function App() {
                     const triage = eyeData ? getTriageDisplay(eyeData.prediction) : null;
                     const isReferable = Boolean(eyeData?.quality.is_gradeable && triage?.positive);
                     const isSelected = activeViewEye === eyeCode;
-                    const canSelect = isSelected || hasEyeResult || completedEyes.length > 0;
+                    const canSelect = hasEyeResult;
 
                     return (
                       <button
@@ -341,7 +355,7 @@ export function App() {
                         }`}
                         title={
                           !canSelect
-                            ? 'Recapture the rejected eye before moving to the other eye'
+                            ? `${eyeCode === 'OD' ? 'OD Right Eye' : 'OS Left Eye'} has no screening result yet. Upload it from the intake form first.`
                             : eyeCode === 'OD'
                             ? 'View OD Right Eye'
                             : 'View OS Left Eye'

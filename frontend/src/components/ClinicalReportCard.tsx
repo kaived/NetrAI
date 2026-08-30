@@ -32,7 +32,16 @@ export const ClinicalReportCard: React.FC<ClinicalReportCardProps> = ({ result, 
   const caseId = displayText(result.case_id, 'Generated on server');
   const patientAge = displayText(result.patient?.patient_age || patientInfo.patientAge, 'N/A');
   const diabetesType = displayText(result.patient?.diabetes_type || patientInfo.diabetesType, 'N/A');
-  const diabeticDuration = displayText(result.patient?.diabetic_duration || patientInfo.diabeticDuration, 'N/A');
+  const diabeticDurationCompact = formatYearsSinceDiagnosis(
+    result.patient?.diabetic_duration || patientInfo.diabeticDuration,
+    'compact',
+  );
+  const diabeticDurationFormal = formatYearsSinceDiagnosis(
+    result.patient?.diabetic_duration || patientInfo.diabeticDuration,
+    'formal',
+  );
+  const diabetesProfile =
+    diabeticDurationCompact !== 'N/A' ? `${diabetesType} (${diabeticDurationCompact})` : diabetesType;
   const confidenceLevel = displayText(result.prediction.confidence_level, 'unknown');
   const explanationText = displayText(result.explanation.text, 'Explainability note is not available for this case.');
   const compatibilityWarnings =
@@ -56,7 +65,7 @@ Case ID: ${caseId}
 Examined Eye: ${eyeLabel}
 Patient Age: ${patientAge}
 Diabetes Type: ${diabetesType}
-Years Since Diagnosis: ${diabeticDuration}
+Years Since Diagnosis: ${diabeticDurationFormal}
 Date: ${new Date().toLocaleDateString()}
 
 QUALITY GATE: ${result.quality.is_gradeable ? 'PASSED (Gradeable)' : 'REJECTED (Ungradeable)'}
@@ -108,7 +117,7 @@ ${reportDisclaimer}
       eyeLabel,
       patientAge,
       diabetesType,
-      diabeticDuration,
+      diabeticDuration: diabeticDurationFormal,
       heatmapUrl: resolveApiAssetUrl(result.explanation.heatmap_url),
       previewUrl,
     });
@@ -188,8 +197,8 @@ ${reportDisclaimer}
         </div>
         <div>
           <span className="text-slate-400 block text-[10px] sm:text-xs uppercase font-bold tracking-wide">Diabetes Profile</span>
-          <span className="font-semibold text-slate-800 text-sm sm:text-base leading-normal mt-0.5 block truncate" title={`${diabetesType} (${diabeticDuration})`}>
-            {diabetesType}{diabeticDuration !== 'N/A' ? ` • ${diabeticDuration}` : ''}
+          <span className="font-semibold text-slate-800 text-sm sm:text-base leading-normal mt-0.5 block truncate" title={diabetesProfile}>
+            {diabetesProfile}
           </span>
         </div>
       </div>
@@ -302,4 +311,29 @@ function formatEyeSummary(eyeResult: EyeScreeningResult): string {
   const confidence = (eyeResult.prediction.confidence * 100).toFixed(1);
   const triage = getTriageDisplay(eyeResult.prediction);
   return `- ${eyeLabel}: ${grade} (${displayText(eyeResult.prediction.label, 'Not assessed')}), ${confidence}% confidence, ${triage.copyLabel}`;
+}
+
+function formatYearsSinceDiagnosis(value: unknown, style: 'compact' | 'formal'): string {
+  const cleaned = displayText(value, 'N/A');
+  if (cleaned === 'N/A') {
+    return cleaned;
+  }
+
+  const unit = (years: string) => {
+    if (style === 'formal') {
+      return years === '1' ? 'year' : 'years';
+    }
+    return years === '1' ? 'yr' : 'yrs';
+  };
+
+  if (/^\d+(?:\.\d+)?$/.test(cleaned)) {
+    return `${cleaned} ${unit(cleaned)}`;
+  }
+
+  if (/^\d+(?:\.\d+)?\s*y(?:r|rs)?$/i.test(cleaned)) {
+    const years = cleaned.match(/^\d+(?:\.\d+)?/)?.[0] ?? cleaned;
+    return `${years} ${unit(years)}`;
+  }
+
+  return cleaned;
 }
