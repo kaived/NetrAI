@@ -1,5 +1,7 @@
 import { resolveApiAssetUrl } from '../api';
-import type { CaseResult, EyeCode, EyeScreeningResult } from '../types';
+import type { CaseResult, EyeScreeningResult } from '../types';
+import { buildGradeConsistentReportText, formatEyeLabel, getEyeResults } from './clinicalReport';
+import { displayText, getTriageDisplay } from './display';
 
 type PdfReportContext = {
   eyeLabel: string;
@@ -34,6 +36,7 @@ const BOTTOM_Y = 54;
 export async function downloadClinicalReportPdf(result: CaseResult, context: PdfReportContext) {
   const eyeResults = getEyeResults(result);
   const evidenceList: Array<{ eyeLabel: string; image: PdfEvidenceImage }> = [];
+  const caseId = displayText(result.case_id, 'Generated on server');
 
   if (eyeResults.length > 0) {
     for (const eyeRes of eyeResults) {
@@ -70,7 +73,7 @@ export async function downloadClinicalReportPdf(result: CaseResult, context: Pdf
   const anchor = document.createElement('a');
 
   anchor.href = url;
-  anchor.download = `NetrAI_${result.case_id}.pdf`;
+  anchor.download = `NetrAI_${caseId}.pdf`;
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();
@@ -85,18 +88,19 @@ function buildClinicalReportPdf(
   const generatedAt = new Date().toLocaleString();
   const finalReport = result.final_report;
   const isFinalReport = Boolean(finalReport);
-  const referableLabel = (finalReport?.referable_dr ?? result.prediction.referable_dr)
-    ? 'Referral required'
-    : 'Routine follow-up';
+  const caseId = displayText(result.case_id, 'Generated on server');
+  const eyeResults = getEyeResults(result);
+  const reportText = buildGradeConsistentReportText(result, eyeResults);
+  const referable = reportText.referable;
+  const referableLabel = referable ? 'Referral required' : 'Routine follow-up';
   const gradeLabel =
     finalReport?.worst_icdr_grade !== undefined && finalReport?.worst_icdr_grade !== null
-      ? `Grade ${finalReport.worst_icdr_grade} (${finalReport.worst_label ?? 'worst eye'})`
+      ? `Grade ${finalReport.worst_icdr_grade} (${displayText(finalReport.worst_label, 'screening result')})`
       : result.prediction.icdr_grade === null || result.prediction.icdr_grade === undefined
       ? 'No Grade'
-      : `Grade ${result.prediction.icdr_grade} (${result.prediction.label})`;
+      : `Grade ${result.prediction.icdr_grade} (${displayText(result.prediction.label, 'Not assessed')})`;
   const confidence = `${(result.prediction.confidence * 100).toFixed(1)}%`;
-  const confidenceLevel = result.prediction.confidence_level || 'unknown';
-  const eyeResults = getEyeResults(result);
+  const confidenceLevel = displayText(result.prediction.confidence_level, 'unknown');
 
   const lines: PdfLine[] = [
     {
@@ -113,7 +117,7 @@ function buildClinicalReportPdf(
     { text: `Generated: ${generatedAt}`, size: 9, color: [100, 116, 139], gapBefore: 2 },
 
     section('Case Details'),
-    field('Case ID', result.case_id),
+    field('Case ID', caseId),
     field('Eye Examined', eyeResults.length > 1 ? 'Both Eyes (OD + OS)' : context.eyeLabel),
     field('Patient Age', context.patientAge),
     field('Diabetes Type', context.diabetesType),
@@ -127,8 +131,10 @@ function buildClinicalReportPdf(
     field('Fundus Compatibility', `${Math.round((result.quality.compatibility_score ?? 1) * 100)}%`),
     field('Supported Fundus Style', result.quality.is_supported_fundus === false ? 'No' : 'Yes'),
     field(
-      'Compatibility Warnings',
-      result.quality.warnings?.length ? result.quality.warnings.join('; ') : 'No compatibility warnings.',
+      'Capture Advisory',
+      result.quality.warnings?.length
+        ? `Screening completed, but a more centered fundus image is preferred for higher reliability. ${result.quality.warnings.join('; ')}`
+        : 'No capture advisory.',
     ),
     field(
       'Quality Notes',
@@ -145,14 +151,14 @@ function buildClinicalReportPdf(
     section('Diagnostic Triage'),
     field('ICDR DR Grade', gradeLabel),
     field('Predicted Label', finalReport?.worst_label ?? result.prediction.label),
-    field('Referable DR', (finalReport?.referable_dr ?? result.prediction.referable_dr) ? 'Yes' : 'No'),
+    field('Referable DR', referable ? 'Yes' : 'No'),
     field('Referral Decision', referableLabel),
     field('Model Confidence', isFinalReport ? 'See per-eye confidence values.' : `${confidence} (${confidenceLevel})`),
     field('Model Version', result.prediction.model_version),
 
     section('Clinical Recommendation'),
-    paragraph(finalReport?.summary ?? result.report.summary),
-    paragraph(finalReport?.recommendation ?? result.report.recommendation),
+    paragraph(reportText.summary),
+    paragraph(reportText.recommendation),
 
     section('Explainability'),
     field('Method', result.explanation.method),
@@ -161,21 +167,11 @@ function buildClinicalReportPdf(
 
     section('Medical Disclaimer'),
     paragraph(
-      `${finalReport?.disclaimer ?? result.report.disclaimer} NetrAI is a screening support tool only and does not replace examination by a certified ophthalmologist.`,
+      `${reportText.disclaimer} NetrAI is an automated decision-support triage aid designed for primary healthcare screening in conjunction with certified ophthalmologist evaluations.`,
     ),
   ];
 
   return createPdf(lines, evidenceList);
-}
-
-function getEyeResults(result: CaseResult): EyeScreeningResult[] {
-  return (['OD', 'OS'] as EyeCode[])
-    .map((eye) => result.eyes?.[eye])
-    .filter((eyeResult): eyeResult is EyeScreeningResult => Boolean(eyeResult));
-}
-
-function formatEyeLabel(eye: EyeCode) {
-  return eye === 'OD' ? 'OD Right Eye' : 'OS Left Eye';
 }
 
 function formatEyeResult(eyeResult: EyeScreeningResult) {
@@ -184,8 +180,8 @@ function formatEyeResult(eyeResult: EyeScreeningResult) {
       ? `Grade ${eyeResult.prediction.icdr_grade}`
       : 'No Grade';
   const confidence = (eyeResult.prediction.confidence * 100).toFixed(1);
-  const referral = eyeResult.prediction.referable_dr ? 'Referable' : 'Routine';
-  return `${grade} (${eyeResult.prediction.label}), ${confidence}% confidence, ${referral}`;
+  const triage = getTriageDisplay(eyeResult.prediction);
+  return `${grade} (${displayText(eyeResult.prediction.label, 'Not assessed')}), ${confidence}% confidence, ${triage.copyLabel}`;
 }
 
 function section(text: string): PdfLine {
@@ -198,18 +194,18 @@ function section(text: string): PdfLine {
   };
 }
 
-function field(label: string, value: string): PdfLine {
+function field(label: string, value: unknown): PdfLine {
   return {
-    text: `${label}: ${value}`,
+    text: `${label}: ${displayText(value)}`,
     size: 10,
     color: [30, 41, 59],
     indent: 10,
   };
 }
 
-function paragraph(text: string): PdfLine {
+function paragraph(text: unknown): PdfLine {
   return {
-    text,
+    text: displayText(text),
     size: 10,
     color: [30, 41, 59],
     indent: 10,

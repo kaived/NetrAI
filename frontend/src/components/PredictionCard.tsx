@@ -1,12 +1,13 @@
 import React from 'react';
 import {
   AlertTriangle,
-  CheckCircle2,
+  CheckCircle,
   HelpCircle,
   Cpu,
   Check
 } from 'lucide-react';
 import type { PredictionResult } from '../types';
+import { displayText, getTriageDisplay } from '../utils/display';
 
 interface PredictionCardProps {
   prediction: PredictionResult;
@@ -22,11 +23,14 @@ const ICDR_STAGES = [
 ];
 
 export const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, isGradeable }) => {
-  const referable = prediction.referable_dr;
   const grade = prediction.icdr_grade;
+  const triage = getTriageDisplay(prediction);
+  const referable = triage.positive;
+  const predictionLabel = displayText(prediction.label, 'Not assessed');
   const confidencePercent = Math.round(prediction.confidence * 100);
-  const confidenceLevel = prediction.confidence_level || getConfidenceLevel(prediction.confidence);
+  const confidenceLevel = displayText(prediction.confidence_level, getConfidenceLevel(prediction.confidence));
   const confidenceTone = getConfidenceTone(confidenceLevel);
+  const modelVersion = displayText(prediction.model_version, 'Model version unavailable');
 
   return (
     <div className="bg-white border border-slate-200 rounded-2xl p-6 lg:p-7 shadow-sm space-y-6 h-full flex flex-col justify-between">
@@ -51,10 +55,10 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, isGr
           >
             {!isGradeable ? (
               <HelpCircle className="w-6 h-6 sm:w-8 sm:h-8" />
-            ) : referable ? (
+            ) : triage.positive ? (
               <AlertTriangle className="w-6 h-6 sm:w-8 sm:h-8" />
             ) : (
-              <CheckCircle2 className="w-6 h-6 sm:w-8 sm:h-8" />
+              <CheckCircle className="w-6 h-6 sm:w-8 sm:h-8" />
             )}
           </div>
           <div className="space-y-1 sm:space-y-1.5 min-w-0">
@@ -74,7 +78,7 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, isGr
                 {!isGradeable
                   ? 'Recapture Required'
                   : referable
-                  ? 'Urgent Referable DR'
+                  ? 'Referable DR'
                   : 'Non-Referable DR'}
                 </span>
             </div>
@@ -82,8 +86,8 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, isGr
               {!isGradeable
                 ? 'Ungradeable Fundus Scan'
                 : referable
-                ? `Referral Indicated: ${prediction.label.toUpperCase()}`
-                : `No Referral Required (${prediction.label})`}
+                ? `Referral Indicated: ${predictionLabel.toUpperCase()}`
+                : `No Referral Required (${predictionLabel})`}
             </h2>
           </div>
         </div>
@@ -109,7 +113,7 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, isGr
           <span className="text-xs sm:text-sm text-slate-500 whitespace-nowrap">
             Predicted Grade:{' '}
             <strong className="text-slate-900 font-bold">
-              {grade !== null && grade !== undefined ? `Grade ${grade} (${prediction.label})` : 'No Grade'}
+              {grade !== null && grade !== undefined ? `Grade ${grade} (${predictionLabel})` : 'No Grade'}
             </strong>
           </span>
         </div>
@@ -123,31 +127,26 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, isGr
                 key={stage.grade}
                 className={`min-h-[116px] sm:min-h-[128px] p-3 rounded-xl border text-center transition-all flex flex-col justify-between ${
                   isSelected
-                    ? `${stage.border} bg-slate-900 text-white shadow-md ring-2 ring-teal-500/50 scale-[1.02] z-10`
-                    : 'border-slate-200 bg-slate-50/80 text-slate-700 hover:border-slate-300'
+                    ? 'border-2 border-teal-500 bg-slate-900 text-white shadow-md ring-2 ring-teal-500/40 scale-[1.02] z-10 print:bg-teal-50/80 print:border-2 print:border-teal-700 print:shadow-none print:scale-100'
+                    : 'border-slate-200 bg-slate-50/80 text-slate-700 hover:border-slate-300 print:bg-white print:border-slate-300 print:text-slate-600'
                 }`}
               >
                 <div>
-                  <div className="flex items-center justify-center gap-1.5 mb-1.5">
-                    <span
-                      className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full shrink-0 ${stage.color} ${
-                        isSelected ? 'ring-1 sm:ring-2 ring-white' : ''
-                      }`}
-                    ></span>
-                    <span className={`text-xs sm:text-sm font-bold ${isSelected ? 'text-white' : 'text-slate-900'}`}>
+                  <div className="flex items-center justify-center mb-1">
+                    <span className={`text-xs sm:text-sm font-bold ${isSelected ? 'text-white print:text-slate-950 print:font-black' : 'text-slate-900 print:text-slate-700'}`}>
                       Grade {stage.grade}
                     </span>
                   </div>
-                  <div className={`text-xs sm:text-sm font-bold leading-tight ${isSelected ? 'text-teal-300' : 'text-slate-800'}`}>
-                    {stage.label}
+                  <div className={`text-xs sm:text-sm font-bold leading-tight ${isSelected ? 'text-teal-300 print:text-teal-900 print:font-extrabold' : 'text-slate-700 print:text-slate-600'}`}>
+                    ({stage.label})
                   </div>
-                  <div className={`text-[10px] sm:text-xs mt-1.5 leading-4 ${isSelected ? 'text-slate-300' : 'text-slate-500'}`}>
+                  <div className={`text-[10px] sm:text-xs mt-1.5 leading-4 ${isSelected ? 'text-slate-300 print:text-slate-800' : 'text-slate-500 print:text-slate-500'}`}>
                     {stage.desc}
                   </div>
                 </div>
                 {isSelected && (
-                  <div className="mt-2.5 inline-flex items-center justify-center gap-1 px-2.5 py-0.5 text-[10px] sm:text-xs font-bold bg-teal-500 text-white rounded-full shadow-xs mx-auto">
-                    <Check className="w-3 h-3" />
+                  <div className="mt-2.5 inline-flex items-center justify-center gap-1 px-2.5 py-0.5 text-[10px] sm:text-xs font-bold bg-teal-500 text-white rounded-full shadow-xs mx-auto print:bg-teal-700 print:text-white print:border print:border-teal-700">
+                    <Check className="w-3 h-3 print:stroke-[3]" />
                     <span>MATCH</span>
                   </div>
                 )}
@@ -167,7 +166,7 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, isGr
           <Cpu className="w-4 h-4 sm:w-5 sm:h-5 text-teal-600 shrink-0" />
           <span>Model Architecture:</span>
           <span className="font-bold text-slate-800 bg-slate-100 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-lg text-xs sm:text-sm">
-            {prediction.model_version}
+            {modelVersion}
           </span>
         </div>
         <div className="text-xs sm:text-sm text-slate-400">

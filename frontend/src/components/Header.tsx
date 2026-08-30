@@ -12,9 +12,9 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm no-print">
       <div className="max-w-[1760px] mx-auto px-4 sm:px-6 lg:px-10">
-        <div className="flex min-h-16 items-center justify-between gap-3 py-1.5 sm:min-h-[72px] sm:py-2 sm:gap-5">
+        <div className="flex min-h-[70px] items-center justify-between gap-3 py-2 sm:min-h-[80px] sm:py-2.5 sm:gap-5">
           <div className="flex min-w-0 items-center justify-start">
-            <div className="relative h-[46px] w-[180px] overflow-hidden sm:h-[54px] sm:w-[215px] lg:h-[62px] lg:w-[245px]">
+            <div className="relative h-[50px] w-[190px] overflow-hidden sm:h-[58px] sm:w-[225px] lg:h-[66px] lg:w-[255px]">
               <img
                 src={netrAiLogo}
                 alt="NetrAI Logo"

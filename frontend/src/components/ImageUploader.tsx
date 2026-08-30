@@ -6,6 +6,8 @@ import {
   RotateCcw,
   FileCheck,
   ChevronDown,
+  AlertCircle,
+  CheckCircle,
 } from 'lucide-react';
 import type { EyeCode, PatientInfo, ScreeningFormErrors } from '../types';
 
@@ -24,6 +26,7 @@ interface ImageUploaderProps {
   completedEyes: EyeCode[];
   nextEye: EyeCode | null;
   isCaseComplete: boolean;
+  requiresRecapture: boolean;
 }
 
 export const ImageUploader: React.FC<ImageUploaderProps> = ({
@@ -41,6 +44,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
   completedEyes,
   nextEye,
   isCaseComplete,
+  requiresRecapture,
 }) => {
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -61,8 +65,9 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
 
   const renderError = (field: keyof ScreeningFormErrors) => (
     validationErrors[field] ? (
-      <p id={`${field}-error`} className="mt-1.5 text-xs font-medium text-rose-700" role="alert">
-        {validationErrors[field]}
+      <p id={`${field}-error`} className="mt-1.5 text-xs font-semibold text-rose-700 flex items-center gap-1.5" role="alert">
+        <AlertCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+        <span>{validationErrors[field]}</span>
       </p>
     ) : null
   );
@@ -104,7 +109,12 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
   const renderEyeButton = (eye: EyeCode, label: string, roundedClass: string) => {
     const isSelected = patientInfo.eye === eye;
     const isCompleted = completedEyes.includes(eye);
-    const isDisabled = isLoading || isCompleted || isCaseComplete;
+    const canSelectBeforeResult = !hasResult;
+    const canSelectRequiredEye = hasResult && (nextEye ? nextEye === eye : isSelected);
+    const isDisabled = isLoading || isCompleted || isCaseComplete || !(canSelectBeforeResult || canSelectRequiredEye);
+    const lockedTitle = requiresRecapture
+      ? `Recapture ${formatEyeLabel(nextEye ?? patientInfo.eye)} before selecting the other eye`
+      : `Complete ${formatEyeLabel(nextEye ?? patientInfo.eye)} before selecting the other eye`;
 
     return (
       <button
@@ -118,30 +128,39 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
           }
         }}
         disabled={isDisabled}
-        className={`flex-1 px-3 text-xs sm:text-sm font-bold border transition-colors ${roundedClass} ${
+        className={`flex-1 px-3 text-xs sm:text-sm font-bold border transition-colors flex items-center justify-center gap-1.5 ${roundedClass} ${
           isCompleted
             ? 'bg-emerald-50 text-emerald-800 border-emerald-200 cursor-not-allowed'
+            : isDisabled && !isSelected
+            ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
             : isSelected
             ? 'bg-teal-600 text-white border-teal-600'
             : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
         }`}
-        title={isCompleted ? `${eye} screening completed` : `${eye} - ${label}`}
+        title={isCompleted ? `${eye} screening completed` : isDisabled ? lockedTitle : `${eye} - ${label}`}
       >
-        {isCompleted ? `${eye} Done` : label}
+        {isCompleted ? (
+          <span className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap">
+            <span>{eye} Done</span>
+            <CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+          </span>
+        ) : (
+          label
+        )}
       </button>
     );
   };
 
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl p-6 lg:p-8 shadow-sm space-y-6">
+    <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 lg:p-8 shadow-sm space-y-4 lg:space-y-6">
       {/* Panel Header */}
-      <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-4">
-        <div className="flex items-start gap-4 sm:gap-5 min-w-0">
-          <div className="flex h-12 w-12 sm:h-13 sm:w-13 items-center justify-center rounded-2xl bg-teal-50 text-teal-700 shrink-0 mt-0.5 shadow-2xs">
-            <UploadCloud className="w-6 h-6 sm:w-7 sm:h-7" />
+      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3 lg:gap-4 border-b border-slate-100 pb-3 lg:pb-4">
+        <div className="flex items-start gap-3 sm:gap-4 min-w-0">
+          <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl sm:rounded-2xl bg-teal-50 text-teal-700 shrink-0 mt-0.5 shadow-2xs">
+            <UploadCloud className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
-          <div className="space-y-1 sm:space-y-1.5">
-            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 leading-tight">Patient Intake & Retinal Scan Acquisition</h2>
+          <div className="space-y-0.5 sm:space-y-1 min-w-0 flex-1">
+            <h2 className="text-lg sm:text-2xl font-bold text-slate-900 leading-tight">Patient Intake & Retinal Scan Acquisition</h2>
             <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">Enter case information and load digital fundus photograph for automated screening.</p>
           </div>
         </div>
@@ -149,10 +168,10 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
           <button
             onClick={onReset}
             disabled={isLoading}
-            className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 shrink-0 mt-0.5 shadow-2xs"
+            className="inline-flex items-center justify-center gap-2 text-sm font-bold text-white transition-all px-4 py-2.5 min-h-[40px] rounded-xl bg-teal-700 hover:bg-teal-800 active:bg-teal-900 shadow-sm border border-teal-700 shrink-0 w-full sm:w-auto self-start lg:self-auto mt-1 sm:mt-1.5 lg:mt-0.5"
             title={hasResult ? 'Clear this case and begin another screening' : 'Clear selected image and patient details'}
           >
-            <RotateCcw className="w-4 h-4" />
+            <RotateCcw className="w-4 h-4 text-white" />
             <span>{hasResult ? 'New Screening' : 'Reset'}</span>
           </button>
         )}
@@ -178,7 +197,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
                   aria-readonly="true"
                   aria-invalid={Boolean(validationErrors.caseId)}
                   aria-describedby={getDescribedBy('caseId')}
-                  className={getInputClass('caseId', 'font-mono text-slate-700 bg-slate-100 cursor-default')}
+                  className="w-full h-10 px-3 text-xs sm:text-sm bg-slate-100 border border-slate-200 rounded-lg outline-none focus:outline-none focus:ring-0 focus:border-slate-200 font-mono text-slate-700 cursor-default"
                   title={caseId}
                 />
                 {renderError('caseId')}
@@ -251,7 +270,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
                 />
                 {renderError('diabeticDuration')}
               </div>
-              <div className="sm:col-span-2">
+              <div className="col-span-1 sm:col-span-2 w-full">
                 <span id="eye-examined-label" className="block text-xs font-semibold text-slate-600 mb-1.5">
                   Eye Examined
                 </span>
@@ -259,25 +278,29 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
                   id="eye-examined-group"
                   role="radiogroup"
                   aria-labelledby="eye-examined-label"
-                  className="flex rounded-lg shadow-xs h-10"
+                  className="flex rounded-lg shadow-xs h-10 w-full"
                 >
                   {renderEyeButton('OD', 'OD (Right)', 'rounded-l-lg')}
                   {renderEyeButton('OS', 'OS (Left)', 'rounded-r-lg border-l-0')}
                 </div>
                 {renderError('eye')}
-                <p className="text-xs sm:text-sm text-slate-600 mt-1.5 leading-relaxed">
-                  {isCaseComplete ? (
-                    <>
-                      <span className="font-bold text-emerald-800">Both eyes completed.</span> Start a new screening for the next case.
-                    </>
+                <p className="text-xs sm:text-sm text-slate-600 mt-1.5 leading-relaxed w-full">
+                {isCaseComplete ? (
+                  <span>
+                    <strong className="font-bold text-emerald-800">Both eyes completed.</strong> Start a new screening for the next case.
+                  </span>
+                  ) : requiresRecapture ? (
+                    <span>
+                      <strong className="font-bold text-rose-800">Recapture required:</strong> {formatEyeLabel(patientInfo.eye)} must pass the quality gate before moving to the other eye.
+                    </span>
                   ) : nextEye ? (
-                    <>
-                      <span className="font-bold text-slate-800">Next capture:</span> {nextEye === 'OD' ? 'OD Right Eye' : 'OS Left Eye'}.
-                    </>
+                    <span>
+                      <strong className="font-bold text-slate-800">Next capture:</strong> {formatEyeLabel(nextEye)}.
+                    </span>
                   ) : (
-                    <>
-                      <span className="font-bold text-slate-800">Note:</span> OD = Oculus Dexter (Right Eye), OS = Oculus Sinister (Left Eye)
-                    </>
+                    <span>
+                      <strong className="font-bold text-slate-800">Note:</strong> OD = Oculus Dexter (Right Eye), OS = Oculus Sinister (Left Eye)
+                    </span>
                   )}
                 </p>
               </div>
@@ -336,14 +359,25 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
                 Drag and drop fundus photograph here
               </h4>
               <p id="fundus-file-help" className="text-xs text-slate-500 mt-1 max-w-xs leading-relaxed">
-                Supports fundus photograph captures (PNG, JPEG, WebP). Max 12MB.
+                Supports fundus photograph captures (PNG, JPEG, WebP). Max 20MB.
               </p>
               <button
                 type="button"
                 disabled={isCaseComplete}
-                className="mt-3 px-3.5 py-1.5 text-xs font-bold text-teal-700 bg-white border border-teal-200 rounded-lg shadow-xs hover:bg-teal-50 transition-colors"
+                className={`mt-3 px-3.5 py-1.5 text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5 ${
+                  isCaseComplete
+                    ? 'text-teal-800 bg-teal-50 border border-teal-200 cursor-default shadow-2xs'
+                    : 'text-teal-700 bg-white border border-teal-200 shadow-xs hover:bg-teal-50'
+                }`}
               >
-                {isCaseComplete ? 'Case Completed' : 'Select Fundus Image'}
+                {isCaseComplete ? (
+                  <>
+                    <span>Completed</span>
+                    <CheckCircle className="w-3.5 h-3.5 text-teal-600 shrink-0" />
+                  </>
+                ) : (
+                  'Select Fundus Image'
+                )}
               </button>
               {renderError('image')}
             </div>
@@ -371,7 +405,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
           <button
             onClick={onAnalyze}
             disabled={!file || isLoading || isCaseComplete || completedEyes.includes(patientInfo.eye)}
-            className={`w-full min-h-[46px] py-2.5 px-4 rounded-xl font-bold text-sm shadow-md flex items-center justify-center gap-2 transition-all shrink-0 ${
+            className={`w-full min-h-[46px] py-2.5 px-3 sm:px-4 rounded-xl font-bold text-xs sm:text-sm shadow-md flex items-center justify-center gap-2 transition-all shrink-0 ${
               !file || isLoading || isCaseComplete || completedEyes.includes(patientInfo.eye)
                 ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
                 : 'bg-gradient-to-r from-teal-700 via-teal-600 to-teal-700 text-white hover:from-teal-800 hover:to-teal-800 active:scale-[0.99] shadow-teal-700/20'
@@ -379,28 +413,34 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
           >
             {isLoading ? (
               <>
-                <RefreshCw className="w-4 h-4 animate-spin" />
-                <span>Processing Fundus Scan...</span>
+                <RefreshCw className="w-4 h-4 animate-spin shrink-0" />
+                <span className="whitespace-nowrap">Processing Fundus Scan...</span>
               </>
             ) : isCaseComplete ? (
               <>
-                <FileCheck className="w-4 h-4" />
-                <span>Both Eyes Completed - Start New Screening</span>
+                <FileCheck className="w-4 h-4 shrink-0" />
+                <span className="whitespace-nowrap">Both Eyes Completed</span>
               </>
             ) : !file && hasResult ? (
               <>
-                <FileCheck className="w-4 h-4" />
-                <span>{nextEye ? `Select ${nextEye} Image to Continue` : 'Saved Screening Report Restored'}</span>
+                <FileCheck className="w-4 h-4 shrink-0" />
+                <span className="whitespace-nowrap">
+                  {requiresRecapture
+                    ? `Select ${patientInfo.eye} Image to Recapture`
+                    : nextEye
+                    ? `Select ${nextEye} Image to Continue`
+                    : 'Saved Screening Report Restored'}
+                </span>
               </>
             ) : !file ? (
               <>
-                <UploadCloud className="w-4 h-4" />
-                <span>Select Fundus Image to Start</span>
+                <UploadCloud className="w-4 h-4 shrink-0" />
+                <span className="whitespace-nowrap">Select Fundus Image to Start</span>
               </>
             ) : (
               <>
-                <Play className="w-4 h-4 fill-current" />
-                <span>Run Complete Screening Analysis</span>
+                <Play className="w-4 h-4 fill-current shrink-0" />
+                <span className="whitespace-nowrap">Run Complete Screening Analysis</span>
               </>
             )}
           </button>
@@ -409,3 +449,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
     </div>
   );
 };
+
+function formatEyeLabel(eye: EyeCode): string {
+  return eye === 'OD' ? 'OD Right Eye' : 'OS Left Eye';
+}

@@ -194,12 +194,13 @@ class ImagePipeline:
         grade = int(np.argmax(probabilities))
         confidence = float(probabilities[grade])
         referable_probability = float(np.sum(probabilities[2:]))
-        referable_dr = referable_probability >= self.settings.model_referable_threshold
+        referable_dr = grade >= 2
 
         return PredictionResult(
             icdr_grade=grade,
             label=CLASS_NAMES[grade],
             referable_dr=referable_dr,
+            referable_probability=referable_probability,
             confidence=confidence,
             confidence_level=confidence_level(confidence),
             model_version=self.settings.model_version,
@@ -366,7 +367,11 @@ class ImagePipeline:
         heat = np.clip(saliency * 255.0, 0, 255).astype(np.uint8)
         colored = cv2.applyColorMap(heat, cv2.COLORMAP_JET)
         colored = cv2.cvtColor(colored, cv2.COLOR_BGR2RGB)
-        alpha = np.where(heat > 18, np.clip(heat * 0.75, 0, 190), 0).astype(np.uint8)
+        alpha = np.where(
+            analysis_mask > 0,
+            np.clip(30 + heat.astype(np.float32) * 0.68, 30, 205),
+            0,
+        ).astype(np.uint8)
 
         rgba = np.dstack([colored, alpha])
         return Image.fromarray(rgba, mode="RGBA")
@@ -415,7 +420,7 @@ class ImagePipeline:
         saliency = normalize_attention_map(saliency, np.ones_like(saliency, dtype=np.uint8), 90, 99.5)
 
         heat = np.clip(saliency * 255.0, 0, 255).astype(np.uint8)
-        alpha = np.where(heat > 18, np.clip(heat * 0.70, 0, 180), 0).astype(np.uint8)
+        alpha = np.clip(28 + heat.astype(np.float32) * 0.65, 28, 195).astype(np.uint8)
         rgba = np.zeros((*heat.shape, 4), dtype=np.uint8)
         rgba[:, :, 0] = heat
         rgba[:, :, 1] = np.clip(255 - np.abs(heat.astype(np.int16) - 128) * 2, 0, 255).astype(np.uint8)

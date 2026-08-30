@@ -1,6 +1,14 @@
 import React from 'react';
-import { ShieldCheck, ShieldAlert, CheckCircle, AlertTriangle, ScanEye } from 'lucide-react';
+import {
+  ShieldCheck,
+  ShieldAlert,
+  CheckCircle,
+  AlertTriangle,
+  ScanEye,
+  AlertCircle
+} from 'lucide-react';
 import type { QualityResult } from '../types';
+import { displayText } from '../utils/display';
 
 interface QualityGateCardProps {
   quality: QualityResult;
@@ -64,38 +72,38 @@ export const QualityGateCard: React.FC<QualityGateCardProps> = ({ quality }) => 
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-          <div className="bg-slate-50 p-5 rounded-xl border border-slate-200">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-semibold text-slate-600">Focus Score</span>
-              <span className="text-lg font-extrabold text-slate-900">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4">
+          <div className="bg-slate-50 p-3.5 sm:p-4 rounded-xl border border-slate-200 flex flex-col justify-between">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <span className="text-xs sm:text-sm font-semibold text-slate-700">Focus Score</span>
+              <span className="text-base sm:text-lg font-extrabold text-slate-900 shrink-0">
                 {quality.focus_score.toFixed(1)}
               </span>
             </div>
-            <div className="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+            <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden my-1">
               <div
-                className={`h-2.5 rounded-full ${
+                className={`h-2 rounded-full ${
                   focusPasses ? 'bg-emerald-500' : 'bg-rose-500'
                 }`}
                 style={{ width: `${Math.max(10, focusPercent)}%` }}
               />
             </div>
-            <div className="flex justify-between text-xs text-slate-400 mt-2">
+            <div className="flex items-center justify-between text-[11px] sm:text-xs text-slate-500 mt-1 gap-1 whitespace-nowrap">
               <span>Blur</span>
-              <span>Min {QUALITY_THRESHOLDS.minFocusScore.toFixed(1)}</span>
+              <span className="font-medium">Min {QUALITY_THRESHOLDS.minFocusScore.toFixed(1)}</span>
             </div>
           </div>
 
-          <div className="bg-slate-50 p-5 rounded-xl border border-slate-200">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-semibold text-slate-600">Brightness</span>
-              <span className="text-lg font-extrabold text-slate-900">
+          <div className="bg-slate-50 p-3.5 sm:p-4 rounded-xl border border-slate-200 flex flex-col justify-between">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <span className="text-xs sm:text-sm font-semibold text-slate-700">Brightness</span>
+              <span className="text-base sm:text-lg font-extrabold text-slate-900 shrink-0">
                 {quality.brightness.toFixed(2)}
               </span>
             </div>
-            <div className="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+            <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden my-1">
               <div
-                className={`h-2.5 rounded-full ${
+                className={`h-2 rounded-full ${
                   brightnessPasses
                     ? 'bg-emerald-500'
                     : 'bg-amber-500'
@@ -103,51 +111,51 @@ export const QualityGateCard: React.FC<QualityGateCardProps> = ({ quality }) => 
                 style={{ width: `${Math.max(10, brightnessPercent)}%` }}
               />
             </div>
-            <div className="flex justify-between text-xs text-slate-400 mt-2">
+            <div className="flex items-center justify-between text-[11px] sm:text-xs text-slate-500 mt-1 gap-1 whitespace-nowrap">
               <span>Dark</span>
-              <span>Max {QUALITY_THRESHOLDS.maxBrightness.toFixed(2)}</span>
+              <span className="font-medium">Max {QUALITY_THRESHOLDS.maxBrightness.toFixed(2)}</span>
             </div>
           </div>
 
-          <div className="bg-slate-50 p-5 rounded-xl border border-slate-200">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-semibold text-slate-600">Contrast</span>
-              <span className="text-lg font-extrabold text-slate-900">
+          <div className="bg-slate-50 p-3.5 sm:p-4 rounded-xl border border-slate-200 flex flex-col justify-between">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <span className="text-xs sm:text-sm font-semibold text-slate-700">Contrast</span>
+              <span className="text-base sm:text-lg font-extrabold text-slate-900 shrink-0">
                 {quality.contrast.toFixed(2)}
               </span>
             </div>
-            <div className="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+            <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden my-1">
               <div
-                className={`h-2.5 rounded-full ${
+                className={`h-2 rounded-full ${
                   contrastPasses ? 'bg-emerald-500' : 'bg-rose-500'
                 }`}
                 style={{ width: `${Math.max(10, contrastPercent)}%` }}
               />
             </div>
-            <div className="flex justify-between text-xs text-slate-400 mt-2">
+            <div className="flex items-center justify-between text-[11px] sm:text-xs text-slate-500 mt-1 gap-1 whitespace-nowrap">
               <span>Low</span>
-              <span>Min {QUALITY_THRESHOLDS.minContrast.toFixed(2)}</span>
+              <span className="font-medium">Min {QUALITY_THRESHOLDS.minContrast.toFixed(2)}</span>
             </div>
           </div>
 
-          <div className="bg-slate-50 p-5 rounded-xl border border-slate-200">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-semibold text-slate-600">Compatibility</span>
-              <span className="text-lg font-extrabold text-slate-900">
+          <div className="bg-slate-50 p-3.5 sm:p-4 rounded-xl border border-slate-200 flex flex-col justify-between">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <span className="text-xs sm:text-sm font-semibold text-slate-700">Compatibility</span>
+              <span className="text-base sm:text-lg font-extrabold text-slate-900 shrink-0">
                 {compatibilityPercent}%
               </span>
             </div>
-            <div className="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+            <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden my-1">
               <div
-                className={`h-2.5 rounded-full ${
+                className={`h-2 rounded-full ${
                   compatibilityPasses ? 'bg-emerald-500' : 'bg-rose-500'
                 }`}
                 style={{ width: `${Math.max(10, compatibilityPercent)}%` }}
               />
             </div>
-            <div className="flex justify-between text-xs text-slate-400 mt-2">
-              <span>Unsupported</span>
-              <span>APTOS-style</span>
+            <div className="flex items-center justify-between text-[11px] sm:text-xs text-slate-500 mt-1 gap-1 whitespace-nowrap">
+              <span>Low</span>
+              <span className="font-medium">Standard</span>
             </div>
           </div>
         </div>
@@ -155,42 +163,53 @@ export const QualityGateCard: React.FC<QualityGateCardProps> = ({ quality }) => 
 
       <div className="mt-5">
         {quality.warnings && quality.warnings.length > 0 && (
-          <div className="mb-4 bg-amber-50/80 border border-amber-200 rounded-xl p-5 text-base text-amber-950 space-y-3">
-            <div className="font-bold flex items-center gap-2">
-              <ScanEye className="w-5 h-5 text-amber-700" />
-              Compatibility Warnings
+          <div className="mb-4 bg-amber-50/80 border border-amber-200 rounded-xl p-4 sm:p-5 text-amber-950 space-y-2.5">
+            <div className="font-bold flex items-center gap-2.5 text-sm sm:text-base leading-6 text-amber-950">
+              <ScanEye className="w-5 h-5 text-amber-700 shrink-0" />
+              <span>Capture Advisory</span>
             </div>
-            <ul className="list-disc list-inside space-y-2 pl-1 text-sm text-amber-800">
+            {isGradeable && (
+              <p className="text-xs sm:text-sm text-amber-900/90 leading-relaxed">
+                Screening completed, but a more centered fundus image is preferred for higher reliability.
+              </p>
+            )}
+            <div className="space-y-2 text-xs sm:text-sm text-amber-900/90 leading-relaxed">
               {quality.warnings.map((warning, idx) => (
-                <li key={idx}>{warning}</li>
+                <div key={idx} className="flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <span className="flex-1 min-w-0">{displayText(warning, 'Quality warning not available')}</span>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
         )}
 
         {!isGradeable && quality.reasons.length > 0 && (
-          <div className="bg-rose-100/70 border border-rose-300 rounded-xl p-5 text-base text-rose-900 space-y-3">
-            <div className="font-bold flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-rose-700" />
-              Quality Gate Rejection Reasons
+          <div className="bg-rose-100/70 border border-rose-300 rounded-xl p-4 sm:p-5 text-rose-900 space-y-2.5">
+            <div className="font-bold flex items-center gap-2.5 text-sm sm:text-base leading-6 text-rose-950">
+              <AlertTriangle className="w-5 h-5 text-rose-700 shrink-0" />
+              <span>Quality Gate Rejection Reasons</span>
             </div>
-            <ul className="list-disc list-inside space-y-2 pl-1 text-sm text-rose-800">
+            <div className="space-y-2 text-xs sm:text-sm text-rose-900/90 leading-relaxed">
               {quality.reasons.map((reason, idx) => (
-                <li key={idx}>{reason}</li>
+                <div key={idx} className="flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                  <span className="flex-1 min-w-0">{displayText(reason, 'Quality rejection reason not available')}</span>
+                </div>
               ))}
-            </ul>
-            <p className="text-sm text-rose-700 pt-1">
+            </div>
+            <p className="text-xs sm:text-sm text-rose-800 pt-1 leading-relaxed">
               <strong>Action for PHC Operator:</strong> Recapture the fundus photograph after asking patient to steady gaze and adjusting camera illumination.
             </p>
           </div>
         )}
 
         {isGradeable && (
-          <div className="flex items-start gap-3 text-base text-emerald-800 bg-emerald-50/80 border border-emerald-200 px-5 py-4 rounded-xl">
-            <CheckCircle className="w-6 h-6 text-emerald-600 shrink-0 mt-0.5" />
-            <span>
+          <div className="flex items-start gap-2.5 sm:gap-3 text-xs sm:text-sm text-emerald-900 bg-emerald-50/80 border border-emerald-200 p-4 sm:p-5 rounded-xl">
+            <CheckCircle className="w-4 h-4 sm:w-[18px] sm:h-[18px] text-emerald-600 shrink-0 mt-0.5" />
+            <p className="leading-snug sm:leading-relaxed font-medium text-emerald-950 flex-1 min-w-0">
               Fundus image passed quality threshold. Optical disc and macula regions are adequately resolved for neural network inference.
-            </span>
+            </p>
           </div>
         )}
       </div>

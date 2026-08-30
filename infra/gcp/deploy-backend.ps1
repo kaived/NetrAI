@@ -1,6 +1,6 @@
 param(
     [ValidateSet("stub", "onnx")]
-    [string]$InferenceMode = "stub",
+    [string]$InferenceMode = "onnx",
     [string]$ProjectId = "retinascan-ai-f620e",
     [string]$Region = "asia-south1",
     [string]$ServiceName = "retinascan-api",
@@ -9,7 +9,7 @@ param(
     [string]$InputBucket = "$ProjectId-inputs",
     [string]$OutputBucket = "$ProjectId-outputs",
     [string]$CorsOrigins = "https://netr-ai.orbionixtech.com,https://www.netr-ai.orbionixtech.com,http://localhost:5173,http://localhost:4173",
-    [string]$ModelVersion = "demo-stub-v0"
+    [string]$ModelVersion = "aptos-baseline-v1"
 )
 
 $ErrorActionPreference = "Stop"
@@ -40,6 +40,8 @@ if ($InferenceMode -eq "onnx") {
     Write-Host "Uploading ONNX model to Cloud Storage..."
     Invoke-Gcloud storage cp $localModelPath "gs://$ModelBucket/models/dr_classifier.onnx"
     $ModelVersion = "aptos-baseline-v1"
+} else {
+    $ModelVersion = "demo-stub-v0"
 }
 
 $serviceAccountEmail = "$ServiceAccountName@$ProjectId.iam.gserviceaccount.com"
@@ -83,6 +85,11 @@ $envFileLines = foreach ($entry in $envVars.GetEnumerator()) {
 Set-Content -Path $envVarsFile -Value $envFileLines -Encoding utf8
 
 Write-Host "Deploying $ServiceName to Cloud Run in $Region..."
+Write-Host "Inference mode: $InferenceMode"
+Write-Host "Model version:  $ModelVersion"
+if ($modelGcsUri) {
+    Write-Host "Model GCS URI:  $modelGcsUri"
+}
 Invoke-Gcloud run deploy $ServiceName `
     --source $BackendDir `
     --region $Region `
@@ -93,7 +100,8 @@ Invoke-Gcloud run deploy $ServiceName `
     --cpu 2 `
     --min-instances 1 `
     --max-instances 5 `
-    --env-vars-file $envVarsFile
+    --env-vars-file $envVarsFile `
+    --quiet
 
 Write-Host ""
 Write-Host "Deployment complete. Copy the Cloud Run URL and use it as VITE_API_BASE_URL for Cloudflare Pages."

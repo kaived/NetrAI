@@ -149,6 +149,33 @@ export const ClinicalGuideModal: React.FC<ClinicalGuideModalProps> = ({ isOpen, 
               </div>
             </div>
           </section>
+
+          {/* Section 3: Rural PHC Clinical Action Protocol */}
+          <section className="space-y-3">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900 border-b border-slate-100 pb-1.5">
+              3. Rural PHC Recommended Action Protocol
+            </h3>
+            <div className="grid sm:grid-cols-3 gap-3 text-xs">
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-1">
+                <span className="font-bold text-slate-800 block">1. Triage Priority</span>
+                <p className="text-slate-600">
+                  Urgent referral to District Ophthalmic Specialist within 2-4 weeks for referable DR (Grade 2-4). Annual routine screening recall (12 months) for Grade 0-1.
+                </p>
+              </div>
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-1">
+                <span className="font-bold text-slate-800 block">2. Primary Care Guidance</span>
+                <p className="text-slate-600">
+                  Evaluate HbA1c glycemic control, blood pressure (target &lt;130/80 mmHg), and serum lipid profile at every visit.
+                </p>
+              </div>
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-1">
+                <span className="font-bold text-slate-800 block">3. Patient Counseling</span>
+                <p className="text-slate-600">
+                  Advise immediate medical attention if sudden vision drop, new floaters, or dark spots occur. Reinforce diet and lifestyle compliance.
+                </p>
+              </div>
+            </div>
+          </section>
         </div>
 
         {/* Modal Footer */}

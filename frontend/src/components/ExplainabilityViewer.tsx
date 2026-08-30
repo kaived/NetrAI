@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Eye, Layers, Info, BrainCircuit } from 'lucide-react';
 import { resolveApiAssetUrl } from '../api';
 import type { ExplanationResult } from '../types';
+import { displayText } from '../utils/display';
 
 interface ExplainabilityViewerProps {
   previewUrl: string | null;
@@ -14,30 +15,28 @@ export const ExplainabilityViewer: React.FC<ExplainabilityViewerProps> = ({
   explanation,
   isGradeable,
 }) => {
-  const [overlayOpacity, setOverlayOpacity] = useState(65);
+  const [overlayOpacity, setOverlayOpacity] = useState(70);
   const heatmapSrc = resolveApiAssetUrl(explanation.heatmap_url);
   const hasHeatmap = Boolean(isGradeable && heatmapSrc);
+  const effectiveOverlayOpacity = hasHeatmap ? Math.max(25, overlayOpacity) : overlayOpacity;
+  const explanationText = displayText(explanation.text, 'Explainability note is not available for this case.');
+  const methodText = displayText(explanation.method, 'Not available');
 
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl p-6 lg:p-7 shadow-sm space-y-5 h-full flex flex-col justify-between">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-5">
-        <div className="flex items-start gap-3.5 min-w-0">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-50 text-indigo-700 shrink-0 mt-0.5">
-            <BrainCircuit className="w-6 h-6" />
+    <div className="bg-white border border-slate-200 rounded-2xl p-6 lg:p-7 shadow-sm space-y-5 h-full flex flex-col">
+      <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-5">
+        <div className="flex items-start gap-4 sm:gap-5 min-w-0">
+          <div className="flex h-12 w-12 sm:h-13 sm:w-13 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-700 shrink-0 mt-0.5 shadow-2xs">
+            <BrainCircuit className="w-6 h-6 sm:w-7 sm:h-7" />
           </div>
-          <div>
+          <div className="space-y-1 sm:space-y-1.5 min-w-0">
             <h3 className="text-xl sm:text-2xl font-bold text-slate-950 leading-tight">Explainable AI & Attention Map</h3>
-            <p className="text-xs sm:text-sm text-slate-600 mt-0.5">Grad-CAM style activation highlighting diagnostic retinal features</p>
+            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">Grad-CAM style activation highlighting diagnostic retinal features</p>
           </div>
-        </div>
-
-        <div className="inline-flex items-center self-start sm:self-auto w-fit gap-1.5 shrink-0 rounded-lg border border-indigo-200/80 bg-indigo-50/80 px-3 py-1.5 text-xs font-bold text-indigo-700 whitespace-nowrap shadow-xs">
-          <span className={`w-2 h-2 rounded-full ${hasHeatmap ? 'bg-indigo-500' : 'bg-slate-400'}`}></span>
-          <span>{hasHeatmap ? 'Heatmap Generated' : 'Awaiting Heatmap'}</span>
         </div>
       </div>
 
-      <div className="relative rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 aspect-[4/3] min-h-[420px] flex items-center justify-center">
+      <div className="relative rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 aspect-[4/3] flex-1 min-h-[380px] flex items-center justify-center">
         {previewUrl ? (
           <div className="relative w-full h-full flex items-center justify-center">
             {/* Base Image */}
@@ -51,8 +50,8 @@ export const ExplainabilityViewer: React.FC<ExplainabilityViewerProps> = ({
               <img
                 src={heatmapSrc ?? undefined}
                 alt="Backend-generated lesion attention heatmap"
-                className="absolute inset-0 m-auto max-h-full max-w-full object-contain pointer-events-none mix-blend-screen transition-opacity"
-                style={{ opacity: overlayOpacity / 100 }}
+                className="absolute inset-0 m-auto max-h-full max-w-full object-contain pointer-events-none transition-opacity"
+                style={{ opacity: effectiveOverlayOpacity / 100 }}
               />
             )}
 
@@ -70,11 +69,16 @@ export const ExplainabilityViewer: React.FC<ExplainabilityViewerProps> = ({
         )}
 
         {hasHeatmap && (
-          <div className="absolute bottom-4 left-4 bg-black/80 backdrop-blur-md px-4 py-2 rounded-xl text-sm text-white flex items-center gap-3 border border-white/10">
-            <span className="text-slate-400">Attention:</span>
-            <span className="text-blue-400">Low</span>
-            <div className="w-24 h-3 rounded-full bg-gradient-to-r from-blue-500 via-yellow-400 to-red-600"></div>
-            <span className="text-red-400 font-bold">High</span>
+          <div className="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 bg-black/85 backdrop-blur-md px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm text-white flex items-center gap-2.5 sm:gap-3 border border-white/15 shadow-xl whitespace-nowrap z-10">
+            <span className="flex items-center gap-1.5 leading-none">
+              <span className="text-slate-300 font-medium">Attention:</span>
+              <span className="text-blue-400 font-semibold">Low</span>
+            </span>
+            <div
+              className="w-20 sm:w-28 h-2 sm:h-2.5 rounded-full shrink-0"
+              style={{ background: 'linear-gradient(90deg, #1d4ed8 0%, #38bdf8 24%, #facc15 56%, #fb923c 74%, #dc2626 100%)' }}
+            ></div>
+            <span className="text-rose-400 font-bold leading-none">High</span>
           </div>
         )}
       </div>
@@ -86,33 +90,40 @@ export const ExplainabilityViewer: React.FC<ExplainabilityViewerProps> = ({
               <Layers className="w-4 h-4 sm:w-5 sm:h-5 text-slate-500 shrink-0" />
               <span>Heatmap Blend Opacity:</span>
             </div>
-            <span className="font-bold text-teal-700 text-xs sm:text-sm">{overlayOpacity}%</span>
+            <span className="font-bold text-teal-800 text-xs sm:text-sm">{effectiveOverlayOpacity}%</span>
           </div>
           <label htmlFor="heatmap-opacity-range" className="sr-only">
             Heatmap Blend Opacity
           </label>
-          <input
-            id="heatmap-opacity-range"
-            name="overlayOpacity"
-            type="range"
-            min="0"
-            max="100"
-            value={overlayOpacity}
-            onChange={(e) => setOverlayOpacity(Number(e.target.value))}
-            style={{
-              background: `linear-gradient(to right, #0d9488 0%, #0d9488 ${overlayOpacity}%, #e2e8f0 ${overlayOpacity}%, #e2e8f0 100%)`
-            }}
-            className="w-full sm:w-56 h-2 rounded-lg appearance-none cursor-pointer accent-teal-600 outline-none"
-          />
+          {(() => {
+            const fillPercent = ((effectiveOverlayOpacity - 25) / 75) * 100;
+            return (
+              <input
+                id="heatmap-opacity-range"
+                name="overlayOpacity"
+                type="range"
+                min="25"
+                max="100"
+                value={effectiveOverlayOpacity}
+                onChange={(e) => setOverlayOpacity(Number(e.target.value))}
+                style={{
+                  background: `linear-gradient(to right, #0f766e 0%, #0f766e ${fillPercent}%, #e2e8f0 ${fillPercent}%, #e2e8f0 100%)`
+                }}
+                className="w-full sm:w-56 h-2 rounded-lg appearance-none cursor-pointer accent-teal-700 outline-none"
+              />
+            );
+          })()}
         </div>
       )}
 
-      <div className="bg-indigo-50/60 border border-indigo-100 rounded-xl p-5 text-base text-indigo-950 flex items-start gap-3">
-        <Info className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />
-        <div className="space-y-2">
-          <p className="font-bold leading-7">{explanation.text}</p>
-          <p className="text-sm text-indigo-800 leading-6">
-            Method: <strong className="font-mono">{explanation.method}</strong>. Visual attribution maps neural network activation layers back to fundus vascular coordinates to assist ophthalmic audit.
+      <div className="bg-indigo-50/60 border border-indigo-100 rounded-xl p-4 sm:p-5 text-indigo-950 flex items-start gap-3">
+        <div className="flex items-center justify-center shrink-0 w-5 h-6">
+          <Info className="w-5 h-5 text-indigo-600" />
+        </div>
+        <div className="space-y-1.5 min-w-0 flex-1">
+          <p className="font-bold text-sm sm:text-base leading-6 text-indigo-950">{explanationText}</p>
+          <p className="text-xs sm:text-sm text-indigo-800/90 leading-relaxed">
+            Method: <strong className="font-semibold">{methodText}</strong>. Visual attribution maps neural network activation layers back to fundus vascular coordinates to assist ophthalmic audit.
           </p>
         </div>
       </div>

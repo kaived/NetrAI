@@ -45,6 +45,7 @@ class PredictionResult(BaseModel):
     icdr_grade: int | None
     label: str
     referable_dr: bool
+    referable_probability: float | None = None
     confidence: float
     confidence_level: str = "unknown"
     model_version: str
@@ -74,6 +75,7 @@ class FinalReportResult(BaseModel):
     disclaimer: str
     referable_dr: bool
     worst_eye: str | None = None
+    worst_eyes: list[str] = Field(default_factory=list)
     worst_icdr_grade: int | None = None
     worst_label: str | None = None
     completed_eyes: list[str] = Field(default_factory=list)

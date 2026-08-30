@@ -11,6 +11,7 @@ import { ExplainabilityViewer } from './components/ExplainabilityViewer';
 import { ClinicalReportCard } from './components/ClinicalReportCard';
 import { ClinicalGuideModal } from './components/ClinicalGuideModal';
 import { generateCaseId } from './utils/caseId';
+import { getTriageDisplay } from './utils/display';
 import { caseIdSchema, validateScreeningInput } from './validation/screening';
 
 const DEFAULT_PATIENT_INFO: PatientInfo = {
@@ -47,6 +48,7 @@ export function App() {
   const nextEye = result?.next_eye ?? null;
   const isCaseComplete = Boolean(result?.is_case_complete);
   const resultPreviewUrl = result ? getResultPreviewUrl(result) : previewUrl;
+  const hasValidationErrors = Object.keys(fieldErrors).length > 0;
 
   const activeEyeResult: EyeScreeningResult | null =
     result?.eyes?.[activeViewEye] ??
@@ -214,18 +216,34 @@ export function App() {
         />
 
         {error && (
-          <div className="bg-rose-50 border border-rose-200 rounded-xl p-5 flex items-start gap-4 text-rose-900 shadow-sm">
-            <ShieldAlert className="w-6 h-6 text-rose-600 shrink-0 mt-0.5" />
+          <div
+            className={`border rounded-xl p-5 flex items-start gap-4 shadow-sm ${
+              hasValidationErrors
+                ? 'bg-amber-50 border-amber-200 text-amber-950'
+                : 'bg-rose-50 border-rose-200 text-rose-900'
+            }`}
+          >
+            <ShieldAlert
+              className={`w-6 h-6 shrink-0 mt-0.5 ${hasValidationErrors ? 'text-amber-600' : 'text-rose-600'}`}
+            />
             <div className="flex-1">
-              <span className="font-bold block text-base">Screening Analysis Error</span>
-              <p className="mt-1 text-sm text-rose-700">{error}</p>
-              <p className="mt-2 text-sm text-rose-600">
-                Please check backend connectivity or try uploading another fundus image.
+              <span className="font-bold block text-base">
+                {hasValidationErrors ? 'Incomplete Intake Details' : 'Screening Analysis Error'}
+              </span>
+              <p className={`mt-1 text-sm ${hasValidationErrors ? 'text-amber-800' : 'text-rose-700'}`}>
+                {error}
+              </p>
+              <p className={`mt-2 text-sm ${hasValidationErrors ? 'text-amber-700' : 'text-rose-600'}`}>
+                {hasValidationErrors
+                  ? 'Your selected fundus image is still kept. Complete the highlighted fields and run analysis again.'
+                  : 'Please check backend connectivity or try uploading another fundus image.'}
               </p>
             </div>
             <button
               onClick={() => setError(null)}
-              className="text-rose-600 hover:text-rose-900 text-sm font-semibold"
+              className={`text-sm font-semibold ${
+                hasValidationErrors ? 'text-amber-700 hover:text-amber-950' : 'text-rose-600 hover:text-rose-900'
+              }`}
             >
               Dismiss
             </button>
@@ -244,6 +262,7 @@ export function App() {
             completedEyes={completedEyes}
             nextEye={nextEye}
             isCaseComplete={isCaseComplete}
+            requiresRecapture={Boolean(result && !result.quality.is_gradeable && !isCaseComplete)}
             onFileChange={(f) => {
               setFile(f);
               if (!f) {
@@ -271,30 +290,34 @@ export function App() {
           {result ? (
             <div className="space-y-6">
               {/* Diagnostic Bilateral Eye Switcher Toggle */}
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3.5 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs no-print">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-teal-800 shrink-0">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs no-print">
+                <div className="flex items-start sm:items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-teal-800 shrink-0 mt-0.5 sm:mt-0">
                     <Eye className="w-5 h-5" />
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="text-sm sm:text-base font-bold text-slate-950">Diagnostic Eye Switcher</span>
-                      <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-teal-100 text-teal-900 border border-teal-200">
+                      <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-teal-100 text-teal-900 border border-teal-200 whitespace-nowrap">
                         {activeViewEye === 'OD' ? 'OD (Right Eye)' : 'OS (Left Eye)'} Active
                       </span>
                     </div>
-                    <p className="text-xs text-slate-500 mt-0.5">
+                    <p className="text-xs text-slate-500 mt-1 sm:mt-0.5 leading-relaxed">
                       Toggle to inspect individual eye quality, DR grade, and heatmap. Full bilateral details are included on export.
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center rounded-xl bg-slate-100 p-1 border border-slate-200 shrink-0" role="tablist" aria-label="Select Eye View">
+                <div className="grid grid-cols-2 md:flex md:items-center rounded-xl bg-slate-100 p-1.5 border border-slate-200 shrink-0 w-full md:w-auto gap-1.5 md:gap-1" role="tablist" aria-label="Select Eye View">
                   {(['OD', 'OS'] as EyeCode[]).map((eyeCode) => {
-                    const isCompleted = completedEyes.includes(eyeCode) || result.patient?.eye === eyeCode;
                     const eyeData = result.eyes?.[eyeCode] ?? (result.patient?.eye === eyeCode ? result : null);
-                    const isReferable = eyeData?.prediction.referable_dr;
+                    const hasEyeResult = Boolean(eyeData);
+                    const isCompleted = completedEyes.includes(eyeCode);
+                    const isRejected = Boolean(eyeData && !eyeData.quality.is_gradeable);
+                    const triage = eyeData ? getTriageDisplay(eyeData.prediction) : null;
+                    const isReferable = Boolean(eyeData?.quality.is_gradeable && triage?.positive);
                     const isSelected = activeViewEye === eyeCode;
+                    const canSelect = isSelected || hasEyeResult || completedEyes.length > 0;
 
                     return (
                       <button
@@ -302,26 +325,52 @@ export function App() {
                         type="button"
                         role="tab"
                         aria-selected={isSelected}
-                        onClick={() => setActiveViewEye(eyeCode)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all ${
+                        aria-disabled={!canSelect}
+                        disabled={!canSelect}
+                        onClick={() => {
+                          if (canSelect) {
+                            setActiveViewEye(eyeCode);
+                          }
+                        }}
+                        className={`flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all ${
                           isSelected
                             ? 'bg-white text-teal-900 shadow-xs border border-slate-200/90'
+                            : !canSelect
+                            ? 'text-slate-400 bg-slate-200/50 cursor-not-allowed'
                             : 'text-slate-600 hover:text-slate-950 hover:bg-slate-200/50'
                         }`}
+                        title={
+                          !canSelect
+                            ? 'Recapture the rejected eye before moving to the other eye'
+                            : eyeCode === 'OD'
+                            ? 'View OD Right Eye'
+                            : 'View OS Left Eye'
+                        }
                       >
-                        <span>{eyeCode === 'OD' ? 'OD (Right Eye)' : 'OS (Left Eye)'}</span>
-                        {isCompleted ? (
+                        <span className="whitespace-nowrap">
+                          <span className="inline lg:hidden">{eyeCode === 'OD' ? 'OD (Right)' : 'OS (Left)'}</span>
+                          <span className="hidden lg:inline">{eyeCode === 'OD' ? 'OD (Right Eye)' : 'OS (Left Eye)'}</span>
+                        </span>
+                        {hasEyeResult ? (
                           <span
-                            className={`px-2 py-0.5 text-[10px] font-extrabold rounded-full ${
-                              isReferable ? 'bg-rose-100 text-rose-800' : 'bg-emerald-100 text-emerald-800'
+                            className={`px-2 py-0.5 text-[10px] font-extrabold rounded-full whitespace-nowrap shrink-0 ${
+                              isRejected
+                                ? 'bg-amber-100 text-amber-800'
+                                : isReferable
+                                ? 'bg-rose-100 text-rose-800'
+                                : isCompleted
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : 'bg-slate-200 text-slate-600'
                             }`}
                           >
-                            {eyeData?.prediction.icdr_grade !== undefined && eyeData?.prediction.icdr_grade !== null
+                            {isRejected
+                              ? 'Recapture'
+                              : eyeData?.prediction.icdr_grade !== undefined && eyeData?.prediction.icdr_grade !== null
                               ? `Grade ${eyeData.prediction.icdr_grade}`
                               : 'No Grade'}
                           </span>
                         ) : (
-                          <span className="px-2 py-0.5 text-[10px] font-medium text-slate-400 bg-slate-200/70 rounded-full">
+                          <span className="px-2 py-0.5 text-[10px] font-medium text-slate-400 bg-slate-200/70 rounded-full whitespace-nowrap shrink-0">
                             Pending
                           </span>
                         )}

@@ -230,7 +230,7 @@ async def predict(
     if not image_bytes:
         raise HTTPException(status_code=400, detail="Uploaded image is empty.")
     if len(image_bytes) > settings.max_upload_bytes:
-        raise HTTPException(status_code=413, detail="Uploaded image is too large. Maximum supported size is 12 MB.")
+        raise HTTPException(status_code=413, detail="Uploaded image is too large. Maximum supported size is 20 MB.")
 
     _validate_image_payload(image_bytes)
 

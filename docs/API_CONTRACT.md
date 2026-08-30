@@ -162,11 +162,12 @@ The final two-eye report is available when:
   "completed_eyes": ["OD", "OS"],
   "is_case_complete": true,
   "final_report": {
-    "summary": "Final two-eye screening: referable diabetic retinopathy suspected...",
+    "summary": "Final two-eye screening: referable diabetic retinopathy suspected. Worst grade present in both eyes: moderate (Grade 2).",
     "recommendation": "Ophthalmologist review recommended...",
     "disclaimer": "Screening support only. Not a final diagnosis.",
     "referable_dr": true,
-    "worst_eye": "OD",
+    "worst_eye": null,
+    "worst_eyes": ["OD", "OS"],
     "worst_icdr_grade": 2,
     "worst_label": "moderate",
     "completed_eyes": ["OD", "OS"]

@@ -176,25 +176,36 @@ def _build_final_report(
         return None
 
     completed_results = [eyes[eye] for eye in EYE_ORDER]
-    worst_result = max(
-        completed_results,
-        key=lambda item: item.prediction.icdr_grade if item.prediction.icdr_grade is not None else -1,
-    )
-    worst_grade = worst_result.prediction.icdr_grade
+    worst_grade = max(_grade_value(item) for item in completed_results)
+    worst_results = [item for item in completed_results if _grade_value(item) == worst_grade]
+    worst_result = max(worst_results, key=lambda item: item.prediction.confidence)
     worst_label = worst_result.prediction.label
-    referable = any(item.prediction.referable_dr for item in completed_results)
+    worst_eyes = [item.eye for item in worst_results]
+    has_worst_grade_tie = len(worst_eyes) > 1
+    worst_eye_text = "both eyes" if has_worst_grade_tie else _eye_label(worst_result.eye)
+    referable = any(_grade_value(item) >= 2 for item in completed_results)
     low_confidence = any((item.prediction.confidence_level or "").lower() == "low" for item in completed_results)
 
     if referable:
+        finding_text = (
+            f"Worst grade present in {worst_eye_text}: {worst_label} (Grade {worst_grade})."
+            if has_worst_grade_tie
+            else f"Worst eye {worst_eye_text}: {worst_label} (Grade {worst_grade})."
+        )
         summary = (
             "Final two-eye screening: referable diabetic retinopathy suspected. "
-            f"Worst eye {_eye_label(worst_result.eye)}: {worst_label} (Grade {worst_grade})."
+            f"{finding_text}"
         )
-        recommendation = "Ophthalmologist review recommended. Treat as triage-positive because at least one eye is referable."
+        recommendation = "Ophthalmologist review recommended. Treat as triage-positive because at least one eye is Grade 2 or higher."
     else:
+        finding_text = (
+            f"Highest grade present in {worst_eye_text}: {worst_label} (Grade {worst_grade})."
+            if has_worst_grade_tie
+            else f"Highest finding {_eye_label(worst_result.eye)}: {worst_label} (Grade {worst_grade})."
+        )
         summary = (
             "Final two-eye screening: no referable diabetic retinopathy detected in either eye. "
-            f"Worst finding: {worst_label} (Grade {worst_grade})."
+            f"{finding_text}"
         )
         recommendation = "Routine screening follow-up may be used unless symptoms or clinical risk factors require review."
 
@@ -206,11 +217,16 @@ def _build_final_report(
         recommendation=recommendation,
         disclaimer="Screening support only. Not a final diagnosis.",
         referable_dr=referable,
-        worst_eye=worst_result.eye,
+        worst_eye=None if has_worst_grade_tie else worst_result.eye,
+        worst_eyes=worst_eyes,
         worst_icdr_grade=worst_grade,
         worst_label=worst_label,
         completed_eyes=completed_eyes,
     )
+
+
+def _grade_value(result: EyeScreeningResult) -> int:
+    return result.prediction.icdr_grade if result.prediction.icdr_grade is not None else -1
 
 
 def _next_eye(current_eye: str, completed_eyes: list[str], result: CaseResult) -> str | None:

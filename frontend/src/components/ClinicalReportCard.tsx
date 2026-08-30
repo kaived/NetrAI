@@ -11,7 +11,9 @@ import {
   Stethoscope
 } from 'lucide-react';
 import { resolveApiAssetUrl } from '../api';
-import type { CaseResult, EyeCode, EyeScreeningResult, PatientInfo } from '../types';
+import type { CaseResult, EyeScreeningResult, PatientInfo } from '../types';
+import { buildGradeConsistentReportText, getEyeResults } from '../utils/clinicalReport';
+import { displayText, getTriageDisplay, sanitizeForDisplayExport } from '../utils/display';
 import { downloadClinicalReportPdf } from '../utils/pdfReport';
 
 interface ClinicalReportCardProps {
@@ -24,28 +26,33 @@ export const ClinicalReportCard: React.FC<ClinicalReportCardProps> = ({ result, 
   const [copied, setCopied] = useState(false);
   const finalReport = result.final_report;
   const isFinalReport = Boolean(finalReport);
-  const referable = finalReport?.referable_dr ?? result.prediction.referable_dr;
   const isGradeable = isFinalReport || result.quality.is_gradeable;
   const eye = result.patient?.eye || patientInfo.eye;
   const eyeLabel = isFinalReport ? 'Both Eyes (OD + OS)' : eye === 'OD' ? 'OD (Right Eye)' : 'OS (Left Eye)';
-  const patientAge = result.patient?.patient_age || patientInfo.patientAge || 'N/A';
-  const diabetesType = result.patient?.diabetes_type || patientInfo.diabetesType || 'N/A';
-  const diabeticDuration = result.patient?.diabetic_duration || patientInfo.diabeticDuration || 'N/A';
-  const confidenceLevel = result.prediction.confidence_level || 'unknown';
-  const reportSummary = finalReport?.summary ?? result.report.summary;
-  const reportRecommendation = finalReport?.recommendation ?? result.report.recommendation;
-  const reportDisclaimer = finalReport?.disclaimer ?? result.report.disclaimer;
+  const caseId = displayText(result.case_id, 'Generated on server');
+  const patientAge = displayText(result.patient?.patient_age || patientInfo.patientAge, 'N/A');
+  const diabetesType = displayText(result.patient?.diabetes_type || patientInfo.diabetesType, 'N/A');
+  const diabeticDuration = displayText(result.patient?.diabetic_duration || patientInfo.diabeticDuration, 'N/A');
+  const confidenceLevel = displayText(result.prediction.confidence_level, 'unknown');
+  const explanationText = displayText(result.explanation.text, 'Explainability note is not available for this case.');
+  const compatibilityWarnings =
+    result.quality.warnings?.map((warning) => displayText(warning, '')).filter(Boolean) ?? [];
   const eyeResults = getEyeResults(result);
+  const reportText = buildGradeConsistentReportText(result, eyeResults);
+  const reportSummary = reportText.summary;
+  const reportRecommendation = reportText.recommendation;
+  const reportDisclaimer = reportText.disclaimer;
+  const referable = reportText.referable;
 
   const handleCopySummary = () => {
     const gradeVal = finalReport?.worst_icdr_grade ?? result.prediction.icdr_grade;
     const gradeDisplay = gradeVal !== null && gradeVal !== undefined ? `Grade ${gradeVal}` : 'No Grade';
-    const labelDisplay = finalReport?.worst_label ?? result.prediction.label;
+    const labelDisplay = displayText(finalReport?.worst_label ?? result.prediction.label, 'Not assessed');
 
     const text = `
 NETRAI - CLINICAL SCREENING SUMMARY
 =========================================
-Case ID: ${result.case_id}
+Case ID: ${caseId}
 Examined Eye: ${eyeLabel}
 Patient Age: ${patientAge}
 Diabetes Type: ${diabetesType}
@@ -56,10 +63,10 @@ QUALITY GATE: ${result.quality.is_gradeable ? 'PASSED (Gradeable)' : 'REJECTED (
 - Focus Score: ${result.quality.focus_score.toFixed(1)}
 - Brightness: ${result.quality.brightness.toFixed(2)}
 - Fundus Compatibility: ${Math.round((result.quality.compatibility_score ?? 1) * 100)}%
-- Compatibility Warnings: ${result.quality.warnings?.length ? result.quality.warnings.join('; ') : 'None'}
+- Capture Advisory: ${compatibilityWarnings.length ? `Screening completed, but a more centered fundus image is preferred for higher reliability. ${compatibilityWarnings.join('; ')}` : 'None'}
 
 DIAGNOSTIC TRIAGE:
-- Referral Decision: ${referable ? 'REFERRAL REQUIRED (Urgent)' : 'NO REFERRAL REQUIRED (Routine)'}
+- Referral Decision: ${referable ? 'REFERRAL REQUIRED' : 'NO REFERRAL REQUIRED (Routine)'}
 - ICDR DR Grade: ${gradeDisplay} (${labelDisplay})
 - Model Confidence: ${isFinalReport ? 'See per-eye confidence below' : `${(result.prediction.confidence * 100).toFixed(1)}% (${confidenceLevel})`}
 
@@ -70,7 +77,7 @@ RECOMMENDATION:
 ${reportRecommendation}
 
 EXPLAINABILITY:
-${result.explanation.text}
+${explanationText}
 
 DISCLAIMER:
 ${reportDisclaimer}
@@ -86,10 +93,11 @@ ${reportDisclaimer}
   };
 
   const handleDownloadJSON = () => {
-    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(result, null, 2));
+    const dataStr =
+      'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(sanitizeForDisplayExport(result), null, 2));
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute('href', dataStr);
-    downloadAnchor.setAttribute('download', `NetrAI_${result.case_id}.json`);
+    downloadAnchor.setAttribute('download', `NetrAI_${caseId}.json`);
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
@@ -162,61 +170,91 @@ ${reportDisclaimer}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 bg-slate-50 p-4 sm:p-5 rounded-xl border border-slate-200">
         <div>
           <span className="text-slate-400 block text-[10px] sm:text-xs uppercase font-bold tracking-wide">Case ID</span>
-          <span className="font-mono text-slate-900 font-bold text-xs sm:text-sm mt-0.5 block truncate" title={result.case_id}>
-            {result.case_id}
+          <span className="font-mono text-slate-900 font-bold text-sm sm:text-base leading-normal mt-0.5 block truncate" title={caseId}>
+            {caseId}
           </span>
         </div>
         <div>
           <span className="text-slate-400 block text-[10px] sm:text-xs uppercase font-bold tracking-wide">Screening Scope</span>
-          <span className="font-bold text-teal-800 text-sm sm:text-base mt-0.5 block truncate">
+          <span className="font-bold text-teal-800 text-sm sm:text-base leading-normal mt-0.5 block truncate">
             {eyeLabel}
           </span>
         </div>
         <div>
           <span className="text-slate-400 block text-[10px] sm:text-xs uppercase font-bold tracking-wide">Patient Age</span>
-          <span className="font-semibold text-slate-700 text-sm sm:text-base mt-0.5 block truncate">
+          <span className="font-semibold text-slate-800 text-sm sm:text-base leading-normal mt-0.5 block truncate">
             {patientAge}
           </span>
         </div>
         <div>
           <span className="text-slate-400 block text-[10px] sm:text-xs uppercase font-bold tracking-wide">Diabetes Profile</span>
-          <span className="font-semibold text-slate-800 text-sm sm:text-base mt-0.5 block truncate" title={`${diabetesType} (${diabeticDuration})`}>
-            {diabetesType}{diabeticDuration ? ` • ${diabeticDuration}` : ''}
+          <span className="font-semibold text-slate-800 text-sm sm:text-base leading-normal mt-0.5 block truncate" title={`${diabetesType} (${diabeticDuration})`}>
+            {diabetesType}{diabeticDuration !== 'N/A' ? ` • ${diabeticDuration}` : ''}
           </span>
         </div>
       </div>
 
       {(isFinalReport || eyeResults.length > 1) && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {eyeResults.map((eyeResult) => (
-            <div key={eyeResult.eye} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                    {eyeResult.eye === 'OD' ? 'OD Right Eye' : 'OS Left Eye'}
-                  </span>
-                  <div className="mt-1 text-lg font-extrabold text-slate-950">
-                    {eyeResult.prediction.icdr_grade !== null && eyeResult.prediction.icdr_grade !== undefined
-                      ? `Grade ${eyeResult.prediction.icdr_grade}`
-                      : 'No Grade'}{' '}
-                    • {eyeResult.prediction.label}
+          {eyeResults.map((eyeResult) => {
+            const triage = getTriageDisplay(eyeResult.prediction);
+            const eyeCode = eyeResult.eye;
+            const eyeInputUrl =
+              resolveApiAssetUrl(`/cases/${result.case_id}/eyes/${eyeCode}/input`) ||
+              (result.patient?.eye === eyeCode ? previewUrl : null);
+            const eyeHeatmapUrl =
+              resolveApiAssetUrl(eyeResult.explanation?.heatmap_url) ||
+              resolveApiAssetUrl(`/cases/${result.case_id}/eyes/${eyeCode}/heatmap`);
+
+            return (
+              <div key={eyeResult.eye} className="rounded-xl border border-slate-200 bg-slate-50 p-4 flex flex-col justify-between space-y-3 print:bg-white print:border-slate-300">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                      {eyeResult.eye === 'OD' ? 'OD Right Eye' : 'OS Left Eye'}
+                    </span>
+                    <div className="mt-1 text-base sm:text-lg font-extrabold text-slate-950">
+                      {eyeResult.prediction.icdr_grade !== null && eyeResult.prediction.icdr_grade !== undefined
+                        ? `Grade ${eyeResult.prediction.icdr_grade}`
+                        : 'No Grade'}{' '}
+                      ({displayText(eyeResult.prediction.label ? eyeResult.prediction.label.charAt(0).toUpperCase() + eyeResult.prediction.label.slice(1) : undefined, 'Not assessed')})
+                    </div>
                   </div>
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-extrabold ${
+                      triage.positive
+                        ? 'bg-rose-100 text-rose-800'
+                        : 'bg-emerald-100 text-emerald-800'
+                    }`}
+                  >
+                    {triage.label}
+                  </span>
                 </div>
-                <span
-                  className={`rounded-full px-3 py-1 text-xs font-extrabold ${
-                    eyeResult.prediction.referable_dr
-                      ? 'bg-rose-100 text-rose-800'
-                      : 'bg-emerald-100 text-emerald-800'
-                  }`}
-                >
-                  {eyeResult.prediction.referable_dr ? 'Referable' : 'Routine'}
-                </span>
+
+                {/* Retinal Fundus Photograph & Attention Map Preview */}
+                {eyeInputUrl && (
+                  <div className="relative rounded-lg overflow-hidden bg-slate-950 border border-slate-800 aspect-[4/3] max-h-48 sm:max-h-56 flex items-center justify-center">
+                    <img
+                      src={eyeInputUrl}
+                      alt={`${eyeCode} Fundus Scan`}
+                      className="absolute inset-0 m-auto max-h-full max-w-full object-contain"
+                    />
+                    {eyeHeatmapUrl && (
+                      <img
+                        src={eyeHeatmapUrl}
+                        alt={`${eyeCode} Attention Heatmap`}
+                        className="absolute inset-0 m-auto max-h-full max-w-full object-contain pointer-events-none mix-blend-screen opacity-70"
+                      />
+                    )}
+                  </div>
+                )}
+
+                <div className="text-sm text-slate-600">
+                  Confidence {(eyeResult.prediction.confidence * 100).toFixed(1)}% ({eyeResult.prediction.confidence_level || 'unknown'})
+                </div>
               </div>
-              <div className="mt-3 text-sm text-slate-600">
-                Confidence {(eyeResult.prediction.confidence * 100).toFixed(1)}% ({eyeResult.prediction.confidence_level || 'unknown'})
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -238,60 +276,22 @@ ${reportDisclaimer}
             </div>
           </div>
         </div>
-
-        <div className="border border-slate-200 rounded-xl p-4 sm:p-5 space-y-3.5 sm:space-y-4">
-          <h4 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-700 flex items-start sm:items-center gap-2">
-            <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-teal-600 shrink-0 mt-0.5 sm:mt-0" />
-            <span>Rural PHC Recommended Action Protocol</span>
-          </h4>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
-            <div className="p-3.5 sm:p-4 rounded-xl bg-slate-50 border border-slate-200">
-              <span className="font-bold text-slate-900 block mb-1 sm:mb-2 text-sm sm:text-base">1. Triage Priority</span>
-              <p className="text-slate-600 text-xs sm:text-sm leading-relaxed sm:leading-6">
-                {referable
-                  ? 'Urgent Referral to District Ophthalmic Specialist within 2-4 weeks.'
-                  : !isGradeable
-                  ? 'Immediate Retake required with proper patient fixation.'
-                  : 'Annual routine screening recall (12 months).'}
-              </p>
-            </div>
-
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-              <span className="font-bold text-slate-900 block mb-1 sm:mb-2 text-sm sm:text-base">2. Primary Care Guidance</span>
-              <p className="text-slate-600 text-xs sm:text-sm leading-relaxed sm:leading-6">
-                Evaluate HbA1c glycemic control, blood pressure (target &lt;130/80), and serum lipid profile.
-              </p>
-            </div>
-
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-              <span className="font-bold text-slate-900 block mb-1 sm:mb-2 text-sm sm:text-base">3. Patient Counseling</span>
-              <p className="text-slate-600 text-xs sm:text-sm leading-relaxed sm:leading-6">
-                Advise immediate medical attention if sudden vision drop, floaters, or dark spots occur.
-              </p>
-            </div>
-          </div>
-        </div>
       </div>
 
       <div className="bg-amber-50/70 border border-amber-200 rounded-xl p-4 sm:p-5 text-xs sm:text-sm text-amber-900 flex items-start gap-3">
-        <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-700 shrink-0 mt-0.5" />
+        <div className="flex items-center justify-center shrink-0 w-5 h-5">
+          <AlertCircle className="w-5 h-5 text-amber-700" />
+        </div>
         <div className="space-y-1 min-w-0 flex-1">
-          <span className="font-bold block">Medical Screening Disclaimer:</span>
+          <span className="font-bold block leading-5">Medical Screening Disclaimer:</span>
           <p className="text-xs sm:text-sm leading-relaxed sm:leading-6 text-amber-800">
-            {reportDisclaimer} NetrAI is an automated decision-support triage aid for rural primary health centers. It does NOT replace comprehensive dilated fundus examination by a certified ophthalmologist.
+            {reportDisclaimer} NetrAI is an automated decision-support triage aid for primary health centers, designed to assist clinical evaluations by certified ophthalmologists and healthcare professionals.
           </p>
         </div>
       </div>
     </div>
   );
 };
-
-function getEyeResults(result: CaseResult): EyeScreeningResult[] {
-  return (['OD', 'OS'] as EyeCode[])
-    .map((eye) => result.eyes?.[eye])
-    .filter((eyeResult): eyeResult is EyeScreeningResult => Boolean(eyeResult));
-}
 
 function formatEyeSummary(eyeResult: EyeScreeningResult): string {
   const eyeLabel = eyeResult.eye === 'OD' ? 'OD Right Eye' : 'OS Left Eye';
@@ -300,6 +300,6 @@ function formatEyeSummary(eyeResult: EyeScreeningResult): string {
       ? `Grade ${eyeResult.prediction.icdr_grade}`
       : 'No Grade';
   const confidence = (eyeResult.prediction.confidence * 100).toFixed(1);
-  const referral = eyeResult.prediction.referable_dr ? 'Referable' : 'Routine';
-  return `- ${eyeLabel}: ${grade} (${eyeResult.prediction.label}), ${confidence}% confidence, ${referral}`;
+  const triage = getTriageDisplay(eyeResult.prediction);
+  return `- ${eyeLabel}: ${grade} (${displayText(eyeResult.prediction.label, 'Not assessed')}), ${confidence}% confidence, ${triage.copyLabel}`;
 }

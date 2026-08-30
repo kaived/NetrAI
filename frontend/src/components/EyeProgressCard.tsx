@@ -1,6 +1,7 @@
 import React from 'react';
-import { CheckCircle2, CircleDashed, ClipboardList, RotateCcw } from 'lucide-react';
+import { CheckCircle, CircleDashed, ClipboardList, RotateCcw } from 'lucide-react';
 import type { CaseResult, EyeCode } from '../types';
+import { displayText } from '../utils/display';
 
 interface EyeProgressCardProps {
   result: CaseResult;
@@ -15,6 +16,7 @@ export const EyeProgressCard: React.FC<EyeProgressCardProps> = ({ result }) => {
   const completedEyes = result.completed_eyes ?? [];
   const currentEye = result.patient?.eye as EyeCode | undefined;
   const needsRecapture = !result.quality.is_gradeable;
+  const caseId = displayText(result.case_id, 'Generated on server');
 
   return (
     <div className="bg-white border border-slate-200 rounded-2xl p-6 lg:p-7 shadow-sm space-y-6 h-full">
@@ -48,7 +50,7 @@ export const EyeProgressCard: React.FC<EyeProgressCardProps> = ({ result }) => {
             >
               <div className="flex items-center gap-3">
                 {isCompleted ? (
-                  <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+                  <CheckCircle className="w-6 h-6 text-emerald-600" />
                 ) : isCurrent && needsRecapture ? (
                   <RotateCcw className="w-6 h-6 text-amber-600" />
                 ) : (
@@ -68,7 +70,7 @@ export const EyeProgressCard: React.FC<EyeProgressCardProps> = ({ result }) => {
 
       <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
         <div className="text-xs font-bold uppercase tracking-wide text-slate-500">Current Case</div>
-        <div className="mt-2 font-mono text-sm font-bold text-slate-900">{result.case_id}</div>
+        <div className="mt-2 font-mono text-sm font-bold text-slate-900">{caseId}</div>
         <p className="mt-3 text-sm leading-6 text-slate-600">
           {needsRecapture
             ? `${currentEye ?? 'This eye'} did not pass the quality gate. Recapture the same eye before moving ahead.`

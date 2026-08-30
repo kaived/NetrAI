@@ -19,6 +19,20 @@ export const PipelineFlow: React.FC<PipelineFlowProps> = ({ isLoading, isRestori
       : result;
 
   const isEyePending = Boolean(result && targetEye && !result.eyes?.[targetEye] && result.patient?.eye !== targetEye);
+  const completedEyes = result?.completed_eyes ?? [];
+  const hasBilateralResults = Boolean(result?.eyes?.OD && result?.eyes?.OS);
+  const isBilateralComplete = Boolean(
+    result?.is_case_complete ||
+      hasBilateralResults ||
+      (completedEyes.includes('OD') && completedEyes.includes('OS')),
+  );
+  const bilateralEyeResults = (['OD', 'OS'] as EyeCode[])
+    .map((eye) => result?.eyes?.[eye])
+    .filter((eye): eye is EyeScreeningResult => Boolean(eye));
+  const allBilateralImagesGradeable =
+    isBilateralComplete &&
+    bilateralEyeResults.length === 2 &&
+    bilateralEyeResults.every((eye) => eye.quality.is_gradeable);
 
   const steps = [
     {
@@ -75,7 +89,7 @@ export const PipelineFlow: React.FC<PipelineFlowProps> = ({ isLoading, isRestori
 
     if (index === 1) return 'success';
     if (index === 2) return eyeResult.prediction.icdr_grade !== null ? 'success' : 'skipped';
-    if (index === 3) return eyeResult.prediction.referable_dr ? 'warning' : 'success';
+    if (index === 3) return eyeResult.prediction.icdr_grade !== null ? 'success' : 'skipped';
     if (index === 4) return 'success';
 
     return 'success';
@@ -122,7 +136,13 @@ export const PipelineFlow: React.FC<PipelineFlowProps> = ({ isLoading, isRestori
           } shadow-xs`}
         >
           <span className={`h-2 w-2 rounded-full ${isPass ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
-          <span>{isPass ? `Status: ${eyePrefix}Complete (5/5 Stages)` : `Status: ${eyePrefix}Quality Gate Flagged (1/5 Stages)`}</span>
+          <span>
+            {allBilateralImagesGradeable
+              ? 'Status: Both Eyes Complete (5/5 Stages)'
+              : isPass
+              ? `Status: ${eyePrefix}Complete (5/5 Stages)`
+              : `Status: ${eyePrefix}Quality Gate Flagged (1/5 Stages)`}
+          </span>
         </span>
       );
     }

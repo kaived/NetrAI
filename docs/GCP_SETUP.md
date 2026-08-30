@@ -75,15 +75,15 @@ Bucket: gs://retinascan-ai-f620e-inputs
 Bucket: gs://retinascan-ai-f620e-outputs
 ```
 
-## 3. Deploy Backend Now In Stub Mode
+## 3. Deploy Backend In ONNX Mode
 
-Do this while the MATLAB model is still training:
+After `backend/models/dr_classifier.onnx` exists, deploy the production backend:
 
 ```powershell
-.\infra\gcp\deploy-backend.ps1 -InferenceMode stub
+.\infra\gcp\deploy-backend.ps1
 ```
 
-This deploys the real FastAPI backend with Firebase and GCS enabled, but prediction uses the temporary demo stub.
+The script defaults to ONNX mode, uploads the current model file to Cloud Storage, and deploys Cloud Run with `MODEL_VERSION=aptos-baseline-v1`.
 The deployment script also allows browser requests from `https://netr-ai.orbionixtech.com`.
 
 Use this to verify:
@@ -100,25 +100,21 @@ Expected:
   "environment": "production",
   "firestore_enabled": true,
   "gcs_enabled": true,
-  "inference_mode": "stub"
+  "inference_mode": "onnx",
+  "model_version": "aptos-baseline-v1",
+  "model_loaded": true
 }
 ```
 
-## 4. After MATLAB Training
-
-When MATLAB creates:
-
-```text
-backend/models/dr_classifier.onnx
-```
-
-deploy real ONNX mode:
+Temporary stub deployment is still available only when there is no ONNX file yet:
 
 ```powershell
-.\infra\gcp\deploy-backend.ps1 -InferenceMode onnx
+.\infra\gcp\deploy-backend.ps1 -InferenceMode stub
 ```
 
-The script uploads the model to:
+## 4. Production Model Settings
+
+The ONNX deployment uploads the model to:
 
 ```text
 gs://retinascan-ai-f620e-models/models/dr_classifier.onnx
@@ -128,6 +124,7 @@ and deploys Cloud Run with:
 
 ```text
 INFERENCE_MODE=onnx
+MODEL_VERSION=aptos-baseline-v1
 MODEL_GCS_URI=gs://retinascan-ai-f620e-models/models/dr_classifier.onnx
 API_CORS_ORIGINS=https://netr-ai.orbionixtech.com,https://www.netr-ai.orbionixtech.com,http://localhost:5173,http://localhost:4173
 ```

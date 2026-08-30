@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { PatientInfo, ScreeningFormErrors } from '../types';
 
-const MAX_IMAGE_SIZE_BYTES = 12 * 1024 * 1024;
+const MAX_IMAGE_SIZE_BYTES = 20 * 1024 * 1024;
 const CASE_ID_PATTERN = /^CASE-\d{8}-\d{6}-[A-F0-9]{6}$/;
 export const DIABETES_TYPES = [
   'Type 2 Diabetes',
@@ -74,7 +74,7 @@ export const imageFileSchema = z
     'Use PNG, JPEG, or WebP fundus images only',
   )
   .refine((file) => file.size > 0, 'Selected image file is empty')
-  .refine((file) => file.size <= MAX_IMAGE_SIZE_BYTES, 'Image must be 12 MB or smaller');
+  .refine((file) => file.size <= MAX_IMAGE_SIZE_BYTES, 'Image must be 20 MB or smaller');
 
 export function validatePatientField<K extends keyof PatientInfo>(
   field: K,

@@ -15,6 +15,7 @@ export type PredictionResult = {
   icdr_grade: number | null;
   label: string;
   referable_dr: boolean;
+  referable_probability?: number | null;
   confidence: number;
   confidence_level?: string;
   model_version: string;
@@ -64,6 +65,7 @@ export type FinalReportResult = {
   disclaimer: string;
   referable_dr: boolean;
   worst_eye: EyeCode | null;
+  worst_eyes?: EyeCode[];
   worst_icdr_grade: number | null;
   worst_label: string | null;
   completed_eyes: EyeCode[];

@@ -41,6 +41,7 @@ class InferenceService:
                 icdr_grade=None,
                 label="ungradeable",
                 referable_dr=False,
+                referable_probability=None,
                 confidence=0.0,
                 confidence_level="not_applicable",
                 model_version=self.settings.model_version,
@@ -121,6 +122,7 @@ class InferenceService:
             icdr_grade=2,
             label="moderate",
             referable_dr=True,
+            referable_probability=0.91,
             confidence=0.91,
             confidence_level="high",
             model_version=self.settings.model_version,
@@ -153,6 +155,8 @@ class InferenceService:
         level = prediction.confidence_level
         if level == "unknown":
             level = classify_confidence(prediction.confidence)
+        if prediction.icdr_grade is not None:
+            prediction.referable_dr = prediction.icdr_grade >= 2
 
         if prediction.referable_dr:
             if level == "low":
@@ -199,6 +203,9 @@ class InferenceService:
 
     @staticmethod
     def _apply_prediction_safety_review(prediction: PredictionResult, quality: QualityResult) -> None:
+        if prediction.icdr_grade is not None:
+            prediction.referable_dr = prediction.icdr_grade >= 2
+
         if not quality.warnings:
             return
 

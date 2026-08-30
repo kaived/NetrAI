@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     quality_max_green_dominance_ratio: float = 0.42
 
     local_storage_dir: str = "runtime_storage"
-    max_upload_bytes: int = 12 * 1024 * 1024
+    max_upload_bytes: int = 20 * 1024 * 1024
 
     @property
     def cors_origins(self) -> list[str]:
