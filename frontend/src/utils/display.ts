@@ -49,3 +49,32 @@ export function getTriageDisplay(prediction: { icdr_grade: number | null }) {
     positive: false,
   };
 }
+
+export function formatGradeLabel(rawLabel: unknown, grade?: number | null): string {
+  if (grade !== null && grade !== undefined) {
+    switch (grade) {
+      case 0:
+        return 'No DR';
+      case 1:
+        return 'Mild NPDR';
+      case 2:
+        return 'Moderate NPDR';
+      case 3:
+        return 'Severe NPDR';
+      case 4:
+        return 'PDR';
+    }
+  }
+
+  if (typeof rawLabel === 'string') {
+    const norm = rawLabel.trim().toLowerCase().replace(/_/g, ' ');
+    if (norm === 'no dr' || norm === 'nodr' || norm === 'no apparent dr') return 'No DR';
+    if (norm === 'mild' || norm === 'mild npdr') return 'Mild NPDR';
+    if (norm === 'moderate' || norm === 'moderate npdr') return 'Moderate NPDR';
+    if (norm === 'severe' || norm === 'severe npdr') return 'Severe NPDR';
+    if (norm === 'proliferative dr' || norm === 'proliferative' || norm === 'pdr') return 'PDR';
+    return norm.charAt(0).toUpperCase() + norm.slice(1);
+  }
+
+  return 'Not assessed';
+}

@@ -1,7 +1,7 @@
 import { resolveApiAssetUrl } from '../api';
 import type { CaseResult, EyeScreeningResult } from '../types';
 import { buildGradeConsistentReportText, formatEyeLabel, getEyeResults } from './clinicalReport';
-import { displayText, getTriageDisplay } from './display';
+import { displayText, formatGradeLabel, getTriageDisplay } from './display';
 
 type PdfReportContext = {
   eyeLabel: string;
@@ -93,12 +93,11 @@ function buildClinicalReportPdf(
   const reportText = buildGradeConsistentReportText(result, eyeResults);
   const referable = reportText.referable;
   const referableLabel = referable ? 'Referral required' : 'Routine follow-up';
+  const gradeVal = finalReport?.worst_icdr_grade ?? result.prediction.icdr_grade;
   const gradeLabel =
-    finalReport?.worst_icdr_grade !== undefined && finalReport?.worst_icdr_grade !== null
-      ? `Grade ${finalReport.worst_icdr_grade} (${displayText(finalReport.worst_label, 'screening result')})`
-      : result.prediction.icdr_grade === null || result.prediction.icdr_grade === undefined
-      ? 'No Grade'
-      : `Grade ${result.prediction.icdr_grade} (${displayText(result.prediction.label, 'Not assessed')})`;
+    gradeVal !== null && gradeVal !== undefined
+      ? `Grade ${gradeVal} (${formatGradeLabel(finalReport?.worst_label ?? result.prediction.label, gradeVal)})`
+      : 'No Grade';
   const confidence = `${(result.prediction.confidence * 100).toFixed(1)}%`;
   const confidenceLevel = displayText(result.prediction.confidence_level, 'unknown');
 
@@ -150,7 +149,7 @@ function buildClinicalReportPdf(
 
     section('Diagnostic Triage'),
     field('ICDR DR Grade', gradeLabel),
-    field('Predicted Label', finalReport?.worst_label ?? result.prediction.label),
+    field('Predicted Label', formatGradeLabel(finalReport?.worst_label ?? result.prediction.label, gradeVal)),
     field('Referable DR', referable ? 'Yes' : 'No'),
     field('Referral Decision', referableLabel),
     field('Model Confidence', isFinalReport ? 'See per-eye confidence values.' : `${confidence} (${confidenceLevel})`),
@@ -181,7 +180,7 @@ function formatEyeResult(eyeResult: EyeScreeningResult) {
       : 'No Grade';
   const confidence = (eyeResult.prediction.confidence * 100).toFixed(1);
   const triage = getTriageDisplay(eyeResult.prediction);
-  return `${grade} (${displayText(eyeResult.prediction.label, 'Not assessed')}), ${confidence}% confidence, ${triage.copyLabel}`;
+  return `${grade} (${formatGradeLabel(eyeResult.prediction.label, eyeResult.prediction.icdr_grade)}), ${confidence}% confidence, ${triage.copyLabel}`;
 }
 
 function section(text: string): PdfLine {

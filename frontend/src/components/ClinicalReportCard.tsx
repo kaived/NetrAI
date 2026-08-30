@@ -13,7 +13,7 @@ import {
 import { resolveApiAssetUrl } from '../api';
 import type { CaseResult, EyeScreeningResult, PatientInfo } from '../types';
 import { buildGradeConsistentReportText, getEyeResults } from '../utils/clinicalReport';
-import { displayText, getTriageDisplay, sanitizeForDisplayExport } from '../utils/display';
+import { displayText, formatGradeLabel, getTriageDisplay, sanitizeForDisplayExport } from '../utils/display';
 import { downloadClinicalReportPdf } from '../utils/pdfReport';
 
 interface ClinicalReportCardProps {
@@ -56,7 +56,7 @@ export const ClinicalReportCard: React.FC<ClinicalReportCardProps> = ({ result, 
   const handleCopySummary = () => {
     const gradeVal = finalReport?.worst_icdr_grade ?? result.prediction.icdr_grade;
     const gradeDisplay = gradeVal !== null && gradeVal !== undefined ? `Grade ${gradeVal}` : 'No Grade';
-    const labelDisplay = displayText(finalReport?.worst_label ?? result.prediction.label, 'Not assessed');
+    const labelDisplay = formatGradeLabel(finalReport?.worst_label ?? result.prediction.label, gradeVal);
 
     const text = `
 NETRAI - CLINICAL SCREENING SUMMARY
@@ -123,6 +123,8 @@ ${reportDisclaimer}
     });
   };
 
+  const compactCaseId = caseId.length > 14 ? `...${caseId.slice(-8)}` : caseId;
+
   return (
     <div className="bg-white border border-slate-200 rounded-2xl p-6 lg:p-7 shadow-sm space-y-6 print-card h-full flex flex-col justify-between">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-5">
@@ -143,7 +145,7 @@ ${reportDisclaimer}
         <div className="grid grid-cols-2 gap-2 no-print shrink-0 w-full sm:w-auto">
           <button
             onClick={handleCopySummary}
-            className="inline-flex items-center justify-center gap-1.5 px-4 sm:px-6 py-1.5 min-w-0 sm:min-w-[110px] text-xs sm:text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors border border-slate-200 shadow-2xs"
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 min-w-0 sm:min-w-[100px] text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors border border-slate-200 shadow-2xs"
             title="Copy formatted summary to clipboard"
           >
             {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
@@ -151,7 +153,7 @@ ${reportDisclaimer}
           </button>
           <button
             onClick={handleDownloadPDF}
-            className="inline-flex items-center justify-center gap-1.5 px-4 sm:px-6 py-1.5 min-w-0 sm:min-w-[110px] text-xs sm:text-sm font-semibold text-white bg-teal-700 hover:bg-teal-800 rounded-lg shadow-xs transition-colors"
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 min-w-0 sm:min-w-[100px] text-xs font-semibold text-white bg-teal-700 hover:bg-teal-800 rounded-lg shadow-xs transition-colors"
             title="Download clinical report as PDF"
           >
             <FileDown className="w-3.5 h-3.5" />
@@ -159,7 +161,7 @@ ${reportDisclaimer}
           </button>
           <button
             onClick={handleDownloadJSON}
-            className="inline-flex items-center justify-center gap-1.5 px-4 sm:px-6 py-1.5 min-w-0 sm:min-w-[110px] text-xs sm:text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors border border-slate-200 shadow-2xs"
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 min-w-0 sm:min-w-[100px] text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors border border-slate-200 shadow-2xs"
             title="Download full JSON dataset"
           >
             <Download className="w-3.5 h-3.5" />
@@ -167,7 +169,7 @@ ${reportDisclaimer}
           </button>
           <button
             onClick={handlePrint}
-            className="inline-flex items-center justify-center gap-1.5 px-4 sm:px-6 py-1.5 min-w-0 sm:min-w-[110px] text-xs sm:text-sm font-bold text-white bg-slate-800 hover:bg-slate-900 rounded-lg shadow-xs transition-all"
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 min-w-0 sm:min-w-[100px] text-xs font-bold text-white bg-slate-800 hover:bg-slate-900 rounded-lg shadow-xs transition-all"
             title="Print clinical referral sheet"
           >
             <Printer className="w-3.5 h-3.5" />
@@ -176,28 +178,29 @@ ${reportDisclaimer}
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 bg-slate-50 p-4 sm:p-5 rounded-xl border border-slate-200">
+      <div className="grid grid-cols-2 lg:grid-cols-[0.8fr_1.1fr_0.9fr_1.2fr] gap-3 sm:gap-4 bg-slate-50 p-4 sm:p-5 rounded-xl border border-slate-200">
         <div>
-          <span className="text-slate-400 block text-[10px] sm:text-xs uppercase font-bold tracking-wide">Case ID</span>
-          <span className="font-mono text-slate-900 font-bold text-sm sm:text-base leading-normal mt-0.5 block truncate" title={caseId}>
-            {caseId}
+          <span className="text-slate-400 block text-[10px] sm:text-xs uppercase font-bold tracking-wide whitespace-nowrap">Case ID</span>
+          <span className="font-mono text-slate-900 font-bold text-sm sm:text-base leading-normal mt-0.5 block whitespace-nowrap truncate" title={caseId}>
+            <span className="print:hidden">{compactCaseId}</span>
+            <span className="hidden print:inline">{caseId}</span>
           </span>
         </div>
         <div>
-          <span className="text-slate-400 block text-[10px] sm:text-xs uppercase font-bold tracking-wide">Screening Scope</span>
-          <span className="font-bold text-teal-800 text-sm sm:text-base leading-normal mt-0.5 block truncate">
+          <span className="text-slate-400 block text-[10px] sm:text-xs uppercase font-bold tracking-wide whitespace-nowrap">Screening Scope</span>
+          <span className="font-bold text-teal-800 text-sm sm:text-base leading-normal mt-0.5 block whitespace-nowrap" title={eyeLabel}>
             {eyeLabel}
           </span>
         </div>
         <div>
-          <span className="text-slate-400 block text-[10px] sm:text-xs uppercase font-bold tracking-wide">Patient Age</span>
-          <span className="font-semibold text-slate-800 text-sm sm:text-base leading-normal mt-0.5 block truncate">
+          <span className="text-slate-400 block text-[10px] sm:text-xs uppercase font-bold tracking-wide whitespace-nowrap">Patient Age</span>
+          <span className="font-semibold text-slate-800 text-sm sm:text-base leading-normal mt-0.5 block whitespace-nowrap" title={patientAge}>
             {patientAge}
           </span>
         </div>
         <div>
-          <span className="text-slate-400 block text-[10px] sm:text-xs uppercase font-bold tracking-wide">Diabetes Profile</span>
-          <span className="font-semibold text-slate-800 text-sm sm:text-base leading-normal mt-0.5 block truncate" title={diabetesProfile}>
+          <span className="text-slate-400 block text-[10px] sm:text-xs uppercase font-bold tracking-wide whitespace-nowrap">Diabetes Profile</span>
+          <span className="font-semibold text-slate-800 text-sm sm:text-base leading-normal mt-0.5 block whitespace-nowrap" title={diabetesProfile}>
             {diabetesProfile}
           </span>
         </div>
@@ -226,7 +229,7 @@ ${reportDisclaimer}
                       {eyeResult.prediction.icdr_grade !== null && eyeResult.prediction.icdr_grade !== undefined
                         ? `Grade ${eyeResult.prediction.icdr_grade}`
                         : 'No Grade'}{' '}
-                      ({displayText(eyeResult.prediction.label ? eyeResult.prediction.label.charAt(0).toUpperCase() + eyeResult.prediction.label.slice(1) : undefined, 'Not assessed')})
+                      ({formatGradeLabel(eyeResult.prediction.label, eyeResult.prediction.icdr_grade)})
                     </div>
                   </div>
                   <span
@@ -310,7 +313,7 @@ function formatEyeSummary(eyeResult: EyeScreeningResult): string {
       : 'No Grade';
   const confidence = (eyeResult.prediction.confidence * 100).toFixed(1);
   const triage = getTriageDisplay(eyeResult.prediction);
-  return `- ${eyeLabel}: ${grade} (${displayText(eyeResult.prediction.label, 'Not assessed')}), ${confidence}% confidence, ${triage.copyLabel}`;
+  return `- ${eyeLabel}: ${grade} (${formatGradeLabel(eyeResult.prediction.label, eyeResult.prediction.icdr_grade)}), ${confidence}% confidence, ${triage.copyLabel}`;
 }
 
 function formatYearsSinceDiagnosis(value: unknown, style: 'compact' | 'formal'): string {

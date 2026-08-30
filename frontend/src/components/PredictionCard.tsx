@@ -7,7 +7,7 @@ import {
   Check
 } from 'lucide-react';
 import type { PredictionResult } from '../types';
-import { displayText, getTriageDisplay } from '../utils/display';
+import { displayText, formatGradeLabel, getTriageDisplay } from '../utils/display';
 
 interface PredictionCardProps {
   prediction: PredictionResult;
@@ -16,17 +16,17 @@ interface PredictionCardProps {
 
 const ICDR_STAGES = [
   { grade: 0, label: 'No DR', desc: 'No microaneurysms or lesions', color: 'bg-emerald-500', border: 'border-emerald-500' },
-  { grade: 1, label: 'Mild', desc: 'Microaneurysms only', color: 'bg-teal-500', border: 'border-teal-500' },
-  { grade: 2, label: 'Moderate', desc: 'Microaneurysms + hard exudates', color: 'bg-amber-500', border: 'border-amber-500' },
-  { grade: 3, label: 'Severe', desc: '4-2-1 rule: hemorrhages / IRMA', color: 'bg-orange-500', border: 'border-orange-500' },
-  { grade: 4, label: 'Proliferative', desc: 'Neovascularization / vitreous bleed', color: 'bg-rose-600', border: 'border-rose-600' },
+  { grade: 1, label: 'Mild NPDR', desc: 'Microaneurysms only', color: 'bg-teal-500', border: 'border-teal-500' },
+  { grade: 2, label: 'Moderate NPDR', desc: 'Microaneurysms + hard exudates', color: 'bg-amber-500', border: 'border-amber-500' },
+  { grade: 3, label: 'Severe NPDR', desc: '4-2-1 rule: hemorrhages / IRMA', color: 'bg-orange-500', border: 'border-orange-500' },
+  { grade: 4, label: 'PDR', desc: 'Neovascularization / vitreous bleed', color: 'bg-rose-600', border: 'border-rose-600' },
 ];
 
 export const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, isGradeable }) => {
   const grade = prediction.icdr_grade;
   const triage = getTriageDisplay(prediction);
   const referable = triage.positive;
-  const predictionLabel = displayText(prediction.label, 'Not assessed');
+  const predictionLabel = formatGradeLabel(prediction.label, prediction.icdr_grade);
   const confidencePercent = Math.round(prediction.confidence * 100);
   const confidenceLevel = displayText(prediction.confidence_level, getConfidenceLevel(prediction.confidence));
   const confidenceTone = getConfidenceTone(confidenceLevel);

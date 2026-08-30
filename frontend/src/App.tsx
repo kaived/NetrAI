@@ -322,7 +322,7 @@ export function App() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 md:flex md:items-center rounded-xl bg-slate-100 p-1.5 border border-slate-200 shrink-0 w-full md:w-auto gap-1.5 md:gap-1" role="tablist" aria-label="Select Eye View">
+                <div className="grid grid-cols-2 rounded-xl bg-slate-100 p-1.5 border border-slate-200 shrink-0 w-full sm:w-auto gap-1.5" role="tablist" aria-label="Select Eye View">
                   {(['OD', 'OS'] as EyeCode[]).map((eyeCode) => {
                     const eyeData = result.eyes?.[eyeCode] ?? (result.patient?.eye === eyeCode ? result : null);
                     const hasEyeResult = Boolean(eyeData);
@@ -346,12 +346,12 @@ export function App() {
                             setActiveViewEye(eyeCode);
                           }
                         }}
-                        className={`flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all ${
+                        className={`w-full sm:w-44 lg:w-48 flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold border transition-all ${
                           isSelected
-                            ? 'bg-white text-teal-900 shadow-xs border border-slate-200/90'
+                            ? 'bg-white text-teal-900 shadow-xs border-slate-200/90'
                             : !canSelect
-                            ? 'text-slate-400 bg-slate-200/50 cursor-not-allowed'
-                            : 'text-slate-600 hover:text-slate-950 hover:bg-slate-200/50'
+                            ? 'border-transparent text-slate-400 bg-slate-200/50 cursor-not-allowed'
+                            : 'border-transparent text-slate-600 hover:text-slate-950 hover:bg-slate-200/50'
                         }`}
                         title={
                           !canSelect

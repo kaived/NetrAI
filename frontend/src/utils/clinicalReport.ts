@@ -1,5 +1,5 @@
 import type { CaseResult, EyeCode, EyeScreeningResult } from '../types';
-import { displayText, getTriageDisplay } from './display';
+import { displayText, formatGradeLabel, getTriageDisplay } from './display';
 
 type ClinicalReportText = {
   summary: string;
@@ -63,7 +63,7 @@ function buildFinalTwoEyeText(result: CaseResult, eyeResults: EyeScreeningResult
   const worstGrade = finalReport?.worst_icdr_grade ?? fallbackWorstGrade;
   const worstEyes = getWorstEyes(result, eyeResults, worstGrade);
   const firstWorstResult = eyeResults.find((eyeResult) => worstEyes.includes(eyeResult.eye)) ?? eyeResults[0];
-  const worstLabel = displayText(finalReport?.worst_label ?? firstWorstResult?.prediction.label, 'screening result');
+  const worstLabel = formatGradeLabel(finalReport?.worst_label ?? firstWorstResult?.prediction.label, worstGrade);
   const gradeText = formatGradeText(worstGrade, worstLabel);
   const location = worstEyes.length > 1 ? 'both eyes' : formatEyeLabel(worstEyes[0] ?? firstWorstResult.eye);
   const finding =
@@ -92,7 +92,7 @@ function buildFinalTwoEyeText(result: CaseResult, eyeResults: EyeScreeningResult
 
 function buildSingleEyeText(result: CaseResult, referable: boolean) {
   const grade = result.prediction.icdr_grade;
-  const label = displayText(result.prediction.label, 'screening result');
+  const label = formatGradeLabel(result.prediction.label, grade);
   const confidence = Number.isFinite(result.prediction.confidence)
     ? result.prediction.confidence.toFixed(2)
     : 'not available';
