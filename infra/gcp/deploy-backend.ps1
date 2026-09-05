@@ -9,7 +9,12 @@ param(
     [string]$InputBucket = "$ProjectId-inputs",
     [string]$OutputBucket = "$ProjectId-outputs",
     [string]$CorsOrigins = "https://netr-ai.orbionixtech.com,https://www.netr-ai.orbionixtech.com,http://localhost:5173,http://localhost:4173",
-    [string]$ModelVersion = "aptos-baseline-v1"
+    [string]$ModelVersion = "aptos-baseline-v1",
+    [int]$MinInstances = 0,
+    [int]$MaxInstances = 3,
+    [string]$Cpu = "1",
+    [string]$Memory = "1Gi",
+    [int]$Concurrency = 4
 )
 
 $ErrorActionPreference = "Stop"
@@ -87,6 +92,8 @@ Set-Content -Path $envVarsFile -Value $envFileLines -Encoding utf8
 Write-Host "Deploying $ServiceName to Cloud Run in $Region..."
 Write-Host "Inference mode: $InferenceMode"
 Write-Host "Model version:  $ModelVersion"
+Write-Host "Scaling:        min=$MinInstances max=$MaxInstances concurrency=$Concurrency"
+Write-Host "Resources:      cpu=$Cpu memory=$Memory"
 if ($modelGcsUri) {
     Write-Host "Model GCS URI:  $modelGcsUri"
 }
@@ -96,12 +103,15 @@ Invoke-Gcloud run deploy $ServiceName `
     --project $ProjectId `
     --service-account $serviceAccountEmail `
     --allow-unauthenticated `
-    --memory 2Gi `
-    --cpu 2 `
-    --min-instances 1 `
-    --max-instances 5 `
+    --memory $Memory `
+    --cpu $Cpu `
+    --cpu-throttling `
+    --concurrency $Concurrency `
+    --min-instances $MinInstances `
+    --max-instances $MaxInstances `
     --env-vars-file $envVarsFile `
     --quiet
 
 Write-Host ""
 Write-Host "Deployment complete. Copy the Cloud Run URL and use it as VITE_API_BASE_URL for Cloudflare Pages."
+Write-Host "Cost-saving default is min instances = 0. For a live demo, redeploy temporarily with -MinInstances 1 if you need warmer startup."

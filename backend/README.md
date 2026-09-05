@@ -52,3 +52,31 @@ MODEL_GCS_URI=gs://your-model-bucket/models/dr_classifier.onnx
 ```
 
 The ONNX model should be exported from MATLAB. For local development, place it at `models/dr_classifier.onnx`. For Cloud Run, upload it to Cloud Storage and set `MODEL_GCS_URI`.
+
+## Cloud Run Cost Control
+
+The backend should normally run with:
+
+```text
+min instances = 0
+request-based CPU allocation
+small fixed max instance limit
+```
+
+This lets Cloud Run scale to zero when the API is idle. The first request after idle may be slower because the container has to start again.
+
+Deploy with the same cost-saving defaults:
+
+```powershell
+cd <repo-root>
+.\infra\gcp\deploy-backend.ps1 -InferenceMode onnx
+```
+
+For a live demo only, keep one warm instance temporarily:
+
+```powershell
+cd <repo-root>
+.\infra\gcp\deploy-backend.ps1 -InferenceMode onnx -MinInstances 1 -Cpu 2 -Memory 2Gi
+```
+
+After the demo, redeploy with the default command again so the service returns to `min instances = 0`.
