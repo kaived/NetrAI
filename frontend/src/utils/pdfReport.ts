@@ -1,4 +1,4 @@
-import { resolveApiAssetUrl } from '../api';
+import { fetchDisplayAssetUrl, resolveApiAssetUrl } from '../api';
 import type { CaseResult, EyeScreeningResult } from '../types';
 import { buildGradeConsistentReportText, formatEyeLabel, getEyeResults } from './clinicalReport';
 import { displayText, formatGradeLabel, getTriageDisplay } from './display';
@@ -347,10 +347,17 @@ function drawEvidencePage(image: PdfEvidenceImage, eyeLabel: string, xObjectName
 }
 
 async function createEvidenceImage(baseUrl: string, heatmapUrl: string): Promise<PdfEvidenceImage | null> {
+  let baseAsset: { url: string; revoke: () => void } | null = null;
+  let heatmapAsset: { url: string; revoke: () => void } | null = null;
+
   try {
+    [baseAsset, heatmapAsset] = await Promise.all([
+      fetchDisplayAssetUrl(baseUrl),
+      fetchDisplayAssetUrl(heatmapUrl),
+    ]);
     const [baseImage, heatmapImage] = await Promise.all([
-      loadImage(baseUrl),
-      loadImage(heatmapUrl),
+      loadImage(baseAsset.url),
+      loadImage(heatmapAsset.url),
     ]);
     const naturalWidth = baseImage.naturalWidth || baseImage.width;
     const naturalHeight = baseImage.naturalHeight || baseImage.height;
@@ -386,6 +393,9 @@ async function createEvidenceImage(baseUrl: string, heatmapUrl: string): Promise
     };
   } catch {
     return null;
+  } finally {
+    baseAsset?.revoke();
+    heatmapAsset?.revoke();
   }
 }
 

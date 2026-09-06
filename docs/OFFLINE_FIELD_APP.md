@@ -64,7 +64,7 @@ frontend/public/offline-models/dr_classifier.onnx
 
 The copied model is ignored by Git.
 
-For Cloudflare Pages, use the normal `npm run build`. It intentionally removes the local copied ONNX model from `frontend/public/offline-models` so Pages does not reject the deployment for exceeding the 25 MiB asset limit. The production website downloads the offline model from `VITE_OFFLINE_MODEL_URL` instead.
+For Cloudflare Pages, use the normal `npm run build`. It intentionally excludes the local copied ONNX model from the web output so Pages does not reject the deployment for exceeding the 25 MiB asset limit. The production website downloads the offline model from `VITE_OFFLINE_MODEL_URL` instead.
 
 ## Production PWA Setup
 
@@ -86,6 +86,12 @@ VITE_API_ACCESS_KEY=<pilot key if backend API_ACCESS_KEY is enabled>
 VITE_OFFLINE_MODEL_URL=https://storage.googleapis.com/retinascan-ai-f620e-offline-assets/models/aptos-baseline-v1/dr_classifier.onnx
 VITE_PREFETCH_OFFLINE_MODEL=true
 VITE_ANDROID_APK_URL=https://storage.googleapis.com/retinascan-ai-f620e-app-downloads/android/netrai-latest.apk
+```
+
+For the backend, keep the website and installed-app origins in Cloud Run CORS:
+
+```text
+API_CORS_ORIGINS=https://netr-ai.orbionixtech.com,https://www.netr-ai.orbionixtech.com,https://localhost,capacitor://localhost
 ```
 
 Publish the current APTOS v1 model before deploying the PWA:
@@ -120,6 +126,7 @@ Build the signed release APK:
 
 ```powershell
 cd frontend
+$env:NETRAI_API_ACCESS_KEY="<same value as backend API_ACCESS_KEY>"
 npm run android:apk
 ```
 
@@ -138,7 +145,7 @@ frontend/android/app/build/outputs/apk/release/app-release.apk
 
 Share only the signed release APK. Keep `frontend/android/signing/` backed up securely and never commit it; Android updates must use the same keystore.
 
-If the backend uses `API_ACCESS_KEY`, build the APK with the matching `VITE_API_ACCESS_KEY` value. Treat this as pilot protection only; a production clinical app should use named operator accounts and audit logs.
+If the backend uses `API_ACCESS_KEY`, build the APK with the matching `NETRAI_API_ACCESS_KEY` or `VITE_API_ACCESS_KEY` value. Treat this as pilot protection only; a production clinical app should use named operator accounts and audit logs.
 
 ## Device Connectivity
 

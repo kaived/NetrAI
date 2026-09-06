@@ -81,6 +81,47 @@ export function resolveApiAssetUrl(url: string | null): string | null {
   return `${API_BASE_URL.replace(/\/$/, "")}/${url.replace(/^\//, "")}`;
 }
 
+export function shouldFetchAssetWithApiHeaders(url: string | null): boolean {
+  const resolvedUrl = resolveApiAssetUrl(url);
+  if (!resolvedUrl || /^(data:|blob:)/.test(resolvedUrl)) {
+    return false;
+  }
+
+  try {
+    const baseHref = typeof window !== "undefined" ? window.location.href : API_BASE_URL;
+    const assetUrl = new URL(resolvedUrl, baseHref);
+    const apiUrl = new URL(API_BASE_URL);
+    return assetUrl.origin === apiUrl.origin && assetUrl.pathname.startsWith("/cases/");
+  } catch {
+    return false;
+  }
+}
+
+export async function fetchDisplayAssetUrl(url: string): Promise<{ url: string; revoke: () => void }> {
+  const resolvedUrl = resolveApiAssetUrl(url);
+  if (!resolvedUrl) {
+    throw new ApiError("Image asset URL is missing.", 0);
+  }
+
+  if (!shouldFetchAssetWithApiHeaders(resolvedUrl)) {
+    return { url: resolvedUrl, revoke: () => undefined };
+  }
+
+  const response = await fetch(resolvedUrl, {
+    headers: buildApiHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new ApiError(await readApiError(response, "Could not load image asset."), response.status);
+  }
+
+  const objectUrl = URL.createObjectURL(await response.blob());
+  return {
+    url: objectUrl,
+    revoke: () => URL.revokeObjectURL(objectUrl),
+  };
+}
+
 function getApiBaseUrl(): string {
   const configuredUrl = import.meta.env.VITE_API_BASE_URL?.trim();
   if (configuredUrl) {

@@ -15,6 +15,7 @@ import type { CaseResult, EyeScreeningResult, PatientInfo } from '../types';
 import { buildGradeConsistentReportText, getEyeResults } from '../utils/clinicalReport';
 import { displayText, formatGradeLabel, getTriageDisplay, sanitizeForDisplayExport } from '../utils/display';
 import { downloadClinicalReportPdf } from '../utils/pdfReport';
+import { AuthenticatedImage } from './AuthenticatedImage';
 
 interface ClinicalReportCardProps {
   result: CaseResult;
@@ -247,13 +248,13 @@ ${reportDisclaimer}
                 {/* Retinal Fundus Photograph & Attention Map Preview */}
                 {eyeInputUrl && (
                   <div className="relative rounded-lg overflow-hidden bg-slate-950 border border-slate-800 aspect-[4/3] max-h-48 sm:max-h-56 flex items-center justify-center">
-                    <img
+                    <AuthenticatedImage
                       src={eyeInputUrl}
                       alt={`${eyeCode} Fundus Scan`}
                       className="absolute inset-0 m-auto max-h-full max-w-full object-contain"
                     />
                     {eyeHeatmapUrl && (
-                      <img
+                      <AuthenticatedImage
                         src={eyeHeatmapUrl}
                         alt={`${eyeCode} Attention Heatmap`}
                         className="absolute inset-0 m-auto max-h-full max-w-full object-contain pointer-events-none mix-blend-screen opacity-70"

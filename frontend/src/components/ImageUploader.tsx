@@ -16,7 +16,7 @@ interface ImageUploaderProps {
   previewUrl: string | null;
   patientInfo: PatientInfo;
   isLoading: boolean;
-  onFileChange: (file: File | null) => void;
+  onFileChange: (file: File | null) => void | Promise<void>;
   onPatientInfoChange: (info: PatientInfo) => void;
   onAnalyze: () => void;
   onReset: () => void;
@@ -98,7 +98,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
     }
     const droppedFile = e.dataTransfer.files?.[0];
     if (droppedFile && droppedFile.type.startsWith('image/')) {
-      onFileChange(droppedFile);
+      void onFileChange(droppedFile);
     }
   };
 
@@ -333,7 +333,10 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
             disabled={isLoading || isCaseComplete}
             onChange={(e) => {
               const selected = e.target.files?.[0];
-              if (selected) onFileChange(selected);
+              if (selected) {
+                void onFileChange(selected);
+                e.currentTarget.value = '';
+              }
             }}
           />
 

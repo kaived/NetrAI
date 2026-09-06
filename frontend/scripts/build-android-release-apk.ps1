@@ -1,7 +1,8 @@
 param(
     [switch]$SkipSync,
     [switch]$Clean,
-    [string]$ApiBaseUrl = $env:VITE_API_BASE_URL
+    [string]$ApiBaseUrl = $env:VITE_API_BASE_URL,
+    [string]$ApiAccessKey = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -23,6 +24,21 @@ try {
         $env:VITE_API_BASE_URL = $ApiBaseUrl
     }
     Write-Host "Android release API base URL: $env:VITE_API_BASE_URL"
+
+    $resolvedApiAccessKey = $ApiAccessKey
+    if ([string]::IsNullOrWhiteSpace($resolvedApiAccessKey)) {
+        $resolvedApiAccessKey = $env:VITE_API_ACCESS_KEY
+    }
+    if ([string]::IsNullOrWhiteSpace($resolvedApiAccessKey)) {
+        $resolvedApiAccessKey = $env:NETRAI_API_ACCESS_KEY
+    }
+
+    if ([string]::IsNullOrWhiteSpace($resolvedApiAccessKey)) {
+        Write-Warning "Android release API access key is empty. Online APK mode will fail if Cloud Run API_ACCESS_KEY is enabled."
+    } else {
+        $env:VITE_API_ACCESS_KEY = $resolvedApiAccessKey.Trim()
+        Write-Host "Android release API access key: configured"
+    }
 
     if (-not $SkipSync) {
         npm run android:sync

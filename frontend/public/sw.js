@@ -1,4 +1,4 @@
-const CACHE_VERSION = "netrai-pwa-v3";
+const CACHE_VERSION = "netrai-pwa-v4";
 const APP_CACHE = `${CACHE_VERSION}-app`;
 const MODEL_CACHE = `${CACHE_VERSION}-model`;
 
@@ -6,7 +6,7 @@ const APP_SHELL = [
   "/",
   "/index.html",
   "/manifest.webmanifest",
-  "/NetrAI_MetaLogo.png"
+  "/NetrAI_Image.png"
 ];
 
 const OPTIONAL_OFFLINE_ASSETS = [

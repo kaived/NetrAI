@@ -196,6 +196,35 @@ export function App() {
     };
   }, [isOnline]);
 
+  const handleFileChange = async (selectedFile: File | null) => {
+    setError(null);
+    setFieldErrors({});
+
+    if (!selectedFile) {
+      setFile(null);
+      setPreviewUrl(null);
+      return;
+    }
+
+    setFile(null);
+    setPreviewUrl(null);
+
+    try {
+      const stableFile = await createStableFundusFile(selectedFile);
+      setFile(stableFile);
+
+      if (!activeCaseId) {
+        setResult(null);
+        setGeneratedCaseId(generateCaseId());
+        clearCaseIdFromUrl();
+      }
+    } catch {
+      setError(
+        'The selected fundus image could not be read. Transfer the fundus photo to local device storage, then select it from Files, Downloads, Gallery, USB, Bluetooth, or Wi-Fi transfer folder and try again.',
+      );
+    }
+  };
+
   const handleAnalyze = async () => {
     if (completedEyes.includes(patientInfo.eye)) {
       setFieldErrors({ eye: `${patientInfo.eye} is already completed for this case.` });
@@ -347,19 +376,7 @@ export function App() {
             nextEye={nextEye}
             isCaseComplete={isCaseComplete}
             requiresRecapture={Boolean(result && !result.quality.is_gradeable && !isCaseComplete)}
-            onFileChange={(f) => {
-              setFile(f);
-              if (!f) {
-                setPreviewUrl(null);
-              }
-              setError(null);
-              setFieldErrors({});
-              if (!activeCaseId) {
-                setResult(null);
-                setGeneratedCaseId(generateCaseId());
-                clearCaseIdFromUrl();
-              }
-            }}
+            onFileChange={handleFileChange}
             onPatientInfoChange={(next) => {
               setPatientInfo(next);
               setFieldErrors({});
@@ -602,6 +619,34 @@ function createPatientInfoFromResult(result: CaseResult): PatientInfo {
     diabetesType: result.patient?.diabetes_type || '',
     diabeticDuration: result.patient?.diabetic_duration || '',
   };
+}
+
+async function createStableFundusFile(source: File): Promise<File> {
+  const bytes = await source.arrayBuffer();
+  const type = inferImageMimeType(source);
+  const name = source.name?.trim() || `fundus-${Date.now()}.${extensionFromMimeType(type)}`;
+  return new File([bytes], name, {
+    type,
+    lastModified: source.lastModified || Date.now(),
+  });
+}
+
+function inferImageMimeType(file: File): string {
+  if (file.type) {
+    return file.type;
+  }
+
+  const lowerName = file.name.toLowerCase();
+  if (lowerName.endsWith('.png')) return 'image/png';
+  if (lowerName.endsWith('.webp')) return 'image/webp';
+  if (lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg')) return 'image/jpeg';
+  return 'image/jpeg';
+}
+
+function extensionFromMimeType(type: string): string {
+  if (type === 'image/png') return 'png';
+  if (type === 'image/webp') return 'webp';
+  return 'jpg';
 }
 
 function getResultPreviewUrl(result: CaseResult, eye?: EyeCode): string | null {

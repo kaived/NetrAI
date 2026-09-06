@@ -3,6 +3,7 @@ import { Eye, Layers, Info, BrainCircuit } from 'lucide-react';
 import { resolveApiAssetUrl } from '../api';
 import type { ExplanationResult } from '../types';
 import { displayText } from '../utils/display';
+import { AuthenticatedImage } from './AuthenticatedImage';
 
 interface ExplainabilityViewerProps {
   previewUrl: string | null;
@@ -40,14 +41,14 @@ export const ExplainabilityViewer: React.FC<ExplainabilityViewerProps> = ({
         {previewUrl ? (
           <div className="relative w-full h-full flex items-center justify-center">
             {/* Base Image */}
-            <img
+            <AuthenticatedImage
               src={previewUrl}
               alt="Base fundus scan"
               className="absolute inset-0 m-auto max-h-full max-w-full object-contain"
             />
 
             {hasHeatmap && (
-              <img
+              <AuthenticatedImage
                 src={heatmapSrc ?? undefined}
                 alt="Backend-generated lesion attention heatmap"
                 className="absolute inset-0 m-auto max-h-full max-w-full object-contain pointer-events-none transition-opacity"

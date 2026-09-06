@@ -127,7 +127,7 @@ INFERENCE_MODE=onnx
 MODEL_VERSION=aptos-baseline-v1
 MODEL_GCS_URI=gs://retinascan-ai-f620e-models/models/dr_classifier.onnx
 MODEL_OUTPUT_FORMAT=probabilities
-API_CORS_ORIGINS=https://netr-ai.orbionixtech.com,https://www.netr-ai.orbionixtech.com
+API_CORS_ORIGINS=https://netr-ai.orbionixtech.com,https://www.netr-ai.orbionixtech.com,https://localhost,capacitor://localhost
 ```
 
 ## 4.1 Publish Offline PWA Model Asset

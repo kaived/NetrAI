@@ -8,7 +8,7 @@ param(
     [string]$ModelBucket = "$ProjectId-models",
     [string]$InputBucket = "$ProjectId-inputs",
     [string]$OutputBucket = "$ProjectId-outputs",
-    [string]$CorsOrigins = "https://netr-ai.orbionixtech.com,https://www.netr-ai.orbionixtech.com",
+    [string]$CorsOrigins = "https://netr-ai.orbionixtech.com,https://www.netr-ai.orbionixtech.com,https://localhost,capacitor://localhost",
     [string]$ModelVersion = "aptos-baseline-v1",
     [int]$MinInstances = 0,
     [int]$MaxInstances = 3,
