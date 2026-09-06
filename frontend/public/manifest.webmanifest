@@ -11,7 +11,7 @@
   "categories": ["medical", "health", "productivity"],
   "icons": [
     {
-      "src": "/NetrAI_MetaLogo.png",
+      "src": "/NetrAI_Image.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
