@@ -64,6 +64,8 @@ frontend/public/offline-models/dr_classifier.onnx
 
 The copied model is ignored by Git.
 
+For Cloudflare Pages, use the normal `npm run build`. It intentionally removes the local copied ONNX model from `frontend/public/offline-models` so Pages does not reject the deployment for exceeding the 25 MiB asset limit. The production website downloads the offline model from `VITE_OFFLINE_MODEL_URL` instead.
+
 ## Production PWA Setup
 
 For the public production website, deploy the PWA code to Cloudflare Pages and serve the ONNX model from a separate asset bucket.

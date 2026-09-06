@@ -66,6 +66,8 @@ Cloudflare Pages has a 25 MiB maximum per static asset, so do not upload `dr_cla
 .\infra\gcp\publish-offline-model.ps1
 ```
 
+The normal frontend build removes any locally copied `frontend/public/offline-models/dr_classifier.onnx` before building, so Cloudflare receives only small web assets and downloads the model from `VITE_OFFLINE_MODEL_URL`.
+
 Publish the Android APK after building the signed release:
 
 ```powershell

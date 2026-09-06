@@ -1,4 +1,4 @@
-const CACHE_VERSION = "netrai-pwa-v2";
+const CACHE_VERSION = "netrai-pwa-v3";
 const APP_CACHE = `${CACHE_VERSION}-app`;
 const MODEL_CACHE = `${CACHE_VERSION}-model`;
 
@@ -11,12 +11,6 @@ const APP_SHELL = [
 
 const OPTIONAL_OFFLINE_ASSETS = [
   "/offline-models/dr_classifier.onnx",
-  "/ort/ort-wasm-simd-threaded.asyncify.mjs",
-  "/ort/ort-wasm-simd-threaded.asyncify.wasm",
-  "/ort/ort-wasm-simd-threaded.jsep.mjs",
-  "/ort/ort-wasm-simd-threaded.jsep.wasm",
-  "/ort/ort-wasm-simd-threaded.jspi.mjs",
-  "/ort/ort-wasm-simd-threaded.jspi.wasm",
   "/ort/ort-wasm-simd-threaded.mjs",
   "/ort/ort-wasm-simd-threaded.wasm"
 ];

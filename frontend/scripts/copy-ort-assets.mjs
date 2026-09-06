@@ -1,4 +1,4 @@
-import { copyFileSync, existsSync, mkdirSync, readdirSync, statSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readdirSync, rmSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -7,9 +7,9 @@ const frontendRoot = join(__dirname, "..");
 const sourceDir = join(frontendRoot, "node_modules", "onnxruntime-web", "dist");
 const targetDir = join(frontendRoot, "public", "ort");
 
-const requiredPrefixes = [
-  "ort-wasm-simd-threaded",
-  "ort-wasm"
+const requiredFiles = [
+  "ort-wasm-simd-threaded.mjs",
+  "ort-wasm-simd-threaded.wasm"
 ];
 
 if (!existsSync(sourceDir)) {
@@ -18,18 +18,25 @@ if (!existsSync(sourceDir)) {
 
 mkdirSync(targetDir, { recursive: true });
 
-for (const fileName of readdirSync(sourceDir)) {
-  const shouldCopy = requiredPrefixes.some((prefix) => fileName.startsWith(prefix))
-    && /\.(mjs|wasm)$/.test(fileName);
-
-  if (shouldCopy) {
-    const source = join(sourceDir, fileName);
-    const target = join(targetDir, fileName);
-    if (existsSync(target) && statSync(source).size === statSync(target).size) {
-      continue;
-    }
-    copyFileSync(source, target);
+for (const fileName of readdirSync(targetDir)) {
+  if (fileName.startsWith("ort-wasm") && !requiredFiles.includes(fileName)) {
+    rmSync(join(targetDir, fileName), { force: true });
   }
+}
+
+for (const fileName of requiredFiles) {
+  const source = join(sourceDir, fileName);
+  const target = join(targetDir, fileName);
+
+  if (!existsSync(source)) {
+    throw new Error(`Required ONNX Runtime asset was not found: ${source}`);
+  }
+
+  if (existsSync(target) && statSync(source).size === statSync(target).size) {
+    continue;
+  }
+
+  copyFileSync(source, target);
 }
 
 console.log("Copied ONNX Runtime Web assets to public/ort.");
