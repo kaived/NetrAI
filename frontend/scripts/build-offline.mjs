@@ -26,6 +26,8 @@ runNpm(["run", "sync:offline-model"]);
 runNpm(["run", "build"], {
   env: {
     ...process.env,
-    NETRAI_BUNDLE_OFFLINE_MODEL: "true"
+    NETRAI_BUNDLE_OFFLINE_MODEL: "true",
+    VITE_OFFLINE_MODEL_URL: "/offline-models/dr_classifier.onnx",
+    VITE_PREFETCH_OFFLINE_MODEL: "true"
   }
 });
