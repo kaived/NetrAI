@@ -1,12 +1,12 @@
-fastapi==0.115.6
+fastapi==0.141.1
 uvicorn[standard]==0.34.0
-python-multipart==0.0.20
+python-multipart==0.0.31
 pydantic==2.10.4
 pydantic-settings==2.7.1
 google-cloud-firestore==2.20.0
 google-cloud-storage==2.19.0
 firebase-admin>=6.6,<8
 numpy>=1.26,<3
-pillow>=10,<12
+pillow>=12.3,<13
 onnxruntime>=1.20,<2
 opencv-python-headless>=4.10,<5

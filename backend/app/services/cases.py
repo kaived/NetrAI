@@ -6,7 +6,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from app.config import Settings
-from app.schemas import CaseResult, EyeScreeningResult, FinalReportResult
+from app.schemas import CASE_ID_PATTERN, CaseResult, EyeScreeningResult, FinalReportResult
 
 EYE_ORDER = ("OD", "OS")
 
@@ -49,6 +49,15 @@ class CaseRepository:
         self._write_case(result.case_id, data)
         return aggregate_result
 
+    def save_synced_case(self, result: CaseResult) -> CaseResult:
+        data = result.model_dump(mode="json")
+        data["runtime"] = "cloud"
+        data["sync_status"] = "synced"
+        data["synced_at"] = datetime.now(UTC).isoformat()
+        data["updated_at"] = datetime.now(UTC).isoformat()
+        self._write_case(result.case_id, data)
+        return CaseResult.model_validate(data)
+
     @staticmethod
     def is_eye_completed(case: dict | None, eye: str) -> bool:
         if not case:
@@ -58,24 +67,42 @@ class CaseRepository:
         return bool(eye_result and eye_result.status == "completed" and eye_result.quality.is_gradeable)
 
     def get_case(self, case_id: str) -> dict | None:
+        case_id = self._normalize_case_id(case_id)
         if self.settings.firestore_enabled:
             client = self._get_firestore_client()
             doc = client.collection(self.collection_name).document(case_id).get()
             return doc.to_dict() if doc.exists else None
 
-        path = self.local_dir / f"{case_id}.json"
+        path = self._case_path(case_id)
         if not path.exists():
             return None
         return json.loads(path.read_text(encoding="utf-8"))
 
     def _write_case(self, case_id: str, data: dict) -> None:
+        case_id = self._normalize_case_id(case_id)
         if self.settings.firestore_enabled:
             client = self._get_firestore_client()
             client.collection(self.collection_name).document(case_id).set(data, merge=True)
             return
 
-        path = self.local_dir / f"{case_id}.json"
+        path = self._case_path(case_id)
         path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+    def _case_path(self, case_id: str) -> Path:
+        path = (self.local_dir / f"{case_id}.json").resolve()
+        storage_root = self.local_dir.resolve()
+        try:
+            path.relative_to(storage_root)
+        except ValueError as exc:
+            raise ValueError("Case path is outside the configured storage directory.") from exc
+        return path
+
+    @staticmethod
+    def _normalize_case_id(case_id: str) -> str:
+        normalized = case_id.strip().upper()
+        if not CASE_ID_PATTERN.fullmatch(normalized):
+            raise ValueError("Invalid case ID.")
+        return normalized
 
     def _get_firestore_client(self):
         if self._firestore_client is None:

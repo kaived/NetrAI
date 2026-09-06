@@ -8,13 +8,15 @@ param(
     [string]$ModelBucket = "$ProjectId-models",
     [string]$InputBucket = "$ProjectId-inputs",
     [string]$OutputBucket = "$ProjectId-outputs",
-    [string]$CorsOrigins = "https://netr-ai.orbionixtech.com,https://www.netr-ai.orbionixtech.com,http://localhost:5173,http://localhost:4173",
+    [string]$CorsOrigins = "https://netr-ai.orbionixtech.com,https://www.netr-ai.orbionixtech.com",
     [string]$ModelVersion = "aptos-baseline-v1",
     [int]$MinInstances = 0,
     [int]$MaxInstances = 3,
     [string]$Cpu = "1",
     [string]$Memory = "1Gi",
-    [int]$Concurrency = 4
+    [int]$Concurrency = 4,
+    [string]$ApiAccessKey = $env:NETRAI_API_ACCESS_KEY,
+    [switch]$SkipModelUpload
 )
 
 $ErrorActionPreference = "Stop"
@@ -31,26 +33,39 @@ function Invoke-Gcloud {
     }
 }
 
+function Test-GcloudExists {
+    & gcloud @args *> $null
+    return $LASTEXITCODE -eq 0
+}
+
 $activeAccount = & gcloud auth list --filter=status:ACTIVE --format="value(account)"
 if ($LASTEXITCODE -ne 0 -or -not $activeAccount) {
     throw "No active gcloud account. Run: gcloud auth login"
 }
 
+$modelGcsUri = if ($InferenceMode -eq "onnx") { "gs://$ModelBucket/models/dr_classifier.onnx" } else { "" }
+
 if ($InferenceMode -eq "onnx") {
     $localModelPath = Join-Path $BackendDir "models\dr_classifier.onnx"
-    if (-not (Test-Path -LiteralPath $localModelPath)) {
+    if (-not $SkipModelUpload -and -not (Test-Path -LiteralPath $localModelPath)) {
         throw "ONNX model not found at $localModelPath. Train/export from MATLAB first or deploy with -InferenceMode stub."
     }
 
-    Write-Host "Uploading ONNX model to Cloud Storage..."
-    Invoke-Gcloud storage cp $localModelPath "gs://$ModelBucket/models/dr_classifier.onnx"
+    if ($SkipModelUpload) {
+        if (-not (Test-GcloudExists storage objects describe $modelGcsUri --project $ProjectId)) {
+            throw "SkipModelUpload was requested, but model was not found at $modelGcsUri"
+        }
+        Write-Host "Skipping ONNX model upload; using existing model at $modelGcsUri"
+    } else {
+        Write-Host "Uploading ONNX model to Cloud Storage..."
+        Invoke-Gcloud storage cp $localModelPath $modelGcsUri
+    }
     $ModelVersion = "aptos-baseline-v1"
 } else {
     $ModelVersion = "demo-stub-v0"
 }
 
 $serviceAccountEmail = "$ServiceAccountName@$ProjectId.iam.gserviceaccount.com"
-$modelGcsUri = if ($InferenceMode -eq "onnx") { "gs://$ModelBucket/models/dr_classifier.onnx" } else { "" }
 
 $envVars = [ordered]@{
     ENVIRONMENT = "production"
@@ -67,7 +82,7 @@ $envVars = [ordered]@{
     MODEL_PATH = "models/dr_classifier.onnx"
     MODEL_GCS_URI = $modelGcsUri
     MODEL_INPUT_SIZE = "224"
-    MODEL_OUTPUT_FORMAT = "logits"
+    MODEL_OUTPUT_FORMAT = "probabilities"
     MODEL_CHANNEL_ORDER = "rgb"
     MODEL_LAYOUT = "auto"
     MODEL_INPUT_SCALE = "0_1"
@@ -80,6 +95,12 @@ $envVars = [ordered]@{
     QUALITY_MIN_COMPATIBILITY_SCORE = "0.55"
     QUALITY_MAX_EDGE_ARTIFACT_RATIO = "0.52"
     QUALITY_MAX_GREEN_DOMINANCE_RATIO = "0.42"
+    MAX_UPLOAD_BYTES = "20971520"
+    MAX_IMAGE_PIXELS = "25000000"
+}
+
+if ($ApiAccessKey) {
+    $envVars.API_ACCESS_KEY = $ApiAccessKey
 }
 
 $envVarsFile = Join-Path $env:CLOUDSDK_CONFIG "cloud-run-env.yaml"

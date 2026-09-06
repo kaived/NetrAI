@@ -1,0 +1,20 @@
+{
+  "name": "NetrAI Retinal Screening",
+  "short_name": "NetrAI",
+  "description": "Offline-ready explainable diabetic retinopathy screening for PHC and outreach workflows.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f5f8fb",
+  "theme_color": "#0f766e",
+  "categories": ["medical", "health", "productivity"],
+  "icons": [
+    {
+      "src": "/NetrAI_MetaLogo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

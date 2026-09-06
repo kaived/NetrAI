@@ -18,6 +18,7 @@ uvicorn app.main:app --reload --port 8080
 GET  /
 GET  /health
 POST /predict
+POST /sync/cases
 ```
 
 Swagger UI:
@@ -49,6 +50,7 @@ GCS_ENABLED=true
 INFERENCE_MODE=onnx
 MODEL_PATH=models/dr_classifier.onnx
 MODEL_GCS_URI=gs://your-model-bucket/models/dr_classifier.onnx
+MODEL_OUTPUT_FORMAT=probabilities
 ```
 
 The ONNX model should be exported from MATLAB. For local development, place it at `models/dr_classifier.onnx`. For Cloud Run, upload it to Cloud Storage and set `MODEL_GCS_URI`.

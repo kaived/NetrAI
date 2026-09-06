@@ -211,9 +211,10 @@ ${reportDisclaimer}
           {eyeResults.map((eyeResult) => {
             const triage = getTriageDisplay(eyeResult.prediction);
             const eyeCode = eyeResult.eye;
-            const eyeInputUrl =
-              resolveApiAssetUrl(`/cases/${result.case_id}/eyes/${eyeCode}/input`) ||
-              (result.patient?.eye === eyeCode ? previewUrl : null);
+            const eyeInputUrl = resolveStoredOrCaseAsset(
+              eyeResult.storage?.input_uri,
+              `/cases/${result.case_id}/eyes/${eyeCode}/input`,
+            ) || (result.patient?.eye === eyeCode ? previewUrl : null);
             const eyeHeatmapUrl =
               resolveApiAssetUrl(eyeResult.explanation?.heatmap_url) ||
               resolveApiAssetUrl(`/cases/${result.case_id}/eyes/${eyeCode}/heatmap`);
@@ -339,4 +340,12 @@ function formatYearsSinceDiagnosis(value: unknown, style: 'compact' | 'formal'):
   }
 
   return cleaned;
+}
+
+function resolveStoredOrCaseAsset(storedUrl: string | null | undefined, fallbackPath: string): string | null {
+  if (storedUrl && /^(https?:|data:|blob:)/.test(storedUrl)) {
+    return resolveApiAssetUrl(storedUrl);
+  }
+
+  return resolveApiAssetUrl(fallbackPath);
 }

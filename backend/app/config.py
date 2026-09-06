@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     environment: str = "development"
     app_name: str = "RetinaScan AI API"
     api_cors_origins: str = "http://localhost:5173"
+    api_access_key: str = ""
 
     gcp_project_id: str = ""
     firebase_project_id: str = ""
@@ -27,7 +28,7 @@ class Settings(BaseSettings):
     model_path: str = "models/dr_classifier.onnx"
     model_gcs_uri: str = ""
     model_input_size: int = 224
-    model_output_format: str = Field(default="logits", pattern="^(logits|probabilities)$")
+    model_output_format: str = Field(default="probabilities", pattern="^(logits|probabilities)$")
     model_channel_order: str = Field(default="rgb", pattern="^(rgb|bgr)$")
     model_layout: str = Field(default="auto", pattern="^(auto|nchw|nhwc)$")
     model_input_scale: str = Field(default="0_1", pattern="^(0_1|0_255)$")
@@ -44,6 +45,7 @@ class Settings(BaseSettings):
 
     local_storage_dir: str = "runtime_storage"
     max_upload_bytes: int = 20 * 1024 * 1024
+    max_image_pixels: int = 25_000_000
 
     @property
     def cors_origins(self) -> list[str]:

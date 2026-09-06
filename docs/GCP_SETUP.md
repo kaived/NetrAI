@@ -126,7 +126,23 @@ and deploys Cloud Run with:
 INFERENCE_MODE=onnx
 MODEL_VERSION=aptos-baseline-v1
 MODEL_GCS_URI=gs://retinascan-ai-f620e-models/models/dr_classifier.onnx
-API_CORS_ORIGINS=https://netr-ai.orbionixtech.com,https://www.netr-ai.orbionixtech.com,http://localhost:5173,http://localhost:4173
+MODEL_OUTPUT_FORMAT=probabilities
+API_CORS_ORIGINS=https://netr-ai.orbionixtech.com,https://www.netr-ai.orbionixtech.com
+```
+
+## 4.1 Publish Offline PWA Model Asset
+
+Cloudflare Pages cannot host the current `dr_classifier.onnx` directly because the file is about 42.7 MB and Pages has a 25 MiB per-file limit. Publish it to a dedicated public asset bucket:
+
+```powershell
+.\infra\gcp\publish-offline-model.ps1
+```
+
+Use the printed URL as the Cloudflare Pages environment variable:
+
+```text
+VITE_OFFLINE_MODEL_URL=https://storage.googleapis.com/retinascan-ai-f620e-offline-assets/models/aptos-baseline-v1/dr_classifier.onnx
+VITE_PREFETCH_OFFLINE_MODEL=true
 ```
 
 ## 5. Cloudflare Pages Frontend
@@ -137,6 +153,7 @@ In Cloudflare Pages, set:
 
 ```text
 VITE_API_BASE_URL=https://retinascan-api-58990504584.asia-south1.run.app
+VITE_OFFLINE_MODEL_URL=https://storage.googleapis.com/retinascan-ai-f620e-offline-assets/models/aptos-baseline-v1/dr_classifier.onnx
 ```
 
 Then deploy `frontend/`.
@@ -160,10 +177,10 @@ Production does not run MATLAB. Production runs ONNX Runtime inside FastAPI on C
 For the first demo:
 
 ```text
-Cloud Run memory: 2Gi
-Cloud Run CPU: 2
+Cloud Run memory: 1Gi
+Cloud Run CPU: 1
 min instances: 0
-max instances: 5
+max instances: 3
 input size: 224
 ```
 

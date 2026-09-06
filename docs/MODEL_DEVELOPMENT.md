@@ -21,6 +21,8 @@ MATLAB is used for dataset indexing, datastore creation, preprocessing, training
 
 The exported ONNX model is used for inference outside MATLAB. MATLAB is not required during inference after the model has been exported.
 
+The first offline PWA/Android implementation uses the same exported `aptos-baseline-v1` ONNX model before starting the next model-improvement cycle.
+
 ## What Has Been Completed
 
 1. Downloaded and organized the retinal image datasets for the project workspace.

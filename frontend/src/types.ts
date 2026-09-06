@@ -74,6 +74,8 @@ export type FinalReportResult = {
 export type CaseResult = {
   case_id: string;
   status: string;
+  runtime?: 'cloud' | 'offline';
+  sync_status?: 'synced' | 'pending' | 'failed';
   patient: PatientMetadata | null;
   quality: QualityResult;
   prediction: PredictionResult;
@@ -95,3 +97,14 @@ export interface PatientInfo {
 }
 
 export type ScreeningFormErrors = Partial<Record<keyof PatientInfo | 'caseId' | 'image', string>>;
+
+export type OfflineScreeningRecord = {
+  case_id: string;
+  created_at: string;
+  updated_at: string;
+  sync_status: 'pending' | 'synced' | 'failed';
+  result: CaseResult;
+  image_data_urls: Partial<Record<EyeCode, string>>;
+  heatmap_data_urls: Partial<Record<EyeCode, string>>;
+  last_sync_error?: string | null;
+};

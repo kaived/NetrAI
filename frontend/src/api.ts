@@ -3,7 +3,8 @@ import type { CaseResult, PatientInfo } from "./types";
 const LOCAL_API_BASE_URL = "http://localhost:8080";
 const PRODUCTION_API_BASE_URL = "https://retinascan-api-58990504584.asia-south1.run.app";
 
-const API_BASE_URL = getApiBaseUrl();
+export const API_BASE_URL = getApiBaseUrl();
+const API_ACCESS_KEY = import.meta.env.VITE_API_ACCESS_KEY?.trim() || "";
 
 export class ApiError extends Error {
   status: number;
@@ -35,7 +36,9 @@ async function readApiError(response: Response, fallback: string): Promise<strin
 }
 
 export async function getCase(caseId: string): Promise<CaseResult> {
-  const response = await fetch(`${API_BASE_URL}/cases/${encodeURIComponent(caseId)}`);
+  const response = await fetch(`${API_BASE_URL}/cases/${encodeURIComponent(caseId)}`, {
+    headers: buildApiHeaders(),
+  });
 
   if (!response.ok) {
     throw new ApiError(await readApiError(response, "Could not load screening case."), response.status);
@@ -55,6 +58,7 @@ export async function predictImage(file: File, patientInfo: PatientInfo, caseId:
 
   const response = await fetch(`${API_BASE_URL}/predict`, {
     method: "POST",
+    headers: buildApiHeaders(),
     body: formData
   });
 
@@ -88,4 +92,12 @@ function getApiBaseUrl(): string {
   }
 
   return LOCAL_API_BASE_URL;
+}
+
+export function buildApiHeaders(headers?: HeadersInit): Headers {
+  const nextHeaders = new Headers(headers);
+  if (API_ACCESS_KEY) {
+    nextHeaders.set("X-NetrAI-API-Key", API_ACCESS_KEY);
+  }
+  return nextHeaders;
 }

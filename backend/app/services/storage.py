@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 from app.config import Settings
@@ -58,13 +59,26 @@ class StorageService:
     def read_uri(self, uri: str) -> bytes:
         if uri.startswith("gs://"):
             bucket_name, blob_name = parse_gcs_uri(uri)
+            allowed_buckets = {
+                bucket
+                for bucket in (self.settings.gcs_input_bucket, self.settings.gcs_output_bucket)
+                if bucket
+            }
+            if allowed_buckets and bucket_name not in allowed_buckets:
+                raise FileNotFoundError("Storage bucket is not allowed.")
             client = self._get_storage_client()
             return client.bucket(bucket_name).blob(blob_name).download_as_bytes()
 
         path = Path(uri)
         if not path.is_absolute():
             path = Path.cwd() / path
-        return path.read_bytes()
+        resolved_path = path.resolve()
+        storage_root = self.local_dir.resolve()
+        try:
+            resolved_path.relative_to(storage_root)
+        except ValueError as exc:
+            raise FileNotFoundError("Storage path is not allowed.") from exc
+        return resolved_path.read_bytes()
 
     def _upload_bytes(
         self,
@@ -91,7 +105,10 @@ class StorageService:
 
 
 def safe_filename(filename: str) -> str:
-    return Path(filename).name.replace(" ", "_") or "file"
+    name = Path(filename).name.strip().replace(" ", "_")
+    name = re.sub(r"[^A-Za-z0-9._-]", "_", name)
+    name = name.strip("._")
+    return name[:120] or "file"
 
 
 def parse_gcs_uri(uri: str) -> tuple[str, str]:

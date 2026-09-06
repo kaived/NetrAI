@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldAlert, FileText, Eye } from 'lucide-react';
-import { ApiError, getCase, predictImage, resolveApiAssetUrl } from './api';
+import { Cloud, CloudOff, ShieldAlert, FileText, Eye, RefreshCw } from 'lucide-react';
+import { ApiError, getCase, resolveApiAssetUrl } from './api';
 import type { CaseResult, EyeCode, EyeScreeningResult, PatientInfo, ScreeningFormErrors } from './types';
 import { Header } from './components/Header';
 import { PipelineFlow } from './components/PipelineFlow';
@@ -13,6 +13,9 @@ import { ClinicalGuideModal } from './components/ClinicalGuideModal';
 import { generateCaseId } from './utils/caseId';
 import { getTriageDisplay } from './utils/display';
 import { caseIdSchema, validateScreeningInput } from './validation/screening';
+import { useOnlineStatus } from './offline/network';
+import { syncPendingOfflineCases } from './offline/sync';
+import { runScreeningAnalysis } from './screening/screeningEngine';
 
 const DEFAULT_PATIENT_INFO: PatientInfo = {
   eye: 'OD',
@@ -44,6 +47,8 @@ export function App() {
   const [patientInfo, setPatientInfo] = useState<PatientInfo>(() => createFreshPatientInfo());
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [activeViewEye, setActiveViewEye] = useState<EyeCode>('OD');
+  const [syncNotice, setSyncNotice] = useState<string | null>(null);
+  const isOnline = useOnlineStatus();
   const completedEyes = result?.completed_eyes ?? [];
   const nextEye = result?.next_eye ?? null;
   const isCaseComplete = Boolean(result?.is_case_complete);
@@ -162,6 +167,35 @@ export function App() {
     };
   }, [initialCaseId]);
 
+  useEffect(() => {
+    if (!isOnline) {
+      setSyncNotice(null);
+      return;
+    }
+
+    let isCancelled = false;
+    syncPendingOfflineCases()
+      .then(({ synced, failed }) => {
+        if (isCancelled || (synced === 0 && failed === 0)) {
+          return;
+        }
+        setSyncNotice(
+          failed > 0
+            ? `${synced} offline case(s) synced, ${failed} still pending.`
+            : `${synced} offline case(s) synced to cloud.`,
+        );
+      })
+      .catch(() => {
+        if (!isCancelled) {
+          setSyncNotice('Offline cases are saved on this device. Sync will retry when the backend is reachable.');
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [isOnline]);
+
   const handleAnalyze = async () => {
     if (completedEyes.includes(patientInfo.eye)) {
       setFieldErrors({ eye: `${patientInfo.eye} is already completed for this case.` });
@@ -186,7 +220,12 @@ export function App() {
       setActiveCaseId(validation.caseId);
       setCaseIdInUrl(validation.caseId);
 
-      const res = await predictImage(validation.file, validation.patientInfo, validation.caseId);
+      const res = await runScreeningAnalysis({
+        file: validation.file,
+        patientInfo: validation.patientInfo,
+        caseId: validation.caseId,
+        existingResult: result,
+      });
       setResult(res);
       setGeneratedCaseId(res.case_id);
       setActiveCaseId(res.case_id);
@@ -228,6 +267,37 @@ export function App() {
           result={result}
           activeEye={activeViewEye}
         />
+
+        {(!isOnline || syncNotice || result?.runtime === 'offline') && (
+          <div
+            className={`no-print border rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 shadow-xs ${
+              isOnline ? 'bg-emerald-50 border-emerald-200 text-emerald-950' : 'bg-amber-50 border-amber-200 text-amber-950'
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              <div className={`mt-0.5 ${isOnline ? 'text-emerald-700' : 'text-amber-700'}`}>
+                {isOnline ? <Cloud className="w-5 h-5" /> : <CloudOff className="w-5 h-5" />}
+              </div>
+              <div>
+                <p className="text-sm font-bold">
+                  {isOnline ? 'Online sync available' : 'Offline field mode'}
+                </p>
+                <p className={`text-xs sm:text-sm mt-0.5 ${isOnline ? 'text-emerald-800' : 'text-amber-800'}`}>
+                  {syncNotice ??
+                    (isOnline
+                      ? 'Cloud API is available. New screenings use Cloud Run unless connectivity drops.'
+                      : 'No internet detected. NetrAI will use the local aptos-baseline-v1 model if it is installed on this device.')}
+                </p>
+              </div>
+            </div>
+            {result?.sync_status === 'pending' && (
+              <span className="inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-white/70 px-3 py-1.5 text-xs font-bold text-amber-800 self-start sm:self-auto">
+                <RefreshCw className="w-3.5 h-3.5" />
+                Pending Cloud Sync
+              </span>
+            )}
+          </div>
+        )}
 
         {error && (
           <div
@@ -537,9 +607,16 @@ function createPatientInfoFromResult(result: CaseResult): PatientInfo {
 function getResultPreviewUrl(result: CaseResult, eye?: EyeCode): string | null {
   const targetEye = eye ?? (result.patient?.eye as EyeCode | undefined);
   if (targetEye === 'OD' || targetEye === 'OS') {
+    const eyeInputUri = result.eyes?.[targetEye]?.storage?.input_uri;
+    if (eyeInputUri && /^(https?:|data:|blob:)/.test(eyeInputUri)) {
+      return resolveApiAssetUrl(eyeInputUri);
+    }
     return resolveApiAssetUrl(`/cases/${result.case_id}/eyes/${targetEye}/input`);
   }
 
+  if (result.storage?.input_uri && /^(https?:|data:|blob:)/.test(result.storage.input_uri)) {
+    return resolveApiAssetUrl(result.storage.input_uri);
+  }
   return resolveApiAssetUrl(`/cases/${result.case_id}/input`);
 }
 

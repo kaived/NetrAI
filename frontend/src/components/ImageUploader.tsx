@@ -369,7 +369,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
                 Drag and drop fundus photograph here
               </h4>
               <p id="fundus-file-help" className="text-xs text-slate-500 mt-1 max-w-xs leading-relaxed">
-                Supports fundus photograph captures (PNG, JPEG, WebP). Max 20MB.
+                Supports fundus photographs imported from portable or tabletop cameras via file, USB, Bluetooth, or Wi-Fi transfer. Max 20MB.
               </p>
               <button
                 type="button"

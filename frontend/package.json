@@ -4,24 +4,39 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "sync:ort-assets": "node scripts/copy-ort-assets.mjs",
+    "sync:offline-model": "node scripts/copy-offline-model.mjs",
+    "predev": "npm run sync:ort-assets",
     "dev": "vite --host 0.0.0.0",
+    "prebuild": "npm run sync:ort-assets",
     "build": "tsc && vite build",
-    "preview": "vite preview --host 0.0.0.0 --port 8080"
+    "build:offline": "npm run sync:offline-model && npm run build",
+    "preview": "vite preview --host 0.0.0.0 --port 8080",
+    "android:add": "cap add android",
+    "android:sync": "npm run sync:offline-model && npm run build && cap sync android",
+    "android:open": "cap open android",
+    "android:keystore": "powershell -ExecutionPolicy Bypass -File scripts/create-android-release-keystore.ps1",
+    "android:apk": "powershell -ExecutionPolicy Bypass -File scripts/build-android-release-apk.ps1",
+    "android:publish": "powershell -ExecutionPolicy Bypass -File ../infra/gcp/publish-android-apk.ps1"
   },
   "dependencies": {
-    "@vitejs/plugin-react": "^4.3.4",
+    "@capacitor/android": "^8.5.1",
+    "@capacitor/core": "^8.5.1",
     "lucide-react": "^0.468.0",
+    "onnxruntime-web": "^1.29.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "typescript": "^5.7.2",
-    "vite": "^6.0.7",
     "zod": "^4.5.1"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.1",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.5",
+    "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.49",
-    "tailwindcss": "^3.4.17"
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.7"
   }
 }

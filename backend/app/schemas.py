@@ -197,6 +197,8 @@ class EyeScreeningResult(BaseModel):
 class CaseResult(BaseModel):
     case_id: str
     status: str
+    runtime: str | None = None
+    sync_status: str | None = None
     patient: PatientMetadata | None = None
     quality: QualityResult
     prediction: PredictionResult
@@ -208,3 +210,9 @@ class CaseResult(BaseModel):
     is_case_complete: bool = False
     eyes: dict[str, EyeScreeningResult] = Field(default_factory=dict)
     final_report: FinalReportResult | None = None
+
+
+class OfflineCaseSyncRequest(BaseModel):
+    case: CaseResult
+    images: dict[str, str] = Field(default_factory=dict)
+    heatmaps: dict[str, str] = Field(default_factory=dict)

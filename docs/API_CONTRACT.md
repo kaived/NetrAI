@@ -8,12 +8,25 @@ The backend exposes a simple upload-to-report API.
 GET  /
 GET  /health
 POST /predict
+POST /sync/cases
 GET  /cases/{case_id}
 GET  /cases/{case_id}/input
 GET  /cases/{case_id}/heatmap
 GET  /cases/{case_id}/eyes/{eye}/input
 GET  /cases/{case_id}/eyes/{eye}/heatmap
 ```
+
+## Access Control
+
+`GET /`, `GET /health`, `/docs`, and `/openapi.json` are public service endpoints.
+
+All case, artifact, prediction, and offline sync endpoints require this header when the backend `API_ACCESS_KEY` environment variable is set:
+
+```text
+X-NetrAI-API-Key: <pilot access key>
+```
+
+This is a pilot access gate. For clinical deployment, add real operator authentication, role-based access, and audit logs.
 
 ## GET /
 
@@ -139,17 +152,58 @@ Output:
 }
 ```
 
-`referable_dr` is computed from the model's referable probability:
+`referable_dr` is computed from the ICDR grade:
 
 ```text
-P(grade 2) + P(grade 3) + P(grade 4) >= MODEL_REFERABLE_THRESHOLD
+Grade 0-1: routine / non-referable
+Grade 2-4: referable DR
 ```
 
-The default threshold is `0.50`. IDRiD can be used to calibrate this threshold without retraining the model.
+The model also returns `referable_probability` as the probability mass for Grade 2-4. IDRiD can be used to calibrate future confidence/triage thresholds without retraining the model.
+
+## POST /sync/cases
+
+Synchronizes a case that was completed offline in the PWA or Android app.
+
+Input:
+
+```json
+{
+  "case": {
+    "case_id": "CASE-20260905-104530-A1B2C3",
+    "runtime": "offline",
+    "sync_status": "pending",
+    "status": "completed",
+    "completed_eyes": ["OD", "OS"],
+    "is_case_complete": true,
+    "eyes": {}
+  },
+  "images": {
+    "OD": "data:image/png;base64,...",
+    "OS": "data:image/png;base64,..."
+  },
+  "heatmaps": {
+    "OD": "data:image/png;base64,...",
+    "OS": "data:image/png;base64,..."
+  }
+}
+```
+
+Backend behavior:
+
+```text
+1. Validates the offline case payload.
+2. Stores image and heatmap artifacts in GCS or local runtime storage.
+3. Replaces data URLs with storage URIs.
+4. Saves the case under cases/{case_id}.
+5. Returns the synced CaseResult.
+```
+
+This endpoint does not rerun inference. It stores the already completed offline result for cloud review.
 
 ## GET /cases/{case_id}
 
-Returns a saved screening case. The frontend stores no browser persistence; it keeps the active case in the URL as `?case_id=...` and uses this endpoint to restore the report after refresh.
+Returns a saved screening case. In online website mode, the frontend keeps the active case in the URL as `?case_id=...` and uses this endpoint to restore the report after refresh. In offline PWA/Android mode, completed offline cases are also stored locally in IndexedDB until cloud sync succeeds.
 
 If the case is actively uploading or processing, the backend returns `409` so the frontend can retry.
 
