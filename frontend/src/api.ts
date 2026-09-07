@@ -4,6 +4,12 @@ const LOCAL_API_BASE_URL = "http://localhost:8080";
 const PRODUCTION_API_BASE_URL = "https://retinascan-api-58990504584.asia-south1.run.app";
 
 export const API_BASE_URL = getApiBaseUrl();
+export const API_REQUEST_TIMEOUTS = {
+  caseRead: 30_000,
+  predict: 45_000,
+  asset: 30_000,
+  sync: 90_000,
+} as const;
 const API_ACCESS_KEY = import.meta.env.VITE_API_ACCESS_KEY?.trim() || "";
 
 export class ApiError extends Error {
@@ -36,9 +42,14 @@ async function readApiError(response: Response, fallback: string): Promise<strin
 }
 
 export async function getCase(caseId: string): Promise<CaseResult> {
-  const response = await fetch(`${API_BASE_URL}/cases/${encodeURIComponent(caseId)}`, {
-    headers: buildApiHeaders(),
-  });
+  const response = await fetchWithTimeout(
+    `${API_BASE_URL}/cases/${encodeURIComponent(caseId)}`,
+    {
+      headers: buildApiHeaders(),
+    },
+    API_REQUEST_TIMEOUTS.caseRead,
+    "Case restore timed out. Check the connection and try again.",
+  );
 
   if (!response.ok) {
     throw new ApiError(await readApiError(response, "Could not load screening case."), response.status);
@@ -56,11 +67,16 @@ export async function predictImage(file: File, patientInfo: PatientInfo, caseId:
   formData.append("diabetes_type", patientInfo.diabetesType);
   formData.append("diabetic_duration", patientInfo.diabeticDuration);
 
-  const response = await fetch(`${API_BASE_URL}/predict`, {
-    method: "POST",
-    headers: buildApiHeaders(),
-    body: formData
-  });
+  const response = await fetchWithTimeout(
+    `${API_BASE_URL}/predict`,
+    {
+      method: "POST",
+      headers: buildApiHeaders(),
+      body: formData,
+    },
+    API_REQUEST_TIMEOUTS.predict,
+    "Cloud screening took too long. The app will try offline screening if the offline model is available.",
+  );
 
   if (!response.ok) {
     throw new ApiError(await readApiError(response, "Prediction failed."), response.status);
@@ -107,9 +123,14 @@ export async function fetchDisplayAssetUrl(url: string): Promise<{ url: string; 
     return { url: resolvedUrl, revoke: () => undefined };
   }
 
-  const response = await fetch(resolvedUrl, {
-    headers: buildApiHeaders(),
-  });
+  const response = await fetchWithTimeout(
+    resolvedUrl,
+    {
+      headers: buildApiHeaders(),
+    },
+    API_REQUEST_TIMEOUTS.asset,
+    "Could not load image asset in time.",
+  );
 
   if (!response.ok) {
     throw new ApiError(await readApiError(response, "Could not load image asset."), response.status);
@@ -141,4 +162,28 @@ export function buildApiHeaders(headers?: HeadersInit): Headers {
     nextHeaders.set("X-NetrAI-API-Key", API_ACCESS_KEY);
   }
   return nextHeaders;
+}
+
+export async function fetchWithTimeout(
+  input: RequestInfo | URL,
+  init: RequestInit,
+  timeoutMs: number,
+  timeoutMessage: string,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = globalThis.setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(input, {
+      ...init,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new ApiError(timeoutMessage, 0);
+    }
+    throw error;
+  } finally {
+    globalThis.clearTimeout(timeoutId);
+  }
 }

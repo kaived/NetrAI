@@ -13,6 +13,8 @@ from app.schemas import PredictionResult, QualityResult
 
 
 CLASS_NAMES = ["no_dr", "mild", "moderate", "severe", "proliferative_dr"]
+TARGET_MIN_FOCUS_SCORE = 1.0
+TARGET_MIN_BRIGHTNESS = 0.15
 
 
 @dataclass(frozen=True)
@@ -55,10 +57,15 @@ class ImagePipeline:
         focus_score = float(np.var(gx) + np.var(gy))
 
         reasons: list[str] = []
+        warnings: list[str] = []
         if focus_score < self.settings.quality_min_focus_score:
-            reasons.append("Image may be blurry. Please recapture with steadier alignment.")
+            reasons.append("Image is too blurry for reliable retinal screening. Please recapture with steadier alignment.")
+        elif focus_score < max(self.settings.quality_min_focus_score, TARGET_MIN_FOCUS_SCORE):
+            warnings.append("Slight softness detected. Screening can continue, but a sharper capture is preferred for clinical review.")
         if brightness < self.settings.quality_min_brightness:
-            reasons.append("Image is too dark. Please increase illumination and recapture.")
+            reasons.append("Image is severely underexposed. Please increase illumination and recapture.")
+        elif brightness < max(self.settings.quality_min_brightness, TARGET_MIN_BRIGHTNESS):
+            warnings.append("Image is darker than ideal. Enhancement will be applied, but manual verification is recommended.")
         if brightness > self.settings.quality_max_brightness:
             reasons.append("Image is too bright or overexposed. Please reduce glare and recapture.")
         if contrast < self.settings.quality_min_contrast:
@@ -77,7 +84,7 @@ class ImagePipeline:
             fundus_area_ratio=compatibility.fundus_area_ratio,
             edge_artifact_ratio=compatibility.edge_artifact_ratio,
             reasons=reasons,
-            warnings=compatibility.warnings,
+            warnings=[*warnings, *compatibility.warnings],
         )
 
     def assess_fundus_compatibility(self, image: Image.Image) -> FundusCompatibility:

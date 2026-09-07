@@ -1,4 +1,5 @@
 import type { CaseResult, EyeCode, EyeScreeningResult, PatientInfo } from "../types";
+import { withTimeout } from "../utils/timeout";
 import { fileToDataUrl, saveOfflineCaseSnapshot } from "../offline/db";
 import {
   OFFLINE_MODEL_URL,
@@ -13,6 +14,8 @@ import {
 } from "./imageProcessing";
 
 let sessionPromise: Promise<import("onnxruntime-web/wasm").InferenceSession> | null = null;
+const OFFLINE_MODEL_LOAD_TIMEOUT_MS = 90_000;
+const OFFLINE_INFERENCE_TIMEOUT_MS = 60_000;
 
 export async function runOfflineAptosV1Screening(
   file: File,
@@ -59,7 +62,11 @@ export async function runOfflineAptosV1Screening(
   const feeds: Record<string, import("onnxruntime-web/wasm").Tensor> = {
     [session.inputNames[0] ?? "input"]: tensor,
   };
-  const output = await session.run(feeds);
+  const output = await withTimeout(
+    session.run(feeds),
+    OFFLINE_INFERENCE_TIMEOUT_MS,
+    "Offline model inference took too long. Close and reopen the app, then try the image again.",
+  );
   const outputTensor = output[session.outputNames[0] ?? Object.keys(output)[0]];
   if (!outputTensor) {
     throw new Error("Offline model did not return prediction scores.");
@@ -95,20 +102,25 @@ async function getOfflineSession(): Promise<import("onnxruntime-web/wasm").Infer
     return sessionPromise;
   }
 
-  sessionPromise = import("onnxruntime-web/wasm").then(async (ort) => {
-    ort.env.wasm.wasmPaths = "/ort/";
-    ort.env.wasm.numThreads = 1;
+  sessionPromise = withTimeout(
+    import("onnxruntime-web/wasm").then(async (ort) => {
+      ort.env.wasm.wasmPaths = "/ort/";
+      ort.env.wasm.numThreads = 1;
 
-    try {
-      return await ort.InferenceSession.create(OFFLINE_MODEL_URL, {
+      return ort.InferenceSession.create(OFFLINE_MODEL_URL, {
         executionProviders: ["wasm"],
       });
-    } catch (error) {
+    }),
+    OFFLINE_MODEL_LOAD_TIMEOUT_MS,
+    `Offline APTOS model did not load in time from ${OFFLINE_MODEL_URL}. Reopen the app once, or reinstall the latest APK if this continues.`,
+  ).catch((error) => {
       sessionPromise = null;
+      if (error instanceof Error && error.message.includes("Offline APTOS model did not load in time")) {
+        throw error;
+      }
       throw new Error(
-        `Offline APTOS model is not available at ${OFFLINE_MODEL_URL}. Copy backend/models/dr_classifier.onnx into frontend/public/offline-models/dr_classifier.onnx before building the offline app.`,
+        "Offline screening model is not available on this device. Reconnect to the internet for cloud screening, or install the latest NetrAI APK with the offline model included.",
       );
-    }
   });
 
   return sessionPromise;

@@ -126,13 +126,13 @@ export const ClinicalGuideModal: React.FC<ClinicalGuideModalProps> = ({ isOpen, 
               <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-1">
                 <span className="font-bold text-slate-800 block">Focus & Sharpness</span>
                 <p className="text-slate-600">
-                  Ensure the fine retinal vascular branches around the optic disc and fovea are crisp. Minimum target focus score: &gt;100.
+                  Ensure the fine retinal vascular branches around the optic disc and fovea are crisp. Hard minimum focus score: 0.75; target: 1.0+.
                 </p>
               </div>
               <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-1">
                 <span className="font-bold text-slate-800 block">Illumination & Exposure</span>
                 <p className="text-slate-600">
-                  Avoid excessive camera flash (bleaching) or under-illumination (dark muddy frames). Optimum brightness: 0.35 to 0.75.
+                  Avoid excessive camera flash (bleaching) or severe under-illumination. Hard minimum brightness: 0.10; target range: 0.15 to 0.75.
                 </p>
               </div>
               <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-1">

@@ -108,3 +108,12 @@ export type OfflineScreeningRecord = {
   heatmap_data_urls: Partial<Record<EyeCode, string>>;
   last_sync_error?: string | null;
 };
+
+export type OfflineQueueSummary = {
+  total: number;
+  pending: number;
+  synced: number;
+  failed: number;
+  last_synced_at: string | null;
+  records: OfflineScreeningRecord[];
+};

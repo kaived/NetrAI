@@ -1,4 +1,4 @@
-import type { CaseResult, EyeCode, OfflineScreeningRecord } from "../types";
+import type { CaseResult, EyeCode, OfflineQueueSummary, OfflineScreeningRecord } from "../types";
 
 const DB_NAME = "netrai-offline";
 const DB_VERSION = 1;
@@ -46,18 +46,45 @@ export async function getOfflineCase(caseId: string): Promise<OfflineScreeningRe
 }
 
 export async function listPendingOfflineCases(): Promise<OfflineScreeningRecord[]> {
-  const db = await openOfflineDb();
-  const records = await getAllRecords<OfflineScreeningRecord>(db, CASE_STORE);
+  const records = await listOfflineCases();
   return records.filter((record) => record.sync_status === "pending" || record.sync_status === "failed");
 }
 
-export async function markOfflineCaseSynced(caseId: string): Promise<void> {
+export async function listOfflineCases(): Promise<OfflineScreeningRecord[]> {
+  const db = await openOfflineDb();
+  const records = await getAllRecords<OfflineScreeningRecord>(db, CASE_STORE);
+  return records.sort((left, right) => getTime(right.updated_at) - getTime(left.updated_at));
+}
+
+export async function getOfflineQueueSummary(): Promise<OfflineQueueSummary> {
+  const records = await listOfflineCases();
+  const syncedRecords = records.filter((record) => record.sync_status === "synced");
+  const lastSynced = syncedRecords
+    .map((record) => record.updated_at)
+    .sort((left, right) => getTime(right) - getTime(left))[0] ?? null;
+
+  return {
+    total: records.length,
+    pending: records.filter((record) => record.sync_status === "pending").length,
+    synced: syncedRecords.length,
+    failed: records.filter((record) => record.sync_status === "failed").length,
+    last_synced_at: lastSynced,
+    records,
+  };
+}
+
+export async function markOfflineCaseSynced(caseId: string, syncedResult?: CaseResult): Promise<void> {
   const existing = await getOfflineCase(caseId);
   if (!existing) return;
+  const nextResult = syncedResult ?? existing.result;
 
   await putRecord(await openOfflineDb(), CASE_STORE, {
     ...existing,
     sync_status: "synced",
+    result: {
+      ...nextResult,
+      sync_status: "synced",
+    },
     updated_at: new Date().toISOString(),
     last_sync_error: null,
   });
@@ -70,6 +97,10 @@ export async function markOfflineCaseSyncFailed(caseId: string, error: string): 
   await putRecord(await openOfflineDb(), CASE_STORE, {
     ...existing,
     sync_status: "failed",
+    result: {
+      ...existing.result,
+      sync_status: "failed",
+    },
     updated_at: new Date().toISOString(),
     last_sync_error: error,
   });
@@ -111,6 +142,11 @@ function openOfflineDb(): Promise<IDBDatabase> {
 function getResultEye(result: CaseResult): EyeCode | null {
   const eye = result.patient?.eye;
   return eye === "OD" || eye === "OS" ? eye : null;
+}
+
+function getTime(value: string | null | undefined): number {
+  const timestamp = value ? Date.parse(value) : Number.NaN;
+  return Number.isFinite(timestamp) ? timestamp : 0;
 }
 
 function putRecord<T>(db: IDBDatabase, storeName: string, value: T): Promise<void> {

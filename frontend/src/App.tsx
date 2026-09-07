@@ -1,7 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { Cloud, CloudOff, ShieldAlert, FileText, Eye, RefreshCw } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ArrowLeft, ShieldAlert, FileText, Eye } from 'lucide-react';
 import { ApiError, getCase, resolveApiAssetUrl } from './api';
-import type { CaseResult, EyeCode, EyeScreeningResult, PatientInfo, ScreeningFormErrors } from './types';
+import type {
+  CaseResult,
+  EyeCode,
+  EyeScreeningResult,
+  OfflineQueueSummary,
+  OfflineScreeningRecord,
+  PatientInfo,
+  ScreeningFormErrors,
+} from './types';
 import { Header } from './components/Header';
 import { PipelineFlow } from './components/PipelineFlow';
 import { ImageUploader } from './components/ImageUploader';
@@ -10,11 +18,14 @@ import { PredictionCard } from './components/PredictionCard';
 import { ExplainabilityViewer } from './components/ExplainabilityViewer';
 import { ClinicalReportCard } from './components/ClinicalReportCard';
 import { ClinicalGuideModal } from './components/ClinicalGuideModal';
+import { OfflineQueuePanel } from './components/OfflineQueuePanel';
+import { LandingPage } from './components/LandingPage';
 import { generateCaseId } from './utils/caseId';
 import { getTriageDisplay } from './utils/display';
 import { caseIdSchema, validateScreeningInput } from './validation/screening';
 import { useOnlineStatus } from './offline/network';
-import { syncPendingOfflineCases } from './offline/sync';
+import { getOfflineQueueSummary, markOfflineCaseSyncFailed } from './offline/db';
+import { syncOfflineCaseRecord, syncPendingOfflineCases } from './offline/sync';
 import { runScreeningAnalysis } from './screening/screeningEngine';
 
 const DEFAULT_PATIENT_INFO: PatientInfo = {
@@ -39,6 +50,7 @@ export function App() {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [result, setResult] = useState<CaseResult | null>(null);
+  const [isScreeningOpen, setIsScreeningOpen] = useState(() => Boolean(initialCaseId));
   const [generatedCaseId, setGeneratedCaseId] = useState<string>(() => initialCaseId || generateCaseId());
   const [isLoading, setIsLoading] = useState(false);
   const [isRestoringCase, setIsRestoringCase] = useState(() => Boolean(initialCaseId));
@@ -48,12 +60,17 @@ export function App() {
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [activeViewEye, setActiveViewEye] = useState<EyeCode>('OD');
   const [syncNotice, setSyncNotice] = useState<string | null>(null);
+  const [queueError, setQueueError] = useState<string | null>(null);
+  const [isQueueSyncing, setIsQueueSyncing] = useState(false);
+  const [offlineQueue, setOfflineQueue] = useState<OfflineQueueSummary>(() => createEmptyOfflineQueueSummary());
   const isOnline = useOnlineStatus();
   const completedEyes = result?.completed_eyes ?? [];
   const nextEye = result?.next_eye ?? null;
   const isCaseComplete = Boolean(result?.is_case_complete);
   const resultPreviewUrl = result ? getResultPreviewUrl(result) : previewUrl;
   const hasValidationErrors = Object.keys(fieldErrors).length > 0;
+  const shouldShowOfflineQueue =
+    !isOnline || Boolean(syncNotice) || Boolean(queueError) || offlineQueue.total > 0 || result?.runtime === 'offline';
 
   const activeEyeResult: EyeScreeningResult | null =
     result?.eyes?.[activeViewEye] ??
@@ -167,13 +184,28 @@ export function App() {
     };
   }, [initialCaseId]);
 
+  const refreshOfflineQueue = useCallback(async () => {
+    try {
+      setOfflineQueue(await getOfflineQueueSummary());
+      setQueueError(null);
+    } catch {
+      setQueueError('Offline queue could not be read on this device.');
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshOfflineQueue();
+  }, [refreshOfflineQueue]);
+
   useEffect(() => {
     if (!isOnline) {
       setSyncNotice(null);
+      void refreshOfflineQueue();
       return;
     }
 
     let isCancelled = false;
+    setIsQueueSyncing(true);
     syncPendingOfflineCases()
       .then(({ synced, failed }) => {
         if (isCancelled || (synced === 0 && failed === 0)) {
@@ -189,12 +221,96 @@ export function App() {
         if (!isCancelled) {
           setSyncNotice('Offline cases are saved on this device. Sync will retry when the backend is reachable.');
         }
+      })
+      .finally(() => {
+        if (!isCancelled) {
+          setIsQueueSyncing(false);
+          void refreshOfflineQueue();
+        }
       });
 
     return () => {
       isCancelled = true;
     };
-  }, [isOnline]);
+  }, [isOnline, refreshOfflineQueue]);
+
+  const handleSyncNow = async () => {
+    if (!isOnline) {
+      setSyncNotice('Connect to the internet to sync saved offline cases.');
+      return;
+    }
+
+    setIsQueueSyncing(true);
+    setQueueError(null);
+    try {
+      const { synced, failed } = await syncPendingOfflineCases();
+      setSyncNotice(
+        synced === 0 && failed === 0
+          ? 'No pending offline cases need syncing.'
+          : failed > 0
+          ? `${synced} offline case(s) synced, ${failed} still pending.`
+          : `${synced} offline case(s) synced to cloud.`,
+      );
+    } catch {
+      setQueueError('Offline sync failed. Check backend connectivity and try again.');
+    } finally {
+      setIsQueueSyncing(false);
+      await refreshOfflineQueue();
+    }
+  };
+
+  const handleRetryOfflineCase = async (record: OfflineScreeningRecord) => {
+    if (!isOnline) {
+      setSyncNotice('Connect to the internet to retry failed offline sync.');
+      return;
+    }
+
+    setIsQueueSyncing(true);
+    setQueueError(null);
+    try {
+      await syncOfflineCaseRecord(record);
+      setSyncNotice(`${record.case_id} synced to cloud.`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Sync failed.';
+      await markOfflineCaseSyncFailed(record.case_id, message);
+      setQueueError(`Retry failed for ${record.case_id}.`);
+    } finally {
+      setIsQueueSyncing(false);
+      await refreshOfflineQueue();
+    }
+  };
+
+  const handleViewOfflineCase = (record: OfflineScreeningRecord) => {
+    const viewedResult: CaseResult = {
+      ...record.result,
+      sync_status: record.sync_status,
+    };
+
+    setIsScreeningOpen(true);
+    setResult(viewedResult);
+    setFile(null);
+    setPreviewUrl(null);
+    setError(null);
+    setFieldErrors({});
+    setGeneratedCaseId(record.case_id);
+    setActiveCaseId(record.case_id);
+    setPatientInfo(createPatientInfoFromResult(viewedResult));
+    setActiveViewEye(getInitialEyeForResult(viewedResult));
+    setCaseIdInUrl(record.case_id);
+  };
+
+  const handleOpenScreening = () => {
+    setIsScreeningOpen(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleBackToLanding = () => {
+    setIsScreeningOpen(false);
+    setError(null);
+    setFieldErrors({});
+    clearCaseIdFromUrl();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const handleFileChange = async (selectedFile: File | null) => {
     setError(null);
@@ -226,6 +342,10 @@ export function App() {
   };
 
   const handleAnalyze = async () => {
+    if (isLoading) {
+      return;
+    }
+
     if (completedEyes.includes(patientInfo.eye)) {
       setFieldErrors({ eye: `${patientInfo.eye} is already completed for this case.` });
       setError('Select the pending eye or start a new screening.');
@@ -266,6 +386,7 @@ export function App() {
         ...validation.patientInfo,
         eye: res.next_eye ?? validation.patientInfo.eye,
       });
+      void refreshOfflineQueue();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Prediction failed.');
     } finally {
@@ -289,107 +410,110 @@ export function App() {
     <div className="min-h-screen bg-[#f5f8fb] flex flex-col font-sans text-slate-950">
       <Header onOpenGuide={() => setIsGuideOpen(true)} />
 
-      <main className="flex-1 w-full max-w-[1760px] mx-auto px-6 lg:px-10 py-8 space-y-8">
-        <PipelineFlow
-          isLoading={isLoading}
-          isRestoring={isRestoringCase}
-          result={result}
-          activeEye={activeViewEye}
-        />
-
-        {(!isOnline || syncNotice || result?.runtime === 'offline') && (
-          <div
-            className={`no-print border rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 shadow-xs ${
-              isOnline ? 'bg-emerald-50 border-emerald-200 text-emerald-950' : 'bg-amber-50 border-amber-200 text-amber-950'
-            }`}
-          >
-            <div className="flex items-start gap-3">
-              <div className={`mt-0.5 ${isOnline ? 'text-emerald-700' : 'text-amber-700'}`}>
-                {isOnline ? <Cloud className="w-5 h-5" /> : <CloudOff className="w-5 h-5" />}
-              </div>
-              <div>
-                <p className="text-sm font-bold">
-                  {isOnline ? 'Online sync available' : 'Offline field mode'}
-                </p>
-                <p className={`text-xs sm:text-sm mt-0.5 ${isOnline ? 'text-emerald-800' : 'text-amber-800'}`}>
-                  {syncNotice ??
-                    (isOnline
-                      ? 'Cloud API is available. New screenings use Cloud Run unless connectivity drops.'
-                      : 'No internet detected. NetrAI will use the local aptos-baseline-v1 model if it is installed on this device.')}
-                </p>
-              </div>
-            </div>
-            {result?.sync_status === 'pending' && (
-              <span className="inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-white/70 px-3 py-1.5 text-xs font-bold text-amber-800 self-start sm:self-auto">
-                <RefreshCw className="w-3.5 h-3.5" />
-                Pending Cloud Sync
-              </span>
-            )}
-          </div>
-        )}
-
-        {error && (
-          <div
-            className={`border rounded-xl p-5 flex items-start gap-4 shadow-sm ${
-              hasValidationErrors
-                ? 'bg-amber-50 border-amber-200 text-amber-950'
-                : 'bg-rose-50 border-rose-200 text-rose-900'
-            }`}
-          >
-            <ShieldAlert
-              className={`w-6 h-6 shrink-0 mt-0.5 ${hasValidationErrors ? 'text-amber-600' : 'text-rose-600'}`}
-            />
-            <div className="flex-1">
-              <span className="font-bold block text-base">
-                {hasValidationErrors ? 'Incomplete Intake Details' : 'Screening Analysis Error'}
-              </span>
-              <p className={`mt-1 text-sm ${hasValidationErrors ? 'text-amber-800' : 'text-rose-700'}`}>
-                {error}
-              </p>
-              <p className={`mt-2 text-sm ${hasValidationErrors ? 'text-amber-700' : 'text-rose-600'}`}>
-                {hasValidationErrors
-                  ? 'Your selected fundus image is still kept. Complete the highlighted fields and run analysis again.'
-                  : 'Please check backend connectivity or try uploading another fundus image.'}
-              </p>
-            </div>
-            <button
-              onClick={() => setError(null)}
-              className={`text-sm font-semibold ${
-                hasValidationErrors ? 'text-amber-700 hover:text-amber-950' : 'text-rose-600 hover:text-rose-900'
-              }`}
-            >
-              Dismiss
-            </button>
-          </div>
-        )}
-
-        <section className="no-print">
-          <ImageUploader
-            file={file}
-            previewUrl={previewUrl}
-            patientInfo={patientInfo}
-            isLoading={isLoading || isRestoringCase}
-            hasResult={Boolean(result || activeCaseId)}
-            caseId={result?.case_id ?? generatedCaseId}
-            validationErrors={fieldErrors}
-            completedEyes={completedEyes}
-            nextEye={nextEye}
-            isCaseComplete={isCaseComplete}
-            requiresRecapture={Boolean(result && !result.quality.is_gradeable && !isCaseComplete)}
-            onFileChange={handleFileChange}
-            onPatientInfoChange={(next) => {
-              setPatientInfo(next);
-              setFieldErrors({});
-              setError(null);
-            }}
-            onAnalyze={handleAnalyze}
-            onReset={handleReset}
+      <main className="flex-1 w-full max-w-[1760px] mx-auto px-6 lg:px-10 pb-8 pt-[88px] sm:pt-[112px] space-y-8">
+        {!isScreeningOpen ? (
+          <LandingPage
+            isOnline={isOnline}
+            offlineQueue={offlineQueue}
+            onStartScreening={handleOpenScreening}
+            onOpenGuide={() => setIsGuideOpen(true)}
           />
-        </section>
+        ) : (
+          <>
+            <div className="no-print flex">
+              <button
+                type="button"
+                onClick={handleBackToLanding}
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-sm transition-colors hover:border-teal-200 hover:bg-teal-50 hover:text-teal-800 sm:px-4 sm:text-sm"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span className="sm:hidden">Back</span>
+                <span className="hidden sm:inline">Back</span>
+              </button>
+            </div>
 
-        <section className="space-y-6">
-          {result ? (
-            <div className="space-y-6">
+            <PipelineFlow
+              isLoading={isLoading}
+              isRestoring={isRestoringCase}
+              result={result}
+              activeEye={activeViewEye}
+            />
+
+            {shouldShowOfflineQueue && (
+              <OfflineQueuePanel
+                summary={offlineQueue}
+                isOnline={isOnline}
+                isSyncing={isQueueSyncing}
+                syncNotice={syncNotice}
+                queueError={queueError}
+                onSyncNow={handleSyncNow}
+                onViewCase={handleViewOfflineCase}
+                onRetryCase={handleRetryOfflineCase}
+              />
+            )}
+
+            {error && (
+              <div
+                className={`border rounded-xl p-5 flex items-start gap-4 shadow-sm ${
+                  hasValidationErrors
+                    ? 'bg-amber-50 border-amber-200 text-amber-950'
+                    : 'bg-rose-50 border-rose-200 text-rose-900'
+                }`}
+              >
+                <ShieldAlert
+                  className={`w-6 h-6 shrink-0 mt-0.5 ${hasValidationErrors ? 'text-amber-600' : 'text-rose-600'}`}
+                />
+                <div className="flex-1">
+                  <span className="font-bold block text-base">
+                    {hasValidationErrors ? 'Incomplete Intake Details' : 'Screening Analysis Error'}
+                  </span>
+                  <p className={`mt-1 text-sm ${hasValidationErrors ? 'text-amber-800' : 'text-rose-700'}`}>
+                    {error}
+                  </p>
+                  <p className={`mt-2 text-sm ${hasValidationErrors ? 'text-amber-700' : 'text-rose-600'}`}>
+                    {hasValidationErrors
+                      ? 'Your selected fundus image is still kept. Complete the highlighted fields and run analysis again.'
+                      : 'Please check backend connectivity or try uploading another fundus image.'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setError(null)}
+                  className={`text-sm font-semibold ${
+                    hasValidationErrors ? 'text-amber-700 hover:text-amber-950' : 'text-rose-600 hover:text-rose-900'
+                  }`}
+                >
+                  Dismiss
+                </button>
+              </div>
+            )}
+
+            <section className="no-print">
+              <ImageUploader
+                file={file}
+                previewUrl={previewUrl}
+                patientInfo={patientInfo}
+                isLoading={isLoading || isRestoringCase}
+                hasResult={Boolean(result || activeCaseId)}
+                caseId={result?.case_id ?? generatedCaseId}
+                validationErrors={fieldErrors}
+                completedEyes={completedEyes}
+                nextEye={nextEye}
+                isCaseComplete={isCaseComplete}
+                requiresRecapture={Boolean(result && !result.quality.is_gradeable && !isCaseComplete)}
+                onFileChange={handleFileChange}
+                onPatientInfoChange={(next) => {
+                  setPatientInfo(next);
+                  setFieldErrors({});
+                  setError(null);
+                }}
+                onAnalyze={handleAnalyze}
+                onReset={handleReset}
+              />
+            </section>
+
+            <section className="space-y-6">
+              {result ? (
+                <div className="space-y-6">
               {/* Diagnostic Bilateral Eye Switcher Toggle */}
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs no-print">
                 <div className="flex items-start sm:items-center gap-3">
@@ -582,9 +706,11 @@ export function App() {
                   </p>
                 </div>
               </div>
-            </div>
-          )}
-        </section>
+                </div>
+              )}
+            </section>
+          </>
+        )}
       </main>
 
       <footer className="mt-auto border-t border-slate-200 bg-white py-4 sm:py-5 no-print">
@@ -611,6 +737,17 @@ function createFreshPatientInfo(): PatientInfo {
   return { ...DEFAULT_PATIENT_INFO };
 }
 
+function createEmptyOfflineQueueSummary(): OfflineQueueSummary {
+  return {
+    total: 0,
+    pending: 0,
+    synced: 0,
+    failed: 0,
+    last_synced_at: null,
+    records: [],
+  };
+}
+
 function createPatientInfoFromResult(result: CaseResult): PatientInfo {
   return {
     ...DEFAULT_PATIENT_INFO,
@@ -619,6 +756,15 @@ function createPatientInfoFromResult(result: CaseResult): PatientInfo {
     diabetesType: result.patient?.diabetes_type || '',
     diabeticDuration: result.patient?.diabetic_duration || '',
   };
+}
+
+function getInitialEyeForResult(result: CaseResult): EyeCode {
+  const patientEye = result.patient?.eye;
+  if (patientEye === 'OD' || patientEye === 'OS') {
+    return patientEye;
+  }
+
+  return (['OD', 'OS'] as EyeCode[]).find((eye) => Boolean(result.eyes?.[eye])) ?? 'OD';
 }
 
 async function createStableFundusFile(source: File): Promise<File> {

@@ -15,8 +15,8 @@ interface QualityGateCardProps {
 }
 
 const QUALITY_THRESHOLDS = {
-  minFocusScore: 1.0,
-  minBrightness: 0.15,
+  minFocusScore: 0.75,
+  minBrightness: 0.10,
   maxBrightness: 0.90,
   minContrast: 0.05,
 };
@@ -90,7 +90,7 @@ export const QualityGateCard: React.FC<QualityGateCardProps> = ({ quality }) => 
             </div>
             <div className="flex items-center justify-between text-[11px] sm:text-xs text-slate-500 mt-1 gap-1 whitespace-nowrap">
               <span>Blur</span>
-              <span className="font-medium">Min {QUALITY_THRESHOLDS.minFocusScore.toFixed(1)}</span>
+              <span className="font-medium">Hard min {QUALITY_THRESHOLDS.minFocusScore.toFixed(2)}</span>
             </div>
           </div>
 
@@ -113,7 +113,7 @@ export const QualityGateCard: React.FC<QualityGateCardProps> = ({ quality }) => 
             </div>
             <div className="flex items-center justify-between text-[11px] sm:text-xs text-slate-500 mt-1 gap-1 whitespace-nowrap">
               <span>Dark</span>
-              <span className="font-medium">Max {QUALITY_THRESHOLDS.maxBrightness.toFixed(2)}</span>
+              <span className="font-medium">Min {QUALITY_THRESHOLDS.minBrightness.toFixed(2)}</span>
             </div>
           </div>
 

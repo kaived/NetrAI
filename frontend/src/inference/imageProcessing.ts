@@ -5,6 +5,14 @@ export const OFFLINE_MODEL_URL = import.meta.env.VITE_OFFLINE_MODEL_URL?.trim() 
 
 const CLASS_NAMES = ["no_dr", "mild", "moderate", "severe", "proliferative_dr"] as const;
 const MODEL_INPUT_SIZE = 224;
+const CLAHE_GRID_SIZE = 8;
+const CLAHE_CLIP_LIMIT = 2;
+const MIN_FOCUS_SCORE = 0.75;
+const TARGET_MIN_FOCUS_SCORE = 1.0;
+const MIN_BRIGHTNESS = 0.10;
+const TARGET_MIN_BRIGHTNESS = 0.15;
+const MAX_BRIGHTNESS = 0.90;
+const MIN_CONTRAST = 0.05;
 
 export async function assessImageQuality(file: File): Promise<QualityResult> {
   const image = await loadImageFromFile(file);
@@ -70,16 +78,20 @@ export async function assessImageQuality(file: File): Promise<QualityResult> {
   const warnings: string[] = [];
   let compatibilityScore = 1;
 
-  if (focusScore < 1.0) {
-    reasons.push("Image may be blurry. Please recapture with steadier alignment.");
+  if (focusScore < MIN_FOCUS_SCORE) {
+    reasons.push("Image is too blurry for reliable retinal screening. Please recapture with steadier alignment.");
+  } else if (focusScore < TARGET_MIN_FOCUS_SCORE) {
+    warnings.push("Slight softness detected. Screening can continue, but a sharper capture is preferred for clinical review.");
   }
-  if (brightness < 0.15) {
-    reasons.push("Image is too dark. Please increase illumination and recapture.");
+  if (brightness < MIN_BRIGHTNESS) {
+    reasons.push("Image is severely underexposed. Please increase illumination and recapture.");
+  } else if (brightness < TARGET_MIN_BRIGHTNESS) {
+    warnings.push("Image is darker than ideal. Enhancement will be applied, but manual verification is recommended.");
   }
-  if (brightness > 0.9) {
+  if (brightness > MAX_BRIGHTNESS) {
     reasons.push("Image is too bright or overexposed. Please reduce glare and recapture.");
   }
-  if (contrast < 0.05) {
+  if (contrast < MIN_CONTRAST) {
     reasons.push("Image contrast is too low. Please recapture or improve focus/illumination.");
   }
   if (Math.min(image.naturalWidth, image.naturalHeight) < MODEL_INPUT_SIZE) {
@@ -144,7 +156,7 @@ export async function preprocessImageForAptosV1(file: File): Promise<Float32Arra
   ctx.drawImage(image, 0, 0, MODEL_INPUT_SIZE, MODEL_INPUT_SIZE);
 
   const imageData = ctx.getImageData(0, 0, MODEL_INPUT_SIZE, MODEL_INPUT_SIZE);
-  equalizeGreenChannel(imageData.data);
+  applyGreenChannelClahe(imageData.data, MODEL_INPUT_SIZE, MODEL_INPUT_SIZE);
 
   const pixels = imageData.data;
   const planeSize = MODEL_INPUT_SIZE * MODEL_INPUT_SIZE;
@@ -387,23 +399,96 @@ function forEachEdgePixel(width: number, height: number, band: number, callback:
   }
 }
 
-function equalizeGreenChannel(rgba: Uint8ClampedArray): void {
+function applyGreenChannelClahe(rgba: Uint8ClampedArray, width: number, height: number): void {
+  const tilesX = CLAHE_GRID_SIZE;
+  const tilesY = CLAHE_GRID_SIZE;
+  const luts = Array.from({ length: tilesY }, (_, tileY) =>
+    Array.from({ length: tilesX }, (_, tileX) => {
+      const xStart = Math.floor((tileX * width) / tilesX);
+      const xEnd = Math.floor(((tileX + 1) * width) / tilesX);
+      const yStart = Math.floor((tileY * height) / tilesY);
+      const yEnd = Math.floor(((tileY + 1) * height) / tilesY);
+      return buildClaheLut(rgba, width, xStart, xEnd, yStart, yEnd);
+    }),
+  );
+
+  const output = new Uint8ClampedArray(width * height);
+  for (let y = 0; y < height; y += 1) {
+    const tileY = clampIndex(Math.floor(((y + 0.5) * tilesY) / height - 0.5), tilesY);
+    const tileY1 = Math.min(tileY + 1, tilesY - 1);
+    const yCenter = ((tileY + 0.5) * height) / tilesY;
+    const yWeight = clamp01((y + 0.5 - yCenter) / (height / tilesY));
+
+    for (let x = 0; x < width; x += 1) {
+      const tileX = clampIndex(Math.floor(((x + 0.5) * tilesX) / width - 0.5), tilesX);
+      const tileX1 = Math.min(tileX + 1, tilesX - 1);
+      const xCenter = ((tileX + 0.5) * width) / tilesX;
+      const xWeight = clamp01((x + 0.5 - xCenter) / (width / tilesX));
+      const sourceIndex = (y * width + x) * 4 + 1;
+      const green = rgba[sourceIndex] ?? 0;
+
+      const top =
+        (luts[tileY]?.[tileX]?.[green] ?? green) * (1 - xWeight) +
+        (luts[tileY]?.[tileX1]?.[green] ?? green) * xWeight;
+      const bottom =
+        (luts[tileY1]?.[tileX]?.[green] ?? green) * (1 - xWeight) +
+        (luts[tileY1]?.[tileX1]?.[green] ?? green) * xWeight;
+      output[y * width + x] = Math.round(top * (1 - yWeight) + bottom * yWeight);
+    }
+  }
+
+  for (let p = 0; p < output.length; p += 1) {
+    rgba[p * 4 + 1] = output[p] ?? rgba[p * 4 + 1] ?? 0;
+  }
+}
+
+function buildClaheLut(
+  rgba: Uint8ClampedArray,
+  width: number,
+  xStart: number,
+  xEnd: number,
+  yStart: number,
+  yEnd: number,
+): Uint8Array {
   const histogram = new Array<number>(256).fill(0);
-  for (let i = 1; i < rgba.length; i += 4) {
-    histogram[rgba[i] ?? 0] += 1;
+  for (let y = yStart; y < yEnd; y += 1) {
+    for (let x = xStart; x < xEnd; x += 1) {
+      histogram[rgba[(y * width + x) * 4 + 1] ?? 0] += 1;
+    }
+  }
+
+  const tileArea = Math.max((xEnd - xStart) * (yEnd - yStart), 1);
+  const clipLimit = Math.max(1, Math.floor((CLAHE_CLIP_LIMIT * tileArea) / 256));
+  let clipped = 0;
+  for (let i = 0; i < histogram.length; i += 1) {
+    const count = histogram[i] ?? 0;
+    if (count > clipLimit) {
+      clipped += count - clipLimit;
+      histogram[i] = clipLimit;
+    }
+  }
+
+  const redistribute = Math.floor(clipped / 256);
+  const residual = clipped - redistribute * 256;
+  for (let i = 0; i < histogram.length; i += 1) {
+    histogram[i] = (histogram[i] ?? 0) + redistribute + (i < residual ? 1 : 0);
   }
 
   const lut = new Uint8Array(256);
   let cdf = 0;
-  const total = rgba.length / 4;
   for (let i = 0; i < histogram.length; i += 1) {
     cdf += histogram[i] ?? 0;
-    lut[i] = Math.round((cdf / Math.max(total, 1)) * 255);
+    lut[i] = Math.round((cdf / tileArea) * 255);
   }
+  return lut;
+}
 
-  for (let i = 1; i < rgba.length; i += 4) {
-    rgba[i] = lut[rgba[i] ?? 0] ?? rgba[i] ?? 0;
-  }
+function clampIndex(value: number, maxExclusive: number): number {
+  return Math.min(Math.max(value, 0), maxExclusive - 1);
+}
+
+function clamp01(value: number): number {
+  return clamp(value, 0, 1);
 }
 
 function boxBlur(values: Float32Array, width: number, height: number, radius: number): Float32Array {

@@ -35,8 +35,8 @@ class Settings(BaseSettings):
     model_apply_clahe: bool = True
     model_referable_threshold: float = 0.50
 
-    quality_min_focus_score: float = 1.0
-    quality_min_brightness: float = 0.15
+    quality_min_focus_score: float = 0.75
+    quality_min_brightness: float = 0.10
     quality_max_brightness: float = 0.90
     quality_min_contrast: float = 0.05
     quality_min_compatibility_score: float = 0.55
