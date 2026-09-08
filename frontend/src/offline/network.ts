@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { checkApiHealth } from "../api";
 
-const CONNECTIVITY_CHECK_INTERVAL_MS = 30_000;
+const CONNECTIVITY_RECHECK_COOLDOWN_MS = 15_000;
 
-export function useOnlineStatus(): boolean {
+export function useOnlineStatus(shouldCheckCloudReachability = true): boolean {
   const [isOnline, setIsOnline] = useState(() => {
     if (typeof navigator === "undefined") {
       return true;
@@ -13,13 +13,24 @@ export function useOnlineStatus(): boolean {
 
   useEffect(() => {
     let isCancelled = false;
-    let intervalId: number | undefined;
+    let lastCheckedAt = 0;
 
-    const refreshCloudReachability = async () => {
+    const refreshCloudReachability = async (force = false) => {
       if (typeof navigator !== "undefined" && !navigator.onLine) {
         setIsOnline(false);
         return;
       }
+
+      if (!shouldCheckCloudReachability) {
+        setIsOnline(true);
+        return;
+      }
+
+      const now = Date.now();
+      if (!force && now - lastCheckedAt < CONNECTIVITY_RECHECK_COOLDOWN_MS) {
+        return;
+      }
+      lastCheckedAt = now;
 
       const reachable = await checkApiHealth();
       if (!isCancelled) {
@@ -28,7 +39,7 @@ export function useOnlineStatus(): boolean {
     };
 
     const handleOnline = () => {
-      void refreshCloudReachability();
+      void refreshCloudReachability(true);
     };
     const handleOffline = () => {
       setIsOnline(false);
@@ -42,19 +53,15 @@ export function useOnlineStatus(): boolean {
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
     document.addEventListener("visibilitychange", handleVisibilityChange);
-    void refreshCloudReachability();
-    intervalId = window.setInterval(refreshCloudReachability, CONNECTIVITY_CHECK_INTERVAL_MS);
+    void refreshCloudReachability(true);
 
     return () => {
       isCancelled = true;
-      if (intervalId) {
-        window.clearInterval(intervalId);
-      }
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, []);
+  }, [shouldCheckCloudReachability]);
 
   return isOnline;
 }

@@ -8,6 +8,7 @@ type ScreeningEngineInput = {
   patientInfo: PatientInfo;
   caseId: string;
   existingResult?: CaseResult | null;
+  isCloudAvailable: boolean;
 };
 
 const SCREENING_ANALYSIS_TIMEOUT_MS = 120_000;
@@ -17,9 +18,10 @@ export async function runScreeningAnalysis({
   patientInfo,
   caseId,
   existingResult,
+  isCloudAvailable,
 }: ScreeningEngineInput): Promise<CaseResult> {
   return withTimeout(
-    runScreeningAnalysisInner({ file, patientInfo, caseId, existingResult }),
+    runScreeningAnalysisInner({ file, patientInfo, caseId, existingResult, isCloudAvailable }),
     SCREENING_ANALYSIS_TIMEOUT_MS,
     "Screening analysis took too long. Please try again; if the network is weak, switch to the installed offline app.",
   );
@@ -30,8 +32,13 @@ async function runScreeningAnalysisInner({
   patientInfo,
   caseId,
   existingResult,
+  isCloudAvailable,
 }: ScreeningEngineInput): Promise<CaseResult> {
   if (navigator.onLine) {
+    if (!isCloudAvailable) {
+      return runOfflineAptosV1Screening(file, patientInfo, caseId, existingResult);
+    }
+
     try {
       const result = await predictImage(file, patientInfo, caseId);
       return {

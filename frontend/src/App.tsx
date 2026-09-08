@@ -69,7 +69,9 @@ export function App() {
   const [queueError, setQueueError] = useState<string | null>(null);
   const [isQueueSyncing, setIsQueueSyncing] = useState(false);
   const [offlineQueue, setOfflineQueue] = useState<OfflineQueueSummary>(() => createEmptyOfflineQueueSummary());
-  const isOnline = useOnlineStatus();
+  const shouldCheckCloudReachability =
+    isScreeningOpen || Boolean(initialCaseId) || offlineQueue.pending > 0 || offlineQueue.failed > 0;
+  const isOnline = useOnlineStatus(shouldCheckCloudReachability);
   const completedEyes = result?.completed_eyes ?? [];
   const nextEye = result?.next_eye ?? null;
   const isCaseComplete = Boolean(result?.is_case_complete);
@@ -380,6 +382,7 @@ export function App() {
         patientInfo: validation.patientInfo,
         caseId: validation.caseId,
         existingResult: result,
+        isCloudAvailable: isOnline,
       });
       setResult(res);
       setGeneratedCaseId(res.case_id);

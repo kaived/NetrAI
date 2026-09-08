@@ -356,6 +356,8 @@ Advice note: the IDRiD threshold result is useful analysis evidence, but it shou
 
 ## Future Model Plan
 
+The detailed post-Demo 1 roadmap is recorded in `docs/MODEL_IMPROVEMENT_ROADMAP.md`.
+
 ### Phase 1: Demo-Stable Model
 
 1. Keep `aptos-baseline-v1` as the demo model.
