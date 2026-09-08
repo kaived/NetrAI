@@ -179,7 +179,7 @@ ${reportDisclaimer}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[0.8fr_1.1fr_0.9fr_1.2fr] gap-3 sm:gap-4 bg-slate-50 p-4 sm:p-5 rounded-xl border border-slate-200">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-[0.8fr_1.1fr_0.9fr_1.2fr] gap-3 sm:gap-4 bg-slate-50 p-4 sm:p-5 rounded-xl border border-slate-200">
         <div className="min-w-0">
           <span className="text-slate-400 block text-[10px] sm:text-xs uppercase font-bold tracking-wide whitespace-nowrap">Case ID</span>
           <span className="font-mono text-slate-900 font-bold text-sm sm:text-base leading-normal mt-0.5 block whitespace-nowrap truncate" title={caseId}>
@@ -189,7 +189,7 @@ ${reportDisclaimer}
         </div>
         <div className="min-w-0">
           <span className="text-slate-400 block text-[10px] sm:text-xs uppercase font-bold tracking-wide whitespace-nowrap">Screening Scope</span>
-          <span className="font-bold text-teal-800 text-sm sm:text-base leading-normal mt-0.5 block break-words sm:whitespace-nowrap" title={eyeLabel}>
+          <span className="font-bold text-teal-800 text-sm sm:text-base leading-normal mt-0.5 block break-words [overflow-wrap:anywhere]" title={eyeLabel}>
             {eyeLabel}
           </span>
         </div>
@@ -201,7 +201,7 @@ ${reportDisclaimer}
         </div>
         <div className="min-w-0">
           <span className="text-slate-400 block text-[10px] sm:text-xs uppercase font-bold tracking-wide whitespace-nowrap">Diabetes Profile</span>
-          <span className="font-semibold text-slate-800 text-sm sm:text-base leading-normal mt-0.5 block break-words sm:whitespace-nowrap" title={diabetesProfile}>
+          <span className="font-semibold text-slate-800 text-sm sm:text-base leading-normal mt-0.5 block break-words [overflow-wrap:anywhere]" title={diabetesProfile}>
             {diabetesProfile}
           </span>
         </div>

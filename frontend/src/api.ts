@@ -6,6 +6,7 @@ const PRODUCTION_API_BASE_URL = "https://retinascan-api-58990504584.asia-south1.
 export const API_BASE_URL = getApiBaseUrl();
 export const API_REQUEST_TIMEOUTS = {
   caseRead: 30_000,
+  health: 5_000,
   predict: 45_000,
   asset: 30_000,
   sync: 90_000,
@@ -83,6 +84,23 @@ export async function predictImage(file: File, patientInfo: PatientInfo, caseId:
   }
 
   return response.json();
+}
+
+export async function checkApiHealth(timeoutMs = API_REQUEST_TIMEOUTS.health): Promise<boolean> {
+  try {
+    const response = await fetchWithTimeout(
+      `${API_BASE_URL}/health`,
+      {
+        method: "GET",
+        cache: "no-store",
+      },
+      timeoutMs,
+      "Cloud API health check timed out.",
+    );
+    return response.ok;
+  } catch {
+    return false;
+  }
 }
 
 export function resolveApiAssetUrl(url: string | null): string | null {

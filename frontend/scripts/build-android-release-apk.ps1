@@ -12,12 +12,40 @@ $AndroidRoot = Join-Path $FrontendRoot "android"
 $SigningPropertiesPath = Join-Path $AndroidRoot "signing\netrai-release.properties"
 $DefaultProductionApiBaseUrl = "https://retinascan-api-58990504584.asia-south1.run.app"
 
+function Get-DotEnvValue {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Name
+    )
+
+    $envPath = Join-Path $FrontendRoot ".env"
+    if (-not (Test-Path -LiteralPath $envPath)) {
+        return ""
+    }
+
+    foreach ($line in Get-Content -LiteralPath $envPath) {
+        if ($line -match "^\s*#") {
+            continue
+        }
+
+        if ($line -match "^\s*$([regex]::Escape($Name))\s*=\s*(.*)$") {
+            return $Matches[1].Trim().Trim('"').Trim("'")
+        }
+    }
+
+    return ""
+}
+
 if (-not (Test-Path -LiteralPath $SigningPropertiesPath) -and -not $env:NETRAI_ANDROID_KEYSTORE) {
     throw "Android release signing is not configured. Run: .\scripts\create-android-release-keystore.ps1"
 }
 
 Push-Location $FrontendRoot
 try {
+    if ([string]::IsNullOrWhiteSpace($ApiBaseUrl)) {
+        $ApiBaseUrl = Get-DotEnvValue "VITE_API_BASE_URL"
+    }
+
     if ([string]::IsNullOrWhiteSpace($ApiBaseUrl) -or $ApiBaseUrl -match "^http://localhost(:\d+)?/?$" -or $ApiBaseUrl -match "^http://127\.0\.0\.1(:\d+)?/?$") {
         $env:VITE_API_BASE_URL = $DefaultProductionApiBaseUrl
     } else {
@@ -31,6 +59,9 @@ try {
     }
     if ([string]::IsNullOrWhiteSpace($resolvedApiAccessKey)) {
         $resolvedApiAccessKey = $env:NETRAI_API_ACCESS_KEY
+    }
+    if ([string]::IsNullOrWhiteSpace($resolvedApiAccessKey)) {
+        $resolvedApiAccessKey = Get-DotEnvValue "VITE_API_ACCESS_KEY"
     }
 
     if ([string]::IsNullOrWhiteSpace($resolvedApiAccessKey)) {

@@ -1,7 +1,7 @@
 import React from 'react';
-import { Capacitor } from '@capacitor/core';
 import { BookOpen, Download } from 'lucide-react';
 import netrAiLogo from '../assets/NetrAI_Logo.webp';
+import { isInstalledAppShell } from '../utils/runtime';
 
 interface HeaderProps {
   onOpenGuide: () => void;
@@ -56,17 +56,3 @@ export const Header: React.FC<HeaderProps> = ({
     </header>
   );
 };
-
-function isInstalledAppShell(): boolean {
-  if (Capacitor.isNativePlatform()) {
-    return true;
-  }
-
-  if (typeof window === 'undefined') {
-    return false;
-  }
-
-  const isStandalonePwa = window.matchMedia?.('(display-mode: standalone)').matches ?? false;
-  const isIosStandalone = typeof navigator !== 'undefined' && (navigator as Navigator & { standalone?: boolean }).standalone === true;
-  return isStandalonePwa || isIosStandalone;
-}

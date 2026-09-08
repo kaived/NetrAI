@@ -84,32 +84,32 @@ export const ClinicalGuideModal: React.FC<ClinicalGuideModalProps> = ({ isOpen, 
                 <tbody className="divide-y divide-slate-200">
                   <tr className="bg-emerald-50/40">
                     <td className="p-2.5 font-bold font-mono border-r">0</td>
-                    <td className="p-2.5 font-semibold text-emerald-800 border-r">No Apparent DR</td>
-                    <td className="p-2.5 border-r">No abnormalities or microaneurysms detected.</td>
+                    <td className="p-2.5 font-semibold text-emerald-800 border-r whitespace-nowrap">No apparent DR</td>
+                    <td className="p-2.5 border-r">No apparent DR</td>
                     <td className="p-2.5 text-emerald-700 font-medium">Routine Annual Follow-up (12 mo)</td>
                   </tr>
                   <tr className="bg-teal-50/40">
                     <td className="p-2.5 font-bold font-mono border-r">1</td>
-                    <td className="p-2.5 font-semibold text-teal-800 border-r">Mild NPDR</td>
-                    <td className="p-2.5 border-r">Microaneurysms only.</td>
+                    <td className="p-2.5 font-semibold text-teal-800 border-r whitespace-nowrap">Mild NPDR</td>
+                    <td className="p-2.5 border-r">Microaneurysms only</td>
                     <td className="p-2.5 text-teal-700 font-medium">Re-screen in 6-12 months</td>
                   </tr>
                   <tr className="bg-amber-50/40">
                     <td className="p-2.5 font-bold font-mono border-r text-amber-900">2</td>
-                    <td className="p-2.5 font-bold text-amber-800 border-r">Moderate NPDR</td>
-                    <td className="p-2.5 border-r">More than microaneurysms but less than Severe NPDR (hard exudates, cotton wool spots).</td>
+                    <td className="p-2.5 font-bold text-amber-800 border-r whitespace-nowrap">Moderate NPDR</td>
+                    <td className="p-2.5 border-r">More than microaneurysms but less than severe NPDR</td>
                     <td className="p-2.5 text-amber-800 font-bold">Refer to Eye Specialist (2-4 wks)</td>
                   </tr>
                   <tr className="bg-orange-50/40">
                     <td className="p-2.5 font-bold font-mono border-r text-orange-900">3</td>
-                    <td className="p-2.5 font-bold text-orange-800 border-r">Severe NPDR</td>
-                    <td className="p-2.5 border-r">4-2-1 Rule: &gt;20 intraretinal hemorrhages in 4 quadrants, venous beading in 2+, or IRMA in 1+.</td>
+                    <td className="p-2.5 font-bold text-orange-800 border-r whitespace-nowrap">Severe NPDR</td>
+                    <td className="p-2.5 border-r">4-2-1 rule: hemorrhages in 4 quadrants, venous beading in 2 quadrants, or IRMA in 1 quadrant</td>
                     <td className="p-2.5 text-orange-800 font-bold">Urgent Referral (&lt; 2 wks)</td>
                   </tr>
                   <tr className="bg-rose-50/40">
                     <td className="p-2.5 font-bold font-mono border-r text-rose-900">4</td>
-                    <td className="p-2.5 font-bold text-rose-800 border-r">Proliferative DR (PDR)</td>
-                    <td className="p-2.5 border-r">Neovascularization, preretinal or vitreous hemorrhage.</td>
+                    <td className="p-2.5 font-bold text-rose-800 border-r whitespace-nowrap">Proliferative DR</td>
+                    <td className="p-2.5 border-r">Neovascularization or vitreous/preretinal hemorrhage</td>
                     <td className="p-2.5 text-rose-800 font-bold">Emergency Referral (&lt; 48 hrs)</td>
                   </tr>
                 </tbody>

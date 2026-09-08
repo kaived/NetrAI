@@ -22,6 +22,7 @@ import { OfflineQueuePanel } from './components/OfflineQueuePanel';
 import { LandingPage } from './components/LandingPage';
 import { generateCaseId } from './utils/caseId';
 import { getTriageDisplay } from './utils/display';
+import { isInstalledAppShell } from './utils/runtime';
 import { caseIdSchema, validateScreeningInput } from './validation/screening';
 import { useOnlineStatus } from './offline/network';
 import { getOfflineQueueSummary, markOfflineCaseSyncFailed } from './offline/db';
@@ -37,6 +38,11 @@ const DEFAULT_PATIENT_INFO: PatientInfo = {
 
 export function App() {
   const [initialCaseId] = useState<string | null>(() => {
+    if (isInstalledAppShell()) {
+      clearCaseIdFromUrl();
+      return null;
+    }
+
     const raw = getCaseIdFromUrl();
     if (!raw) return null;
     const parsed = caseIdSchema.safeParse(raw);

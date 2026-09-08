@@ -34,6 +34,9 @@ export const OfflineQueuePanel: React.FC<OfflineQueuePanelProps> = ({
 }) => {
   const syncableCount = summary.pending + summary.failed;
   const records = summary.records.slice(0, 8);
+  const statusMessage = isOnline
+    ? syncNotice ?? 'Cloud API is available. Pending offline cases can sync now.'
+    : 'Offline screening active. Cases completed without internet stay on this device until sync is available.';
 
   return (
     <section className="no-print rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
@@ -50,10 +53,7 @@ export const OfflineQueuePanel: React.FC<OfflineQueuePanelProps> = ({
               </span>
             </div>
             <p className="mt-1 text-xs sm:text-sm text-slate-600 leading-relaxed">
-              {syncNotice ??
-                (isOnline
-                  ? 'Cloud API is available. Pending offline cases can sync now.'
-                  : 'Cases completed without internet stay on this device until sync is available.')}
+              {statusMessage}
             </p>
             {queueError && (
               <p className="mt-2 text-xs sm:text-sm font-semibold text-rose-700">

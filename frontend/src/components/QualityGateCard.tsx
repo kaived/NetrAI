@@ -72,11 +72,11 @@ export const QualityGateCard: React.FC<QualityGateCardProps> = ({ quality }) => 
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 sm:gap-4">
-          <div className="bg-slate-50 p-3.5 sm:p-4 rounded-xl border border-slate-200 flex flex-col justify-between">
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <span className="text-xs sm:text-sm font-semibold text-slate-700">Focus Score</span>
-              <span className="text-base sm:text-lg font-extrabold text-slate-900 shrink-0">
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-4">
+          <div className="bg-slate-50 p-3 sm:p-4 rounded-xl border border-slate-200 flex flex-col justify-between min-w-0">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-1.5 sm:gap-2 mb-2 min-w-0">
+              <span className="min-w-0 truncate text-[11px] font-semibold leading-tight text-slate-700 sm:text-sm">Focus Score</span>
+              <span className="shrink-0 text-right text-[13px] font-extrabold leading-none text-slate-900 tabular-nums sm:text-lg">
                 {quality.focus_score.toFixed(1)}
               </span>
             </div>
@@ -94,10 +94,10 @@ export const QualityGateCard: React.FC<QualityGateCardProps> = ({ quality }) => 
             </div>
           </div>
 
-          <div className="bg-slate-50 p-3.5 sm:p-4 rounded-xl border border-slate-200 flex flex-col justify-between">
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <span className="text-xs sm:text-sm font-semibold text-slate-700">Brightness</span>
-              <span className="text-base sm:text-lg font-extrabold text-slate-900 shrink-0">
+          <div className="bg-slate-50 p-3 sm:p-4 rounded-xl border border-slate-200 flex flex-col justify-between min-w-0">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-1.5 sm:gap-2 mb-2 min-w-0">
+              <span className="min-w-0 truncate text-[11px] font-semibold leading-tight text-slate-700 sm:text-sm">Brightness</span>
+              <span className="shrink-0 text-right text-[13px] font-extrabold leading-none text-slate-900 tabular-nums sm:text-lg">
                 {quality.brightness.toFixed(2)}
               </span>
             </div>
@@ -117,10 +117,10 @@ export const QualityGateCard: React.FC<QualityGateCardProps> = ({ quality }) => 
             </div>
           </div>
 
-          <div className="bg-slate-50 p-3.5 sm:p-4 rounded-xl border border-slate-200 flex flex-col justify-between">
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <span className="text-xs sm:text-sm font-semibold text-slate-700">Contrast</span>
-              <span className="text-base sm:text-lg font-extrabold text-slate-900 shrink-0">
+          <div className="bg-slate-50 p-3 sm:p-4 rounded-xl border border-slate-200 flex flex-col justify-between min-w-0">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-1.5 sm:gap-2 mb-2 min-w-0">
+              <span className="min-w-0 truncate text-[11px] font-semibold leading-tight text-slate-700 sm:text-sm">Contrast</span>
+              <span className="shrink-0 text-right text-[13px] font-extrabold leading-none text-slate-900 tabular-nums sm:text-lg">
                 {quality.contrast.toFixed(2)}
               </span>
             </div>
@@ -138,10 +138,10 @@ export const QualityGateCard: React.FC<QualityGateCardProps> = ({ quality }) => 
             </div>
           </div>
 
-          <div className="bg-slate-50 p-3.5 sm:p-4 rounded-xl border border-slate-200 flex flex-col justify-between">
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <span className="text-xs sm:text-sm font-semibold text-slate-700">Compatibility</span>
-              <span className="text-base sm:text-lg font-extrabold text-slate-900 shrink-0">
+          <div className="bg-slate-50 p-3 sm:p-4 rounded-xl border border-slate-200 flex flex-col justify-between min-w-0">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-1.5 sm:gap-2 mb-2 min-w-0">
+              <span className="min-w-0 truncate text-[11px] font-semibold leading-tight text-slate-700 sm:text-sm" title="Fundus Compatibility">Compatibility</span>
+              <span className="shrink-0 text-right text-[13px] font-extrabold leading-none text-slate-900 tabular-nums sm:text-lg">
                 {compatibilityPercent}%
               </span>
             </div>
