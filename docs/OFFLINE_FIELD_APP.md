@@ -111,6 +111,28 @@ Do not upload `dr_classifier.onnx` directly to Cloudflare Pages. The current mod
 5. Cloud sync should not rerun inference; it stores the already completed offline result.
 6. Offline cases are stored on the device until sync. Field devices should use screen lock, device encryption, and controlled operator access.
 
+## Recovering Failed Cloud Sync
+
+The queue's Online badge means the health endpoint is reachable. A case is marked
+Synced only after its upload and database save succeed. Failed cases remain in the
+device's offline database and can be opened or retried; do not uninstall the app
+or clear its data while unsynced cases are present.
+
+The September 2026 sync fix replaces inline heatmaps with protected API links
+before saving case metadata in Firestore. Images and heatmaps are kept separately
+in Cloud Storage. This avoids oversized Firestore records, including payloads
+sent by already installed APKs. Storage errors now return a readable response.
+
+Deploy the backend fix first. The installed APK can then retry its saved cases
+without reinstalling. Rebuild and publish the APK for the clearer failure messages
+and smaller sync request payloads. No model replacement is needed.
+
+Backend regression checks (from `backend`, with development `httpx` installed):
+
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
+```
+
 ## Direct APK Path
 
 The Capacitor Android wrapper is configured under `frontend/android`.

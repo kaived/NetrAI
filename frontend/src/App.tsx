@@ -223,7 +223,7 @@ export function App() {
         }
         setSyncNotice(
           failed > 0
-            ? `${synced} offline case(s) synced, ${failed} still pending.`
+            ? `${synced} offline case(s) synced; ${failed} failed to sync and remain saved on this device.`
             : `${synced} offline case(s) synced to cloud.`,
         );
       })
@@ -258,7 +258,7 @@ export function App() {
         synced === 0 && failed === 0
           ? 'No pending offline cases need syncing.'
           : failed > 0
-          ? `${synced} offline case(s) synced, ${failed} still pending.`
+          ? `${synced} offline case(s) synced; ${failed} failed to sync and remain saved on this device.`
           : `${synced} offline case(s) synced to cloud.`,
       );
     } catch {

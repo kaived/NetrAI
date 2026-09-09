@@ -1,4 +1,4 @@
-import { API_BASE_URL, API_REQUEST_TIMEOUTS, buildApiHeaders, fetchWithTimeout } from "../api";
+import { API_BASE_URL, API_REQUEST_TIMEOUTS, ApiError, buildApiHeaders, fetchWithTimeout, readApiError } from "../api";
 import type { CaseResult, OfflineScreeningRecord } from "../types";
 import { listPendingOfflineCases, markOfflineCaseSyncFailed, markOfflineCaseSynced } from "./db";
 
@@ -21,7 +21,15 @@ export async function syncPendingOfflineCases(): Promise<{ synced: number; faile
 }
 
 export async function syncOfflineCaseRecord(record: OfflineScreeningRecord): Promise<CaseResult> {
-  const syncedResult = await syncOfflineCase(record);
+  let syncedResult: CaseResult;
+  try {
+    syncedResult = await syncOfflineCase(record);
+  } catch (error) {
+    if (error instanceof TypeError) {
+      throw new Error("Could not reach cloud sync. This case is still saved on your device. Retry when the connection is stable.");
+    }
+    throw error;
+  }
   await markOfflineCaseSynced(record.case_id, syncedResult);
   return syncedResult;
 }
@@ -35,7 +43,7 @@ async function syncOfflineCase(record: OfflineScreeningRecord): Promise<CaseResu
         "Content-Type": "application/json",
       }),
       body: JSON.stringify({
-        case: record.result,
+        case: buildSyncCaseMetadata(record.result),
         images: record.image_data_urls,
         heatmaps: record.heatmap_data_urls,
       }),
@@ -45,9 +53,27 @@ async function syncOfflineCase(record: OfflineScreeningRecord): Promise<CaseResu
   );
 
   if (!response.ok) {
-    const message = await response.text();
-    throw new Error(message || "Could not sync offline case.");
+    const fallback = response.status === 401
+      ? "Cloud sync access was denied. Check that the app's API access key matches the backend. This case remains saved on your device."
+      : "Could not sync this case. It remains saved on your device. Retry sync later.";
+    throw new ApiError(await readApiError(response, fallback), response.status);
   }
 
   return response.json();
+}
+
+function buildSyncCaseMetadata(result: CaseResult): CaseResult {
+  // Images are sent once in the artifact maps; the local snapshot stays intact.
+  return {
+    ...result,
+    storage: { input_uri: null, heatmap_uri: null, report_uri: null },
+    explanation: { ...result.explanation, heatmap_url: null },
+    eyes: Object.fromEntries(
+      Object.entries(result.eyes ?? {}).map(([eye, eyeResult]) => [eye, {
+        ...eyeResult,
+        storage: { input_uri: null, heatmap_uri: null, report_uri: null },
+        explanation: { ...eyeResult.explanation, heatmap_url: null },
+      }]),
+    ),
+  };
 }

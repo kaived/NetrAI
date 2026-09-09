@@ -35,7 +35,7 @@ export const OfflineQueuePanel: React.FC<OfflineQueuePanelProps> = ({
   const syncableCount = summary.pending + summary.failed;
   const records = summary.records.slice(0, 8);
   const statusMessage = isOnline
-    ? syncNotice ?? 'Cloud API is available. Pending offline cases can sync now.'
+    ? syncNotice ?? 'Cloud API is reachable. Failed uploads remain saved on this device for retry.'
     : 'Offline screening active. Cases completed without internet stay on this device until sync is available.';
 
   return (
@@ -157,7 +157,7 @@ const OfflineQueueRow: React.FC<OfflineQueueRowProps> = ({
           <span>Updated {formatTime(record.updated_at)}</span>
         </div>
         {isFailed && record.last_sync_error && (
-          <p className="mt-1 max-w-xl truncate text-xs font-medium text-rose-700" title={record.last_sync_error}>
+          <p className="mt-1 max-w-xl break-words text-xs font-medium text-rose-700" title={record.last_sync_error}>
             {record.last_sync_error}
           </p>
         )}

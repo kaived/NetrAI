@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import binascii
+import logging
 import secrets
 from io import BytesIO
 
@@ -18,6 +19,7 @@ from app.services.inference import InferenceService
 from app.services.storage import StorageService
 
 settings = get_settings()
+logger = logging.getLogger(__name__)
 
 OPENAPI_TAGS = [
     {
@@ -36,14 +38,6 @@ OPENAPI_TAGS = [
 
 app = FastAPI(title=settings.app_name, version="0.1.0", openapi_tags=OPENAPI_TAGS)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origins,
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 PUBLIC_PATHS = {"/", "/health", "/favicon.ico", "/docs", "/redoc", "/openapi.json"}
 
 
@@ -57,6 +51,16 @@ async def enforce_api_access_key(request: Request, call_next):
         return JSONResponse(status_code=401, content={"detail": "Invalid or missing API access key."})
 
     return await call_next(request)
+
+
+# Keep access-key error responses readable by the website and Android WebView.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 storage_service = StorageService(settings)
 case_repository = CaseRepository(settings)
@@ -286,8 +290,21 @@ async def predict(
     tags=["Screening"],
     summary="Sync an offline screening case",
 )
-async def sync_case(payload: OfflineCaseSyncRequest) -> CaseResult:
-    result = payload.case
+def sync_case(payload: OfflineCaseSyncRequest) -> CaseResult:
+    try:
+        return _persist_offline_case(payload)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("Offline case sync persistence failed.")
+        raise HTTPException(
+            status_code=503,
+            detail="Cloud storage could not save this case. It remains saved on your device. Retry sync later.",
+        ) from exc
+
+
+def _persist_offline_case(payload: OfflineCaseSyncRequest) -> CaseResult:
+    result = payload.case.model_copy(deep=True)
     result.case_id = _normalize_case_id(result.case_id)
     if not result.eyes:
         raise HTTPException(status_code=422, detail="Offline sync payload must include at least one eye result.")
@@ -313,6 +330,7 @@ async def sync_case(payload: OfflineCaseSyncRequest) -> CaseResult:
         heatmap_data_url = payload.heatmaps.get(normalized_eye)
         if heatmap_data_url:
             heatmap_bytes, heatmap_extension, heatmap_media_type = _decode_data_url_image(heatmap_data_url)
+            _validate_image_payload(heatmap_bytes)
             eye_result.storage.heatmap_uri = storage_service.save_output_bytes(
                 result.case_id,
                 f"{normalized_eye}_offline_heatmap.{heatmap_extension}",
@@ -320,11 +338,18 @@ async def sync_case(payload: OfflineCaseSyncRequest) -> CaseResult:
                 content_type=heatmap_media_type,
             )
 
+        # Inline heatmaps can exceed Firestore's document limit. Store API links only.
+        eye_result.explanation.heatmap_url = (
+            f"/cases/{result.case_id}/eyes/{normalized_eye}/heatmap"
+            if eye_result.storage.heatmap_uri else None
+        )
         normalized_eyes[normalized_eye] = eye_result
-        if result.patient and result.patient.eye == normalized_eye:
-            result.storage = eye_result.storage
 
     result.eyes = normalized_eyes
+    active_eye = result.patient.eye if result.patient else None
+    active_result = normalized_eyes.get(active_eye) or next(iter(normalized_eyes.values()))
+    result.storage = active_result.storage.model_copy(deep=True)
+    result.explanation = active_result.explanation.model_copy(deep=True)
 
     result.runtime = "cloud"
     result.sync_status = "synced"

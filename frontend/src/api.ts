@@ -23,14 +23,14 @@ export class ApiError extends Error {
   }
 }
 
-async function readApiError(response: Response, fallback: string): Promise<string> {
+export async function readApiError(response: Response, fallback: string): Promise<string> {
   const details = await response.text();
   let message = fallback;
   try {
     const payload = details ? JSON.parse(details) : null;
-    if (typeof payload.detail === "string") {
+    if (typeof payload?.detail === "string") {
       message = payload.detail;
-    } else if (Array.isArray(payload.detail)) {
+    } else if (Array.isArray(payload?.detail)) {
       message = payload.detail
         .map((item: { message?: string; msg?: string }) => item.message || item.msg)
         .filter(Boolean)
