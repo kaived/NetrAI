@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   ArrowRight,
+  Route,
   Bluetooth,
   Cable,
   Camera,
@@ -23,6 +24,7 @@ type LandingPageProps = {
   isOnline: boolean;
   offlineQueue: OfflineQueueSummary;
   onStartScreening: () => void;
+  onOpenHardwareWorkflow: () => void;
   onOpenGuide: () => void;
 };
 
@@ -30,6 +32,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   isOnline,
   offlineQueue,
   onStartScreening,
+  onOpenHardwareWorkflow,
   onOpenGuide,
 }) => {
   const pendingCount = offlineQueue.pending + offlineQueue.failed;
@@ -72,6 +75,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               >
                 <ClipboardCheck className="h-5 w-5 text-teal-700" />
                 <span>View Clinical Protocol</span>
+              </button>
+              <button
+                type="button"
+                onClick={onOpenHardwareWorkflow}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-5 py-3 text-sm font-bold text-teal-800 shadow-xs transition-all hover:bg-teal-100 active:bg-teal-200"
+              >
+                <Route className="h-5 w-5" />
+                <span>Hardware Workflow</span>
               </button>
             </div>
 
@@ -142,6 +153,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <p className="text-sm leading-relaxed text-slate-600 sm:text-base">
               NetrAI does not use the phone camera for retinal capture. The technician imports the exported fundus photo from a portable or hospital fundus camera, then completes screening in the app.
             </p>
+            <button
+              type="button"
+              onClick={onOpenHardwareWorkflow}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-slate-800"
+            >
+              <Route className="h-4 w-4" />
+              <span>Open full workflow</span>
+            </button>
           </div>
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">

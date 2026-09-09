@@ -2,6 +2,7 @@ import { fetchDisplayAssetUrl, resolveApiAssetUrl } from '../api';
 import type { CaseResult, EyeScreeningResult } from '../types';
 import { buildGradeConsistentReportText, formatEyeLabel, getEyeResults } from './clinicalReport';
 import { displayText, formatGradeLabel, getTriageDisplay } from './display';
+import { savePdfBlob, type FileSaveResult } from './fileDownloads';
 
 type PdfReportContext = {
   eyeLabel: string;
@@ -33,7 +34,7 @@ const MARGIN_X = 54;
 const TOP_Y = 738;
 const BOTTOM_Y = 54;
 
-export async function downloadClinicalReportPdf(result: CaseResult, context: PdfReportContext) {
+export async function downloadClinicalReportPdf(result: CaseResult, context: PdfReportContext): Promise<FileSaveResult> {
   const eyeResults = getEyeResults(result);
   const evidenceList: Array<{ eyeLabel: string; image: PdfEvidenceImage }> = [];
   const caseId = displayText(result.case_id, 'Generated on server');
@@ -69,15 +70,7 @@ export async function downloadClinicalReportPdf(result: CaseResult, context: Pdf
 
   const pdf = buildClinicalReportPdf(result, context, evidenceList);
   const blob = new Blob([pdf], { type: 'application/pdf' });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-
-  anchor.href = url;
-  anchor.download = `NetrAI_${caseId}.pdf`;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  URL.revokeObjectURL(url);
+  return savePdfBlob(blob, `NetrAI_${caseId}.pdf`);
 }
 
 function buildClinicalReportPdf(

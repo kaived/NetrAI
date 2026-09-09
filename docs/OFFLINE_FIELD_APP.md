@@ -158,3 +158,15 @@ NetrAI is camera-agnostic. It can accept retinal images from:
 5. Camera apps that transfer captures via Bluetooth, Wi-Fi Direct, camera hotspot, shared folder, SD card, or gallery import.
 
 The camera-to-app connection is local. Internet is only needed later for cloud sync and remote ophthalmologist review.
+
+## Hardware Workflow Page
+
+The app and website now include a dedicated hardware workflow view from the landing page.
+
+It explains:
+
+1. Retinal capture happens on a fundus camera, not the mobile camera.
+2. Rural PHC teams can use portable fundus cameras and transfer images to the installed app.
+3. Eye hospitals can use non-portable tabletop systems and export images from a workstation.
+4. NetrAI can import the transferred fundus file from USB, Bluetooth, Wi-Fi/hotspot, SD card, gallery, file manager, or hospital computer export.
+5. Offline screening stores the completed case on the device and syncs later when internet returns.

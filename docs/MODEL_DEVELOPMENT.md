@@ -420,6 +420,16 @@ MATLAB scripts:
 | `matlab/scripts/create_idrid_datastore.m` | Build IDRiD datastores |
 | `matlab/scripts/validate_idrid_with_model.m` | Run IDRiD external validation |
 | `matlab/scripts/calibrate_idrid_referable_threshold.m` | Run IDRiD referable-threshold calibration |
+| `matlab/+retinascan/+m4/generateGradCam.m` | Generate true model-layer Grad-CAM heatmaps in MATLAB |
+| `matlab/scripts/export_gradcam_examples.m` | Export Grad-CAM review examples |
+| `matlab/scripts/build_idrid_lesion_index.m` | Build IDRiD lesion-mask localization index |
+| `matlab/scripts/create_idrid_lesion_datastores.m` | Create IDRiD image/mask loading helpers |
+| `matlab/scripts/build_drive_index.m` | Build DRIVE vessel segmentation index |
+| `matlab/scripts/build_multidataset_dr_v2_index.m` | Build APTOS + IDRiD Grade 3/4 improvement index |
+| `matlab/scripts/create_multidataset_dr_v2_datastores.m` | Create v2 training, validation, and external datastores |
+| `matlab/scripts/train_multidataset_dr_v2.m` | Train the candidate multidataset DR v2 model |
+| `matlab/scripts/create_district_workflow_simulink_model.m` | Create the Simulink district workflow scaffold |
+| `matlab/scripts/run_district_workflow_scenarios.m` | Generate district workflow scenario reports |
 
 Model and report artifacts:
 
@@ -443,6 +453,20 @@ Model and report artifacts:
 | IDRiD lesion-mask training | Lesion masks are not connected to the current classifier pipeline |
 | DRIVE vessel segmentation | Not connected to the current DR classifier |
 | Clinical validation | No clinical validation study is recorded in this repo |
+
+## Phase 2 Work Started
+
+The post-Demo 1 implementation now has runnable entry points for the next seven workstreams:
+
+1. True MATLAB Grad-CAM generation.
+2. IDRiD lesion-mask indexing and image/mask loading.
+3. DRIVE vessel-mask indexing.
+4. Multidataset Grade 3/4 improvement training setup.
+5. Referable threshold calibration using existing IDRiD calibration script.
+6. Simulink district workflow scaffold and scenario reports.
+7. Dedicated hardware workflow page in the frontend.
+
+The active production/demo model remains `aptos-baseline-v1` until a candidate model beats the baseline on recorded metrics and false-negative review.
 
 ## Repo Notes
 

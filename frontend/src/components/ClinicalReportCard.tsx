@@ -25,6 +25,9 @@ interface ClinicalReportCardProps {
 
 export const ClinicalReportCard: React.FC<ClinicalReportCardProps> = ({ result, patientInfo, previewUrl }) => {
   const [copied, setCopied] = useState(false);
+  const [isSavingPdf, setIsSavingPdf] = useState(false);
+  const [pdfStatus, setPdfStatus] = useState<string | null>(null);
+  const [pdfError, setPdfError] = useState<string | null>(null);
   const finalReport = result.final_report;
   const isFinalReport = Boolean(finalReport);
   const isGradeable = isFinalReport || result.quality.is_gradeable;
@@ -113,15 +116,36 @@ ${reportDisclaimer}
     downloadAnchor.remove();
   };
 
-  const handleDownloadPDF = () => {
-    void downloadClinicalReportPdf(result, {
-      eyeLabel,
-      patientAge,
-      diabetesType,
-      diabeticDuration: diabeticDurationFormal,
-      heatmapUrl: resolveApiAssetUrl(result.explanation.heatmap_url),
-      previewUrl,
-    });
+  const handleDownloadPDF = async () => {
+    if (isSavingPdf) {
+      return;
+    }
+
+    setIsSavingPdf(true);
+    setPdfStatus(null);
+    setPdfError(null);
+
+    try {
+      const saveResult = await downloadClinicalReportPdf(result, {
+        eyeLabel,
+        patientAge,
+        diabetesType,
+        diabeticDuration: diabeticDurationFormal,
+        heatmapUrl: resolveApiAssetUrl(result.explanation.heatmap_url),
+        previewUrl,
+      });
+
+      setPdfStatus(
+        saveResult.method === 'native'
+          ? `PDF saved to Downloads as ${saveResult.fileName}.`
+          : 'PDF download started.',
+      );
+      window.setTimeout(() => setPdfStatus(null), 4500);
+    } catch (error) {
+      setPdfError(error instanceof Error ? error.message : 'PDF could not be saved. Please try again.');
+    } finally {
+      setIsSavingPdf(false);
+    }
   };
 
   const compactCaseId = caseId.length > 14 ? `...${caseId.slice(-8)}` : caseId;
@@ -154,11 +178,12 @@ ${reportDisclaimer}
           </button>
           <button
             onClick={handleDownloadPDF}
+            disabled={isSavingPdf}
             className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 min-w-0 sm:min-w-[100px] text-xs font-semibold text-white bg-teal-700 hover:bg-teal-800 rounded-lg shadow-xs transition-colors"
             title="Download clinical report as PDF"
           >
             <FileDown className="w-3.5 h-3.5" />
-            <span>PDF</span>
+            <span>{isSavingPdf ? 'Saving' : 'PDF'}</span>
           </button>
           <button
             onClick={handleDownloadJSON}
@@ -178,6 +203,18 @@ ${reportDisclaimer}
           </button>
         </div>
       </div>
+
+      {(pdfStatus || pdfError) && (
+        <div
+          className={`no-print rounded-lg border px-3 py-2 text-xs font-semibold ${
+            pdfError
+              ? 'border-rose-200 bg-rose-50 text-rose-700'
+              : 'border-emerald-200 bg-emerald-50 text-emerald-700'
+          }`}
+        >
+          {pdfError || pdfStatus}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-[0.8fr_1.1fr_0.9fr_1.2fr] gap-3 sm:gap-4 bg-slate-50 p-4 sm:p-5 rounded-xl border border-slate-200">
         <div className="min-w-0">

@@ -206,6 +206,131 @@ Success check:
 6. DRIVE vessel segmentation.
 7. Simulink district workflow simulation.
 
+## Phase 2 Implementation Entry Points
+
+Run these from MATLAB:
+
+```matlab
+cd(fullfile('<repo-root>', 'matlab'))
+startup
+```
+
+### 1. Hardware Workflow Page
+
+Implemented in the frontend as a dedicated workflow view:
+
+```text
+frontend/src/components/HardwareWorkflowPage.tsx
+```
+
+The page states that retinal capture happens on a fundus camera, not the phone camera, and documents USB, Bluetooth, Wi-Fi/hotspot, SD card, gallery, and hospital workstation export paths.
+
+### 2. True Grad-CAM
+
+Generate model-layer Grad-CAM examples from the MATLAB classifier:
+
+```matlab
+summary = export_gradcam_examples([], '../models/trained_dr_network.mat', "aptos", "validation", 12);
+summaryIdrid = export_gradcam_examples([], '../models/trained_dr_network.mat', "idrid", "testing", 12);
+```
+
+Core function:
+
+```text
+matlab/+retinascan/+m4/generateGradCam.m
+```
+
+This uses Deep Learning Toolbox `gradCAM`. It is different from the current production web/backend heatmap, which is still the fast computer-vision attention overlay.
+
+### 3. IDRiD Lesion-Mask Localization
+
+Build the IDRiD lesion-mask index:
+
+```matlab
+lesionIndex = build_idrid_lesion_index();
+lesionStores = create_idrid_lesion_datastores([], [512 512 3], "training");
+pair = lesionStores.readPair(1);
+```
+
+Generated index:
+
+```text
+data/indexes/idrid_lesion_segmentation.csv
+```
+
+This prepares microaneurysm, hemorrhage, hard exudate, soft exudate, and optic-disc masks for lesion evidence and future segmentation model training.
+
+### 4. DRIVE Vessel Segmentation
+
+Build the DRIVE vessel index:
+
+```matlab
+driveIndex = build_drive_index();
+```
+
+Generated index:
+
+```text
+data/indexes/drive_vessels.csv
+```
+
+Use DRIVE for vessel segmentation and vessel clarity validation only. Do not mix DRIVE into DR severity grading because it does not provide DR grade labels.
+
+### 5. Grade 3/4 Model Improvement
+
+Create the combined training index and datastores:
+
+```matlab
+v2Index = build_multidataset_dr_v2_index();
+v2Stores = create_multidataset_dr_v2_datastores();
+```
+
+Train the candidate model:
+
+```matlab
+[trainedNet, info, validationMetrics, externalMetrics] = train_multidataset_dr_v2();
+```
+
+The candidate model uses:
+
+- APTOS fixed train split.
+- IDRiD disease-grading training split.
+- APTOS fixed validation split.
+- IDRiD testing as external holdout.
+- Grade 3/4 oversampling.
+- Camera/device-style augmentation.
+
+It saves a versioned candidate ONNX model but does not replace the current serving model automatically.
+
+### 6. Referable Threshold Calibration
+
+Keep using:
+
+```matlab
+calibration = calibrate_idrid_referable_threshold([], '../models/trained_dr_network.mat', "testing", 0.90);
+```
+
+Only update `MODEL_REFERABLE_THRESHOLD` after reviewing sensitivity, specificity, false negatives, and false positives.
+
+### 7. Simulink District Workflow Simulation
+
+Create the Simulink scaffold and scenario reports:
+
+```matlab
+modelPath = create_district_workflow_simulink_model();
+scenarioTable = run_district_workflow_scenarios();
+```
+
+Generated artifacts:
+
+```text
+matlab/simulink/retinascan_district_workflow.slx
+reports/district_workflow_scenarios.csv
+reports/district_workflow_scenarios.md
+```
+
+Use the Simulink model to demonstrate acquisition rate, offline queue growth, bandwidth sync, AI throughput, and ophthalmologist review capacity for district-level screening.
+
 ## Demo Language
 
 Use:

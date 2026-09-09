@@ -20,6 +20,7 @@ import { ClinicalReportCard } from './components/ClinicalReportCard';
 import { ClinicalGuideModal } from './components/ClinicalGuideModal';
 import { OfflineQueuePanel } from './components/OfflineQueuePanel';
 import { LandingPage } from './components/LandingPage';
+import { HardwareWorkflowPage } from './components/HardwareWorkflowPage';
 import { generateCaseId } from './utils/caseId';
 import { getTriageDisplay } from './utils/display';
 import { isInstalledAppShell } from './utils/runtime';
@@ -57,6 +58,7 @@ export function App() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [result, setResult] = useState<CaseResult | null>(null);
   const [isScreeningOpen, setIsScreeningOpen] = useState(() => Boolean(initialCaseId));
+  const [isHardwareWorkflowOpen, setIsHardwareWorkflowOpen] = useState(false);
   const [generatedCaseId, setGeneratedCaseId] = useState<string>(() => initialCaseId || generateCaseId());
   const [isLoading, setIsLoading] = useState(false);
   const [isRestoringCase, setIsRestoringCase] = useState(() => Boolean(initialCaseId));
@@ -308,12 +310,21 @@ export function App() {
   };
 
   const handleOpenScreening = () => {
+    setIsHardwareWorkflowOpen(false);
     setIsScreeningOpen(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleOpenHardwareWorkflow = () => {
+    setIsScreeningOpen(false);
+    setIsHardwareWorkflowOpen(true);
+    clearCaseIdFromUrl();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleBackToLanding = () => {
     setIsScreeningOpen(false);
+    setIsHardwareWorkflowOpen(false);
     setError(null);
     setFieldErrors({});
     clearCaseIdFromUrl();
@@ -420,12 +431,18 @@ export function App() {
       <Header onOpenGuide={() => setIsGuideOpen(true)} />
 
       <main className="flex-1 w-full max-w-[1760px] mx-auto px-6 lg:px-10 pb-8 pt-[88px] sm:pt-[112px] space-y-8">
-        {!isScreeningOpen ? (
+        {!isScreeningOpen && !isHardwareWorkflowOpen ? (
           <LandingPage
             isOnline={isOnline}
             offlineQueue={offlineQueue}
             onStartScreening={handleOpenScreening}
+            onOpenHardwareWorkflow={handleOpenHardwareWorkflow}
             onOpenGuide={() => setIsGuideOpen(true)}
+          />
+        ) : isHardwareWorkflowOpen ? (
+          <HardwareWorkflowPage
+            onBack={handleBackToLanding}
+            onStartScreening={handleOpenScreening}
           />
         ) : (
           <>
