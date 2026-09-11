@@ -195,7 +195,7 @@ ${reportDisclaimer}
           </button>
           <button
             onClick={handlePrint}
-            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 min-w-0 sm:min-w-[100px] text-xs font-bold text-white bg-slate-800 hover:bg-slate-900 rounded-lg shadow-xs transition-all"
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 min-w-0 sm:min-w-[100px] text-xs font-bold text-white bg-teal-700 hover:bg-teal-800 rounded-lg shadow-xs transition-all"
             title="Print clinical referral sheet"
           >
             <Printer className="w-3.5 h-3.5" />

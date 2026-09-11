@@ -133,6 +133,38 @@ Backend regression checks (from `backend`, with development `httpx` installed):
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
+## Android Reconnection (1.0.2)
+
+The Android app uses Capacitor's native Network and App lifecycle plugins, rather
+than relying only on WebView `navigator.onLine` and browser events. A network
+change or return to the foreground starts a cloud check immediately. While
+disconnected with active screening or queued work, a device-only check every
+five seconds catches a missed network event; it does not call the backend.
+
+The badge remains Checking until the API responds. Failed cloud checks get one
+longer attempt, then foreground recovery retries after 10, 20, and at most 30
+seconds between attempts. Cloud startup and network speed still affect elapsed
+time. Recovery stops in the background and when the landing page has no pending
+work. Online means the API is reachable, not that an upload has completed.
+
+Auto-sync starts on confirmed cloud availability. Queue and per-case requests
+are deduplicated, and a local case is only marked synced after server success.
+This is foreground sync, not a background Android worker: reopen the app to
+resume syncing after it has been closed or suspended.
+
+Build and publish the new signed APK, then install it over the existing app with
+the same signing key. Do not uninstall or clear app data with pending cases.
+Cloudflare deployments do not update an already installed APK. Version 1.0.2
+retains `aptos-baseline-v1`; no backend/model deployment is needed for this fix.
+
+PDF export resolves OD and OS separately, using per-eye local images or saved
+queue artifacts before authenticated cloud image endpoints. A missing heatmap
+does not remove the fundus photo. Missing photos have an explicit per-eye notice
+instead of silently omitting that eye or substituting the selected preview.
+
+Physical-device timing still needs testing with Wi-Fi, mobile data, and app
+background/resume.
+
 ## Direct APK Path
 
 The Capacitor Android wrapper is configured under `frontend/android`.

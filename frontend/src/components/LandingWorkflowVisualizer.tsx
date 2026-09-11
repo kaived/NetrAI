@@ -34,7 +34,7 @@ const STEPS = [
     id: 3,
     title: 'Analysis & Heatmap',
     shortTitle: '3. Analysis',
-    tagline: '5-stage ICDR classification with Grad-CAM lesion localization.',
+    tagline: 'ICDR grading (0-4) with a separate image-based attention map.',
     icon: Cpu,
   },
   {
@@ -372,7 +372,7 @@ const StepQualityVisual: React.FC = () => {
 };
 
 /* -------------------------------------------------------------
-   Step 3: AI Inference Visual (Grad-CAM Heatmap & Scan)
+   Step 3: Classification Workflow Illustration
 ------------------------------------------------------------- */
 const StepInferenceVisual: React.FC = () => {
   return (
@@ -383,17 +383,14 @@ const StepInferenceVisual: React.FC = () => {
         </span>
         <span className="inline-flex items-center gap-1 rounded-full bg-teal-100 px-2.5 py-1 text-[10px] sm:text-xs font-extrabold text-teal-800 shadow-2xs shrink-0 whitespace-nowrap leading-none">
           <Activity className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-teal-700 animate-pulse shrink-0" />
-          <span className="whitespace-nowrap">Grad-CAM Active</span>
+          <span className="whitespace-nowrap">Illustration</span>
         </span>
       </div>
 
       <div className="relative rounded-xl sm:rounded-2xl overflow-hidden border border-slate-200 bg-slate-50/80 p-2.5 sm:p-4 text-slate-900 flex items-center justify-between gap-2.5 sm:gap-4 shadow-2xs">
-        {/* Retinal Graphic with Heatmap Overlay - Responsive Size */}
+        {/* Illustrative retinal graphic, not a computed model output. */}
         <div className="relative h-16 w-16 sm:h-24 sm:w-24 lg:h-28 lg:w-28 rounded-full overflow-hidden border-2 border-amber-300/80 bg-gradient-to-br from-amber-100 via-orange-50 to-amber-200/50 shrink-0 flex items-center justify-center shadow-inner text-amber-900">
           <RetinaEyeSvg className="h-11 w-11 sm:h-18 sm:w-18 lg:h-22 lg:w-22 text-amber-900/70" />
-          {/* Simulated Grad-CAM glowing attention patches */}
-          <div className="absolute top-2.5 left-3.5 sm:top-4 sm:left-6 h-4 w-4 sm:h-8 sm:w-8 rounded-full bg-amber-500/50 blur-xs animate-pulse" />
-          <div className="absolute bottom-3 right-3 sm:bottom-5 sm:right-5 h-3.5 w-3.5 sm:h-7 sm:w-7 rounded-full bg-rose-500/55 blur-xs animate-pulse" />
           {/* Scanning Beam */}
           <div className="absolute inset-x-0 h-1 sm:h-1.5 bg-gradient-to-r from-transparent via-teal-600 to-transparent animate-bounce opacity-70" />
         </div>
@@ -401,33 +398,33 @@ const StepInferenceVisual: React.FC = () => {
         <div className="flex-1 space-y-1 sm:space-y-1.5 min-w-0">
           <div className="flex items-center justify-between text-[10.5px] sm:text-xs lg:text-sm gap-1">
             <span className="text-slate-500 font-medium shrink-0">
-              <span className="hidden sm:inline">Feature </span>Attention
+              Map
             </span>
             <span className="font-extrabold text-teal-800 text-[10.5px] sm:text-xs lg:text-sm text-right shrink-0">
-              Microaneurysms<span className="hidden sm:inline"> Detected</span>
+              Image contrast
             </span>
           </div>
           <div className="flex items-center justify-between text-[10.5px] sm:text-xs lg:text-sm gap-1">
             <span className="text-slate-500 font-medium shrink-0">
-              <span className="hidden sm:inline">Confidence </span>Score
+              Grading
             </span>
             <span className="font-extrabold text-emerald-700 font-mono text-[11px] sm:text-sm lg:text-base text-right shrink-0">
-              98.4% <span className="font-sans font-bold text-[9px] sm:text-xs text-emerald-600">(High)</span>
+              ICDR 0-4
             </span>
           </div>
           <div className="flex items-center justify-between text-[10.5px] sm:text-xs lg:text-sm gap-1">
-            <span className="text-slate-500 font-medium shrink-0">Latency</span>
+            <span className="text-slate-500 font-medium shrink-0">Review</span>
             <span className="font-mono text-slate-700 font-semibold text-[10px] sm:text-xs text-right shrink-0">
-              1.24s (<span className="hidden sm:inline">Point-of-Care</span><span className="sm:hidden">PoC</span>)
+              Clinician
             </span>
           </div>
 
           <div className="pt-0.5 sm:pt-1 flex flex-wrap gap-1 sm:gap-1.5">
             <span className="rounded-md bg-teal-50 border border-teal-200 px-1.5 py-0.5 text-[9px] sm:text-xs font-mono font-bold text-teal-800 shadow-2xs">
-              QWK = 0.92
+              Screening support
             </span>
             <span className="rounded-md bg-white border border-slate-200 px-1.5 py-0.5 text-[9px] sm:text-xs font-mono font-bold text-slate-700 shadow-2xs">
-              ICDR 5-Stage
+              Both eyes
             </span>
           </div>
         </div>

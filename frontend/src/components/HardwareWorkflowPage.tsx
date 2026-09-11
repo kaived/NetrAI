@@ -52,15 +52,15 @@ export const HardwareWorkflowPage: React.FC<HardwareWorkflowPageProps> = ({
 
     <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
       <div className="grid grid-cols-1 lg:grid-cols-[0.95fr_1.05fr]">
-        <div className="bg-slate-950 px-6 py-8 text-white sm:px-10 sm:py-12">
-          <div className="inline-flex items-center gap-2 rounded-full border border-teal-300/40 bg-teal-300/10 px-3.5 py-1.5 text-xs font-bold text-teal-100">
-            <Route className="h-4 w-4" />
-            <span>Hardware workflow</span>
+        <div className="border-b border-slate-200 bg-white px-6 py-8 text-slate-950 sm:px-10 sm:py-12 lg:border-b-0 lg:border-r">
+          <div className="inline-flex items-center gap-2 rounded-full border border-teal-200 bg-teal-50 px-3.5 py-1.5 text-xs font-bold text-teal-800 shadow-2xs whitespace-nowrap">
+            <Camera className="h-4 w-4 text-teal-700" />
+            <span>Camera Workflow</span>
           </div>
-          <h1 className="mt-5 max-w-2xl text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl lg:text-5xl">
+          <h1 className="mt-5 max-w-2xl text-3xl font-extrabold leading-tight tracking-tight text-slate-950 sm:text-4xl lg:text-5xl">
             Capture retinal images on the fundus camera. Screen them in NetrAI.
           </h1>
-          <p className="mt-4 max-w-xl text-sm leading-relaxed text-slate-200 sm:text-base">
+          <p className="mt-4 max-w-xl text-sm leading-relaxed text-slate-600 sm:text-base">
             NetrAI does not use the mobile camera for retinal capture. It accepts exported JPG, PNG, or TIFF fundus photographs from portable field cameras and hospital tabletop systems.
           </p>
         </div>

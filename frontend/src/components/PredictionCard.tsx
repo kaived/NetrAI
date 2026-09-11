@@ -127,25 +127,25 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, isGr
                 key={stage.grade}
                 className={`min-h-[116px] sm:min-h-[128px] p-3 rounded-xl border text-center transition-all flex flex-col justify-between ${
                   isSelected
-                    ? 'border-2 border-teal-500 bg-slate-900 text-white shadow-md ring-2 ring-teal-500/40 scale-[1.02] z-10 print:bg-teal-50/80 print:border-2 print:border-teal-700 print:shadow-none print:scale-100'
+                    ? 'border-2 border-teal-600 bg-teal-50 text-slate-950 shadow-sm ring-2 ring-teal-500/20 scale-[1.02] z-10 print:bg-teal-50/80 print:border-2 print:border-teal-700 print:shadow-none print:scale-100'
                     : 'border-slate-200 bg-slate-50/80 text-slate-700 hover:border-slate-300 print:bg-white print:border-slate-300 print:text-slate-600'
                 }`}
               >
                 <div>
                   <div className="flex items-center justify-center mb-1">
-                    <span className={`text-xs sm:text-sm font-bold ${isSelected ? 'text-white print:text-slate-950 print:font-black' : 'text-slate-900 print:text-slate-700'}`}>
+                    <span className={`text-xs sm:text-sm font-bold ${isSelected ? 'text-teal-950 print:text-slate-950 print:font-black' : 'text-slate-900 print:text-slate-700'}`}>
                       Grade {stage.grade}
                     </span>
                   </div>
-                  <div className={`text-xs sm:text-sm font-bold leading-tight ${isSelected ? 'text-teal-300 print:text-teal-900 print:font-extrabold' : 'text-slate-700 print:text-slate-600'}`}>
+                  <div className={`text-xs sm:text-sm font-bold leading-tight ${isSelected ? 'text-teal-800 print:text-teal-900 print:font-extrabold' : 'text-slate-700 print:text-slate-600'}`}>
                     ({stage.label})
                   </div>
-                  <div className={`text-[10px] sm:text-xs mt-1.5 leading-4 ${isSelected ? 'text-slate-300 print:text-slate-800' : 'text-slate-500 print:text-slate-500'}`}>
+                  <div className={`text-[10px] sm:text-xs mt-1.5 leading-4 ${isSelected ? 'text-slate-600 print:text-slate-800' : 'text-slate-500 print:text-slate-500'}`}>
                     {stage.desc}
                   </div>
                 </div>
                 {isSelected && (
-                  <div className="mt-2.5 inline-flex items-center justify-center gap-1 px-2.5 py-0.5 text-[10px] sm:text-xs font-bold bg-teal-500 text-white rounded-full shadow-xs mx-auto print:bg-teal-700 print:text-white print:border print:border-teal-700">
+                  <div className="mt-2.5 inline-flex items-center justify-center gap-1 px-2.5 py-0.5 text-[10px] sm:text-xs font-bold bg-teal-700 text-white rounded-full shadow-xs mx-auto print:bg-teal-700 print:text-white print:border print:border-teal-700">
                     <Check className="w-3 h-3 print:stroke-[3]" />
                     <span>MATCH</span>
                   </div>

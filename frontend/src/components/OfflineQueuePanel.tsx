@@ -6,50 +6,55 @@ import {
   Cloud,
   CloudOff,
   Database,
-  Eye,
   RefreshCw,
 } from 'lucide-react';
+import type { ConnectionStatus } from '../offline/network';
 import type { OfflineQueueSummary, OfflineScreeningRecord } from '../types';
 
 type OfflineQueuePanelProps = {
   summary: OfflineQueueSummary;
-  isOnline: boolean;
+  connectionStatus: ConnectionStatus;
   isSyncing: boolean;
   syncNotice: string | null;
   queueError: string | null;
   onSyncNow: () => void;
-  onViewCase: (record: OfflineScreeningRecord) => void;
   onRetryCase: (record: OfflineScreeningRecord) => void;
 };
 
 export const OfflineQueuePanel: React.FC<OfflineQueuePanelProps> = ({
   summary,
-  isOnline,
+  connectionStatus,
   isSyncing,
   syncNotice,
   queueError,
   onSyncNow,
-  onViewCase,
   onRetryCase,
 }) => {
   const syncableCount = summary.pending + summary.failed;
   const records = summary.records.slice(0, 8);
+  const isOnline = connectionStatus === 'online';
+  const isChecking = connectionStatus === 'checking' || connectionStatus === 'idle';
+  const statusLabel = isOnline ? 'Online' : isChecking ? 'Checking' : connectionStatus === 'offline' ? 'Offline' : 'Cloud unavailable';
   const statusMessage = isOnline
-    ? syncNotice ?? 'Cloud API is reachable. Failed uploads remain saved on this device for retry.'
-    : 'Offline screening active. Cases completed without internet stay on this device until sync is available.';
+    ? syncNotice ?? 'Cloud sync is available. Failed uploads remain saved on this device for retry.'
+    : isChecking
+      ? 'Checking cloud connection. Saved cases remain on this device.'
+      : connectionStatus === 'offline'
+        ? 'No network connection detected. Saved cases stay on this device until sync is available.'
+        : 'Cloud sync could not be reached. Saved cases remain on this device; try again when the service is available.';
 
   return (
     <section className="no-print rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex items-start gap-3 min-w-0">
-          <div className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${isOnline ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
-            {isOnline ? <Cloud className="h-5 w-5" /> : <CloudOff className="h-5 w-5" />}
+          <div className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${isOnline ? 'bg-emerald-50 text-emerald-700' : isChecking ? 'bg-slate-100 text-slate-600' : 'bg-amber-50 text-amber-700'}`}>
+            {isOnline ? <Cloud className="h-5 w-5" /> : isChecking ? <RefreshCw className="h-5 w-5 animate-spin" /> : <CloudOff className="h-5 w-5" />}
           </div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="text-sm sm:text-base font-extrabold text-slate-950">Offline Queue</h3>
-              <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${isOnline ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                {isOnline ? 'Online' : 'Offline'}
+              <span role="status" className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${isOnline ? 'bg-emerald-100 text-emerald-800' : isChecking ? 'bg-slate-100 text-slate-600' : 'bg-amber-100 text-amber-800'}`}>
+                {statusLabel}
               </span>
             </div>
             <p className="mt-1 text-xs sm:text-sm text-slate-600 leading-relaxed">
@@ -90,7 +95,6 @@ export const OfflineQueuePanel: React.FC<OfflineQueuePanelProps> = ({
                 record={record}
                 isOnline={isOnline}
                 isSyncing={isSyncing}
-                onViewCase={onViewCase}
                 onRetryCase={onRetryCase}
               />
             ))}
@@ -130,7 +134,6 @@ type OfflineQueueRowProps = {
   record: OfflineScreeningRecord;
   isOnline: boolean;
   isSyncing: boolean;
-  onViewCase: (record: OfflineScreeningRecord) => void;
   onRetryCase: (record: OfflineScreeningRecord) => void;
 };
 
@@ -138,7 +141,6 @@ const OfflineQueueRow: React.FC<OfflineQueueRowProps> = ({
   record,
   isOnline,
   isSyncing,
-  onViewCase,
   onRetryCase,
 }) => {
   const eyeCount = record.result.completed_eyes?.length ?? 0;
@@ -163,16 +165,8 @@ const OfflineQueueRow: React.FC<OfflineQueueRowProps> = ({
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-        <button
-          type="button"
-          onClick={() => onViewCase(record)}
-          className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-2xs transition-colors hover:bg-slate-100"
-        >
-          <Eye className="h-3.5 w-3.5" />
-          <span>{status === 'synced' ? 'View Synced Case' : 'View Case'}</span>
-        </button>
-        {isFailed && (
+      {isFailed && (
+        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
           <button
             type="button"
             onClick={() => onRetryCase(record)}
@@ -182,8 +176,8 @@ const OfflineQueueRow: React.FC<OfflineQueueRowProps> = ({
             <RefreshCw className={`h-3.5 w-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
             <span>Retry Failed Sync</span>
           </button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

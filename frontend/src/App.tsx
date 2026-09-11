@@ -25,7 +25,7 @@ import { generateCaseId } from './utils/caseId';
 import { getTriageDisplay } from './utils/display';
 import { isInstalledAppShell } from './utils/runtime';
 import { caseIdSchema, validateScreeningInput } from './validation/screening';
-import { useOnlineStatus } from './offline/network';
+import { useConnectionStatus } from './offline/network';
 import { getOfflineQueueSummary, markOfflineCaseSyncFailed } from './offline/db';
 import { syncOfflineCaseRecord, syncPendingOfflineCases } from './offline/sync';
 import { runScreeningAnalysis } from './screening/screeningEngine';
@@ -72,15 +72,17 @@ export function App() {
   const [isQueueSyncing, setIsQueueSyncing] = useState(false);
   const [offlineQueue, setOfflineQueue] = useState<OfflineQueueSummary>(() => createEmptyOfflineQueueSummary());
   const shouldCheckCloudReachability =
-    isScreeningOpen || Boolean(initialCaseId) || offlineQueue.pending > 0 || offlineQueue.failed > 0;
-  const isOnline = useOnlineStatus(shouldCheckCloudReachability);
+    isScreeningOpen || isRestoringCase || offlineQueue.pending > 0 || offlineQueue.failed > 0;
+  const connectionStatus = useConnectionStatus(shouldCheckCloudReachability);
+  const isOnline = connectionStatus === 'online';
   const completedEyes = result?.completed_eyes ?? [];
   const nextEye = result?.next_eye ?? null;
   const isCaseComplete = Boolean(result?.is_case_complete);
   const resultPreviewUrl = result ? getResultPreviewUrl(result) : previewUrl;
   const hasValidationErrors = Object.keys(fieldErrors).length > 0;
   const shouldShowOfflineQueue =
-    !isOnline || Boolean(syncNotice) || Boolean(queueError) || offlineQueue.total > 0 || result?.runtime === 'offline';
+    connectionStatus === 'offline' || connectionStatus === 'unavailable' ||
+    Boolean(syncNotice) || Boolean(queueError) || offlineQueue.total > 0 || result?.runtime === 'offline';
 
   const activeEyeResult: EyeScreeningResult | null =
     result?.eyes?.[activeViewEye] ??
@@ -209,6 +211,7 @@ export function App() {
 
   useEffect(() => {
     if (!isOnline) {
+      setIsQueueSyncing(false);
       setSyncNotice(null);
       void refreshOfflineQueue();
       return;
@@ -288,25 +291,6 @@ export function App() {
       setIsQueueSyncing(false);
       await refreshOfflineQueue();
     }
-  };
-
-  const handleViewOfflineCase = (record: OfflineScreeningRecord) => {
-    const viewedResult: CaseResult = {
-      ...record.result,
-      sync_status: record.sync_status,
-    };
-
-    setIsScreeningOpen(true);
-    setResult(viewedResult);
-    setFile(null);
-    setPreviewUrl(null);
-    setError(null);
-    setFieldErrors({});
-    setGeneratedCaseId(record.case_id);
-    setActiveCaseId(record.case_id);
-    setPatientInfo(createPatientInfoFromResult(viewedResult));
-    setActiveViewEye(getInitialEyeForResult(viewedResult));
-    setCaseIdInUrl(record.case_id);
   };
 
   const handleOpenScreening = () => {
@@ -393,7 +377,7 @@ export function App() {
         patientInfo: validation.patientInfo,
         caseId: validation.caseId,
         existingResult: result,
-        isCloudAvailable: isOnline,
+        isCloudAvailable: connectionStatus !== 'offline' && connectionStatus !== 'unavailable',
       });
       setResult(res);
       setGeneratedCaseId(res.case_id);
@@ -427,10 +411,10 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f5f8fb] flex flex-col font-sans text-slate-950">
+    <div className="min-h-screen bg-[#a8e6cf] flex flex-col font-sans text-slate-950">
       <Header onOpenGuide={() => setIsGuideOpen(true)} />
 
-      <main className="flex-1 w-full max-w-[1760px] mx-auto px-6 lg:px-10 pb-8 pt-[88px] sm:pt-[112px] space-y-8">
+      <main className="flex-1 w-full max-w-[1760px] mx-auto px-6 lg:px-10 pb-8 pt-[88px] sm:pt-[92px] space-y-8">
         {!isScreeningOpen && !isHardwareWorkflowOpen ? (
           <LandingPage
             isOnline={isOnline}
@@ -468,12 +452,11 @@ export function App() {
             {shouldShowOfflineQueue && (
               <OfflineQueuePanel
                 summary={offlineQueue}
-                isOnline={isOnline}
+                connectionStatus={connectionStatus}
                 isSyncing={isQueueSyncing}
                 syncNotice={syncNotice}
                 queueError={queueError}
                 onSyncNow={handleSyncNow}
-                onViewCase={handleViewOfflineCase}
                 onRetryCase={handleRetryOfflineCase}
               />
             )}
@@ -687,7 +670,7 @@ export function App() {
                   Clinical Screening Report & Triage
                 </h3>
                 <p className="text-sm sm:text-base lg:text-lg text-slate-600 leading-relaxed max-w-2xl mx-auto">
-                  Upload a real fundus image to generate the automated quality gate score, ICDR severity classification, explainable attention heatmap, and PHC referral guidance.
+                  Upload a real fundus image to generate the automated quality gate score, ICDR severity classification, image-based attention map, and PHC referral guidance.
                 </p>
               </div>
 
@@ -715,10 +698,10 @@ export function App() {
                 <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200/90 space-y-2.5 hover:bg-slate-100/70 transition-all shadow-xs">
                   <div className="font-bold text-teal-900 flex items-center gap-2.5 text-base">
                     <span className="w-7 h-7 rounded-full bg-teal-100 text-teal-800 flex items-center justify-center text-xs font-extrabold">3</span>
-                    Explainable AI
+                    Image-Based Attention
                   </div>
                   <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                    Grad-CAM activation heatmap overlay with opacity controls.
+                    Image contrast map for visual review.
                   </p>
                 </div>
 
@@ -782,15 +765,6 @@ function createPatientInfoFromResult(result: CaseResult): PatientInfo {
     diabetesType: result.patient?.diabetes_type || '',
     diabeticDuration: result.patient?.diabetic_duration || '',
   };
-}
-
-function getInitialEyeForResult(result: CaseResult): EyeCode {
-  const patientEye = result.patient?.eye;
-  if (patientEye === 'OD' || patientEye === 'OS') {
-    return patientEye;
-  }
-
-  return (['OD', 'OS'] as EyeCode[]).find((eye) => Boolean(result.eyes?.[eye])) ?? 'OD';
 }
 
 async function createStableFundusFile(source: File): Promise<File> {

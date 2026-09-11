@@ -456,13 +456,19 @@ Model and report artifacts:
 
 ## Phase 2 Work Started
 
+The September 9 v2 preparation is documented in [MODEL_V2.md](MODEL_V2.md).
+It introduces audited duplicate handling, a separate calibration partition,
+Messidor-2 external testing, corrected pretrained input normalization, and
+isolated candidate artifacts. This is training infrastructure, not a trained or
+validated v2 release. The project owner will run MATLAB tests and training.
+
 The post-Demo 1 implementation now has runnable entry points for the next seven workstreams:
 
 1. True MATLAB Grad-CAM generation.
 2. IDRiD lesion-mask indexing and image/mask loading.
 3. DRIVE vessel-mask indexing.
 4. Multidataset Grade 3/4 improvement training setup.
-5. Referable threshold calibration using existing IDRiD calibration script.
+5. V2 temperature and referral calibration using a separate calibration partition.
 6. Simulink district workflow scaffold and scenario reports.
 7. Dedicated hardware workflow page in the frontend.
 

@@ -1,5 +1,6 @@
 import { fetchDisplayAssetUrl, resolveApiAssetUrl } from '../api';
-import type { CaseResult, EyeScreeningResult } from '../types';
+import { getOfflineCase } from '../offline/db';
+import type { CaseResult, EyeCode, EyeScreeningResult } from '../types';
 import { buildGradeConsistentReportText, formatEyeLabel, getEyeResults } from './clinicalReport';
 import { displayText, formatGradeLabel, getTriageDisplay } from './display';
 import { savePdfBlob, type FileSaveResult } from './fileDownloads';
@@ -26,7 +27,10 @@ type PdfEvidenceImage = {
   width: number;
   height: number;
   dataHex: string;
+  hasHeatmap: boolean;
 };
+
+type PdfEvidence = { eyeLabel: string; image: PdfEvidenceImage | null };
 
 const PAGE_WIDTH = 612;
 const PAGE_HEIGHT = 792;
@@ -36,36 +40,40 @@ const BOTTOM_Y = 54;
 
 export async function downloadClinicalReportPdf(result: CaseResult, context: PdfReportContext): Promise<FileSaveResult> {
   const eyeResults = getEyeResults(result);
-  const evidenceList: Array<{ eyeLabel: string; image: PdfEvidenceImage }> = [];
+  const evidenceList: PdfEvidence[] = [];
   const caseId = displayText(result.case_id, 'Generated on server');
-
-  if (eyeResults.length > 0) {
-    for (const eyeRes of eyeResults) {
-      const eyeCode = eyeRes.eye;
-      const eyeInputUrl =
-        resolveApiAssetUrl(`/cases/${result.case_id}/eyes/${eyeCode}/input`) ||
-        (result.patient?.eye === eyeCode ? context.previewUrl : null);
-      const eyeHeatmapUrl =
-        resolveApiAssetUrl(eyeRes.explanation.heatmap_url) ||
-        resolveApiAssetUrl(`/cases/${result.case_id}/eyes/${eyeCode}/heatmap`);
-
-      if (eyeInputUrl && eyeHeatmapUrl) {
-        const img = await createEvidenceImage(eyeInputUrl, eyeHeatmapUrl);
-        if (img) {
-          evidenceList.push({
-            eyeLabel: eyeCode === 'OD' ? 'OD (Right Eye)' : 'OS (Left Eye)',
-            image: img,
-          });
-        }
-      }
-    }
+  const saved = await getOfflineCase(result.case_id).catch(() => null);
+  const expectedEyes = (['OD', 'OS'] as EyeCode[]).filter((eye) =>
+    eyeResults.some((entry) => entry.eye === eye) || result.completed_eyes?.includes(eye) ||
+    result.final_report?.completed_eyes?.includes(eye) || result.patient?.eye === eye,
+  );
+  for (const eye of expectedEyes) {
+    const eyeResult = result.eyes?.[eye];
+    const isTopLevelEye = result.patient?.eye === eye;
+    const endpoint = `/cases/${encodeURIComponent(result.case_id)}/eyes/${eye}`;
+    // Never use a selected-eye preview as the other eye's evidence.
+    const singleEyePreview = expectedEyes.length === 1 ? context.previewUrl : null;
+    const image = await createEvidenceImage([
+      eyeResult?.storage?.input_uri,
+      saved?.image_data_urls[eye],
+      isTopLevelEye ? result.storage?.input_uri : null,
+      singleEyePreview,
+      `${endpoint}/input`,
+    ], [
+      eyeResult?.explanation?.heatmap_url,
+      eyeResult?.storage?.heatmap_uri,
+      saved?.heatmap_data_urls[eye],
+      isTopLevelEye ? result.explanation?.heatmap_url : null,
+      expectedEyes.length === 1 ? context.heatmapUrl : null,
+      `${endpoint}/heatmap`,
+    ]);
+    evidenceList.push({ eyeLabel: formatEyeLabel(eye), image });
   }
-
-  if (evidenceList.length === 0 && context.previewUrl && context.heatmapUrl) {
-    const singleImg = await createEvidenceImage(context.previewUrl, context.heatmapUrl);
-    if (singleImg) {
-      evidenceList.push({ eyeLabel: context.eyeLabel, image: singleImg });
-    }
+  if (expectedEyes.length === 0 && context.previewUrl) {
+    evidenceList.push({
+      eyeLabel: context.eyeLabel,
+      image: await createEvidenceImage([context.previewUrl], [context.heatmapUrl]),
+    });
   }
 
   const pdf = buildClinicalReportPdf(result, context, evidenceList);
@@ -76,7 +84,7 @@ export async function downloadClinicalReportPdf(result: CaseResult, context: Pdf
 function buildClinicalReportPdf(
   result: CaseResult,
   context: PdfReportContext,
-  evidenceList: Array<{ eyeLabel: string; image: PdfEvidenceImage }>,
+  evidenceList: PdfEvidence[],
 ): ArrayBuffer {
   const generatedAt = new Date().toLocaleString();
   const finalReport = result.final_report;
@@ -110,7 +118,7 @@ function buildClinicalReportPdf(
 
     section('Case Details'),
     field('Case ID', caseId),
-    field('Eye Examined', eyeResults.length > 1 ? 'Both Eyes (OD + OS)' : context.eyeLabel),
+    field('Eye Examined', evidenceList.length > 1 ? 'Both Eyes (OD + OS)' : context.eyeLabel),
     field('Patient Age', context.patientAge),
     field('Diabetes Type', context.diabetesType),
     field('Years Since Diagnosis', context.diabeticDuration),
@@ -154,7 +162,8 @@ function buildClinicalReportPdf(
 
     section('Explainability'),
     field('Method', result.explanation.method),
-    field('Heatmap', evidenceList.length > 0 ? 'Included on visual evidence page(s).' : 'Not available for this PDF.'),
+    field('Fundus Images', `${evidenceList.filter((entry) => entry.image).length}/${evidenceList.length} available; see per-eye evidence pages.`),
+    field('Heatmaps', `${evidenceList.filter((entry) => entry.image?.hasHeatmap).length} included; unavailable images or overlays are noted per eye.`),
     paragraph(result.explanation.text),
 
     section('Medical Disclaimer'),
@@ -206,7 +215,7 @@ function paragraph(text: unknown): PdfLine {
 
 function createPdf(
   lines: PdfLine[],
-  evidenceList: Array<{ eyeLabel: string; image: PdfEvidenceImage }>,
+  evidenceList: PdfEvidence[],
 ): ArrayBuffer {
   const pageDefs: Array<{ stream: string; xObjectResource?: string }> = [];
   let currentPage = '';
@@ -250,12 +259,17 @@ function createPdf(
   }> = [];
 
   evidenceList.forEach((ev, idx) => {
+    if (!ev.image) {
+      pageDefs.push({ stream: drawMissingEvidencePage(ev.eyeLabel) });
+      return;
+    }
     const xObjectName = `Im${idx + 1}`;
+    const imageIndex = imageEntries.length;
     imageEntries.push({ xObjectName, image: ev.image });
     const evidenceStream = drawEvidencePage(ev.image, ev.eyeLabel, xObjectName);
     pageDefs.push({
       stream: evidenceStream,
-      xObjectResource: `/XObject << /${xObjectName} %%IMG_OBJ_ID_${idx}%% 0 R >>`,
+      xObjectResource: `/XObject << /${xObjectName} %%IMG_OBJ_ID_${imageIndex}%% 0 R >>`,
     });
   });
 
@@ -308,13 +322,15 @@ function wrapText(text: string, maxWidth: number, fontSize: number): string[] {
 
 function drawEvidencePage(image: PdfEvidenceImage, eyeLabel: string, xObjectName: string): string {
   const title: PdfLine = {
-    text: `Visual Evidence - ${eyeLabel} Fundus Attention Heatmap`,
+    text: `Visual Evidence - ${eyeLabel}`,
     size: 16,
     bold: true,
     color: [15, 118, 110],
   };
   const caption: PdfLine = {
-    text: `Composite view of ${eyeLabel} fundus image with backend-generated lesion-attention heatmap overlay.`,
+    text: image.hasHeatmap
+      ? 'Fundus image with attention heatmap overlay.'
+      : 'Original fundus image. Attention heatmap unavailable for this eye.',
     size: 10,
     color: [71, 85, 105],
   };
@@ -339,23 +355,27 @@ function drawEvidencePage(image: PdfEvidenceImage, eyeLabel: string, xObjectName
   ].join('\n');
 }
 
-async function createEvidenceImage(baseUrl: string, heatmapUrl: string): Promise<PdfEvidenceImage | null> {
-  let baseAsset: { url: string; revoke: () => void } | null = null;
-  let heatmapAsset: { url: string; revoke: () => void } | null = null;
+function drawMissingEvidencePage(eyeLabel: string): string {
+  return drawText(`Visual Evidence - ${eyeLabel}`, MARGIN_X, TOP_Y, { text: '', size: 16, bold: true, color: [15, 118, 110] }) +
+    drawText('Fundus image unavailable for this eye.', MARGIN_X, TOP_Y - 30, { text: '', size: 11 }) +
+    drawText('Reconnect or restore the saved image, then export the report again.', MARGIN_X, TOP_Y - 50, { text: '', size: 10 });
+}
 
+async function createEvidenceImage(
+  baseUrls: Array<string | null | undefined>,
+  heatmapUrls: Array<string | null | undefined>,
+): Promise<PdfEvidenceImage | null> {
   try {
-    [baseAsset, heatmapAsset] = await Promise.all([
-      fetchDisplayAssetUrl(baseUrl),
-      fetchDisplayAssetUrl(heatmapUrl),
-    ]);
     const [baseImage, heatmapImage] = await Promise.all([
-      loadImage(baseAsset.url),
-      loadImage(heatmapAsset.url),
+      loadEvidenceAsset(baseUrls),
+      loadEvidenceAsset(heatmapUrls),
     ]);
+    if (!baseImage) return null;
     const naturalWidth = baseImage.naturalWidth || baseImage.width;
     const naturalHeight = baseImage.naturalHeight || baseImage.height;
-    const width = Math.min(1200, naturalWidth);
-    const height = Math.round(width * (naturalHeight / naturalWidth));
+    const scale = Math.min(1, 1200 / Math.max(naturalWidth, naturalHeight));
+    const width = Math.max(1, Math.round(naturalWidth * scale));
+    const height = Math.max(1, Math.round(naturalHeight * scale));
 
     const canvas = document.createElement('canvas');
     canvas.width = width;
@@ -369,9 +389,11 @@ async function createEvidenceImage(baseUrl: string, heatmapUrl: string): Promise
     context.fillStyle = '#020617';
     context.fillRect(0, 0, width, height);
     context.drawImage(baseImage, 0, 0, width, height);
-    context.globalAlpha = 0.65;
-    context.globalCompositeOperation = 'screen';
-    context.drawImage(heatmapImage, 0, 0, width, height);
+    if (heatmapImage) {
+      context.globalAlpha = 0.65;
+      context.globalCompositeOperation = 'screen';
+      context.drawImage(heatmapImage, 0, 0, width, height);
+    }
 
     const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
     const base64 = dataUrl.split(',')[1];
@@ -383,23 +405,45 @@ async function createEvidenceImage(baseUrl: string, heatmapUrl: string): Promise
       width,
       height,
       dataHex: base64ToHex(base64),
+      hasHeatmap: Boolean(heatmapImage),
     };
   } catch {
     return null;
-  } finally {
-    baseAsset?.revoke();
-    heatmapAsset?.revoke();
   }
+}
+
+async function loadEvidenceAsset(candidates: Array<string | null | undefined>): Promise<HTMLImageElement | null> {
+  const urls = [...new Set(candidates.filter((url): url is string =>
+    Boolean(url && /^(data:image\/|blob:|https?:\/\/|\/(?!\/))/i.test(url)),
+  ))].sort((left, right) => Number(/^(data:|blob:)/i.test(right)) - Number(/^(data:|blob:)/i.test(left)));
+  for (const url of urls) {
+    let asset: Awaited<ReturnType<typeof fetchDisplayAssetUrl>> | undefined;
+    try {
+      asset = await fetchDisplayAssetUrl(resolveApiAssetUrl(url) ?? url);
+      return await loadImage(asset.url);
+    } catch {
+      // Try another source for this eye; never substitute the other eye's photo.
+    } finally {
+      asset?.revoke();
+    }
+  }
+  return null;
 }
 
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const image = new Image();
+    const timer = window.setTimeout(() => {
+      image.onload = null;
+      image.onerror = null;
+      image.src = '';
+      reject(new Error('Image loading timed out.'));
+    }, 10_000);
     if (/^https?:/i.test(src)) {
       image.crossOrigin = 'anonymous';
     }
-    image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error(`Could not load image: ${src}`));
+    image.onload = () => { window.clearTimeout(timer); resolve(image); };
+    image.onerror = () => { window.clearTimeout(timer); reject(new Error('Could not load evidence image.')); };
     image.src = src;
   });
 }

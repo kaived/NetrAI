@@ -34,11 +34,7 @@ async function runScreeningAnalysisInner({
   existingResult,
   isCloudAvailable,
 }: ScreeningEngineInput): Promise<CaseResult> {
-  if (navigator.onLine) {
-    if (!isCloudAvailable) {
-      return runOfflineAptosV1Screening(file, patientInfo, caseId, existingResult);
-    }
-
+  if (isCloudAvailable) {
     try {
       const result = await predictImage(file, patientInfo, caseId);
       return {

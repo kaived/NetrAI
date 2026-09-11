@@ -86,13 +86,14 @@ export async function predictImage(file: File, patientInfo: PatientInfo, caseId:
   return response.json();
 }
 
-export async function checkApiHealth(timeoutMs = API_REQUEST_TIMEOUTS.health): Promise<boolean> {
+export async function checkApiHealth(timeoutMs: number = API_REQUEST_TIMEOUTS.health, signal?: AbortSignal): Promise<boolean> {
   try {
     const response = await fetchWithTimeout(
       `${API_BASE_URL}/health`,
       {
         method: "GET",
         cache: "no-store",
+        signal,
       },
       timeoutMs,
       "Cloud API health check timed out.",
@@ -189,6 +190,9 @@ export async function fetchWithTimeout(
   timeoutMessage: string,
 ): Promise<Response> {
   const controller = new AbortController();
+  const abortFromCaller = () => controller.abort();
+  init.signal?.addEventListener("abort", abortFromCaller, { once: true });
+  if (init.signal?.aborted) controller.abort();
   const timeoutId = globalThis.setTimeout(() => controller.abort(), timeoutMs);
 
   try {
@@ -203,5 +207,6 @@ export async function fetchWithTimeout(
     throw error;
   } finally {
     globalThis.clearTimeout(timeoutId);
+    init.signal?.removeEventListener("abort", abortFromCaller);
   }
 }

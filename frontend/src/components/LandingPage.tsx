@@ -79,10 +79,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <button
                 type="button"
                 onClick={onOpenHardwareWorkflow}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-5 py-3 text-sm font-bold text-teal-800 shadow-xs transition-all hover:bg-teal-100 active:bg-teal-200"
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-5 py-3 text-sm font-bold text-teal-800 shadow-xs transition-all hover:border-teal-300 hover:bg-[#c9f2e0] hover:text-teal-900 active:bg-teal-100"
               >
-                <Route className="h-5 w-5" />
-                <span>Hardware Workflow</span>
+                <Camera className="h-5 w-5 text-teal-700" />
+                <span>Camera Workflow</span>
               </button>
             </div>
 
@@ -125,10 +125,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         />
       </section>
 
-      <section className="rounded-3xl border border-slate-200 bg-white px-6 py-8 shadow-sm sm:px-10 lg:px-12">
+      <section className="rounded-3xl border border-slate-200 bg-white px-4 py-6 sm:px-10 sm:py-8 lg:px-12 shadow-sm">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
           <div className="space-y-3">
-            <h2 className="text-2xl font-extrabold text-slate-950">How a technician uses it</h2>
+            <h2 className="text-lg sm:text-xl md:text-2xl font-extrabold text-slate-950 whitespace-nowrap">How a technician uses it</h2>
             <p className="max-w-2xl text-sm leading-relaxed text-slate-600 sm:text-base">
               The app starts with patient intake, accepts fundus photos from the camera workflow, screens both eyes, and keeps a clear queue for saved offline cases.
             </p>
@@ -156,10 +156,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <button
               type="button"
               onClick={onOpenHardwareWorkflow}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-slate-800"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-700 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-teal-800 active:bg-teal-900"
             >
-              <Route className="h-4 w-4" />
-              <span>Open full workflow</span>
+              <Camera className="h-4 w-4" />
+              <span>Open Camera Workflow</span>
             </button>
           </div>
 

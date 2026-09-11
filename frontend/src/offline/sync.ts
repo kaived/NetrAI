@@ -2,7 +2,18 @@ import { API_BASE_URL, API_REQUEST_TIMEOUTS, ApiError, buildApiHeaders, fetchWit
 import type { CaseResult, OfflineScreeningRecord } from "../types";
 import { listPendingOfflineCases, markOfflineCaseSyncFailed, markOfflineCaseSynced } from "./db";
 
-export async function syncPendingOfflineCases(): Promise<{ synced: number; failed: number }> {
+type SyncSummary = { synced: number; failed: number };
+let activeQueueSync: Promise<SyncSummary> | null = null;
+const activeCaseSyncs = new Map<string, Promise<CaseResult>>();
+
+export function syncPendingOfflineCases(): Promise<SyncSummary> {
+  if (!activeQueueSync) {
+    activeQueueSync = syncQueue().finally(() => { activeQueueSync = null; });
+  }
+  return activeQueueSync;
+}
+
+async function syncQueue(): Promise<SyncSummary> {
   const pending = await listPendingOfflineCases();
   let synced = 0;
   let failed = 0;
@@ -20,7 +31,15 @@ export async function syncPendingOfflineCases(): Promise<{ synced: number; faile
   return { synced, failed };
 }
 
-export async function syncOfflineCaseRecord(record: OfflineScreeningRecord): Promise<CaseResult> {
+export function syncOfflineCaseRecord(record: OfflineScreeningRecord): Promise<CaseResult> {
+  const existing = activeCaseSyncs.get(record.case_id);
+  if (existing) return existing;
+  const request = syncCaseRecord(record).finally(() => { activeCaseSyncs.delete(record.case_id); });
+  activeCaseSyncs.set(record.case_id, request);
+  return request;
+}
+
+async function syncCaseRecord(record: OfflineScreeningRecord): Promise<CaseResult> {
   let syncedResult: CaseResult;
   try {
     syncedResult = await syncOfflineCase(record);

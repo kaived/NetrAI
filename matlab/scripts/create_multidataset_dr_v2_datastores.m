@@ -1,136 +1,78 @@
-function stores = create_multidataset_dr_v2_datastores(repoRoot, inputSize, enableDeviceAugmentation)
-%CREATE_MULTIDATASET_DR_V2_DATASTORES Datastores for Grade 3/4 improvement.
-%
-% This uses sample_weight from build_multidataset_dr_v2_index by repeating
-% high-priority rows in the training datastore. Validation and external
-% holdout rows are not oversampled.
-
-if nargin < 1 || isempty(repoRoot) || strlength(string(repoRoot)) == 0
-    scriptDir = fileparts(mfilename('fullpath'));
-    repoRoot = fileparts(fileparts(scriptDir));
+function stores = create_multidataset_dr_v2_datastores(repoRoot, inputSize, enableDeviceAugmentation, prepareCache)
+%CREATE_MULTIDATASET_DR_V2_DATASTORES Training-only augmentation and oversampling.
+if nargin < 1 || isempty(repoRoot)
+    repoRoot = fileparts(fileparts(fileparts(mfilename('fullpath'))));
 end
-
-if nargin < 2 || isempty(inputSize)
-    inputSize = [224 224 3];
-end
-
-if nargin < 3 || isempty(enableDeviceAugmentation)
-    enableDeviceAugmentation = true;
-end
-
-repoRoot = char(repoRoot);
-indexPath = fullfile(repoRoot, 'data', 'indexes', 'multidataset_dr_v2.csv');
-if ~isfile(indexPath)
-    build_multidataset_dr_v2_index(repoRoot);
-end
-
-indexTable = readtable(indexPath, 'TextType', 'string');
+if nargin < 2 || isempty(inputSize), inputSize = [224 224 3]; end
+if nargin < 3, enableDeviceAugmentation = true; end
+if nargin < 4, prepareCache = false; end
+indexTable = build_multidataset_dr_v2_index(repoRoot);
 classNames = ["no_dr", "mild", "moderate", "severe", "proliferative_dr"];
-
-trainRows = localOversampleRows(indexTable(indexTable.split == "train", :));
-validationRows = indexTable(indexTable.split == "validation", :);
-externalRows = indexTable(indexTable.split == "external_holdout", :);
-
-trainImds = imageDatastore(cellstr(trainRows.image_path));
-trainImds.Labels = categorical(trainRows.label_name, classNames);
-trainImds.ReadFcn = @(filename) localReadTrainingImage(filename, inputSize, enableDeviceAugmentation);
-
-valImds = imageDatastore(cellstr(validationRows.image_path));
-valImds.Labels = categorical(validationRows.label_name, classNames);
-valImds.ReadFcn = @(filename) retinascan.io.readAndPreprocessForNetwork(filename, inputSize);
-
-externalImds = imageDatastore(cellstr(externalRows.image_path));
-externalImds.Labels = categorical(externalRows.label_name, classNames);
-externalImds.ReadFcn = @(filename) retinascan.io.readAndPreprocessForNetwork(filename, inputSize);
-
-imageAugmenter = imageDataAugmenter( ...
-    'RandRotation', [-14 14], ...
-    'RandXReflection', true, ...
-    'RandXTranslation', [-14 14], ...
-    'RandYTranslation', [-14 14], ...
-    'RandScale', [0.90 1.10]);
-
-augTrain = augmentedImageDatastore(inputSize(1:2), trainImds, 'DataAugmentation', imageAugmenter);
-augVal = augmentedImageDatastore(inputSize(1:2), valImds);
-augExternal = augmentedImageDatastore(inputSize(1:2), externalImds);
-
-labelCounts = countcats(categorical(indexTable.label_name(indexTable.split == "train"), classNames));
-classWeights = median(labelCounts) ./ max(labelCounts, 1);
-classWeights = classWeights / mean(classWeights);
-
-stores = struct( ...
-    'indexTable', indexTable, ...
-    'classNames', classNames, ...
-    'inputSize', inputSize, ...
-    'trainRows', trainRows, ...
-    'validationRows', validationRows, ...
-    'externalRows', externalRows, ...
-    'trainImds', trainImds, ...
-    'valImds', valImds, ...
-    'externalImds', externalImds, ...
-    'augTrain', augTrain, ...
-    'augVal', augVal, ...
-    'augExternal', augExternal, ...
-    'classWeights', classWeights, ...
-    'deviceAugmentationEnabled', enableDeviceAugmentation ...
-);
-
-fprintf('Multidataset DR v2 datastores ready.\n');
-fprintf('Training rows after oversampling: %d\n', numel(trainImds.Files));
-fprintf('Validation rows: %d\n', numel(valImds.Files));
-fprintf('External holdout rows: %d\n', numel(externalImds.Files));
+indexTable.read_path = indexTable.image_path;
+if prepareCache
+    cacheDir = fullfile(repoRoot, 'data', 'processed', 'dr_v2_clahe_unit_224_v1');
+    assert(isequal(inputSize, [224 224 3]), 'Cache contract requires 224x224 RGB.');
+    if ~isfolder(cacheDir), mkdir(cacheDir); end
+    rows = find(ismember(indexTable.split, ["train", "validation", "calibration"]));
+    for n = 1:numel(rows)
+        k = rows(n);
+        cachePath = fullfile(cacheDir, indexTable.image_sha256(k) + ".png");
+        if ~isfile(cachePath)
+            img = retinascan.io.readAndPreprocessForNetwork(indexTable.image_path(k), inputSize);
+            imwrite(im2uint8(img), cachePath);
+        end
+        indexTable.read_path(k) = cachePath;
+        if mod(n,100) == 0, fprintf('Preprocessing cache: %d/%d\n', n, numel(rows)); end
+    end
+end
+stores = struct('indexTable', indexTable, 'classNames', classNames, ...
+    'inputSize', inputSize, 'deviceAugmentationEnabled', enableDeviceAugmentation);
+names = ["train", "validation", "calibration", "external_holdout", "external_test"];
+fields = ["train", "val", "calibration", "external", "test"];
+for k = 1:numel(names)
+    rows = indexTable(indexTable.split == names(k), :);
+    if names(k) == "train"
+        rows = rows(repelem((1:height(rows))', rows.sample_weight), :);
+        rows = rows(randperm(height(rows)), :);
+    end
+    imds = imageDatastore(cellstr(rows.read_path));
+    imds.Labels = categorical(rows.label_name, classNames);
+    isCached = prepareCache && k <= 3;
+    isTraining = names(k) == "train" && enableDeviceAugmentation;
+    imds.ReadFcn = @(file) localRead(file, inputSize, isCached, isTraining);
+    aug = augmentedImageDatastore(inputSize(1:2), imds);
+    if isTraining
+        augmenter = imageDataAugmenter('RandRotation', [-12 12], ...
+            'RandXReflection', true, 'RandScale', [0.95 1.05]);
+        aug = augmentedImageDatastore(inputSize(1:2), imds, 'DataAugmentation', augmenter);
+    end
+    stores.(fields(k) + "Rows") = rows;
+    stores.(fields(k) + "Imds") = imds;
+    stores.("aug" + upper(extractBefore(fields(k), 2)) + extractAfter(fields(k), 1)) = aug;
+    fprintf('%s: %d images\n', names(k), height(rows));
+end
+stores.validationRows = stores.valRows;
+% Mild residual weighting after Grade 3/4 oversampling avoids double balancing.
+counts = countcats(stores.trainImds.Labels);
+weights = sqrt(median(counts) ./ max(counts, 1));
+stores.classWeights = single(weights / mean(weights));
 end
 
-function rows = localOversampleRows(rows)
-copies = max(1, round(rows.sample_weight));
-expanded = rows([], :);
-for idx = 1:height(rows)
-    expanded = [expanded; repmat(rows(idx, :), copies(idx), 1)]; %#ok<AGROW>
+function imageOut = localRead(file, inputSize, cached, augment)
+if cached
+    imageOut = im2single(imread(file));
+else
+    imageOut = im2single(im2uint8(retinascan.io.readAndPreprocessForNetwork(file, inputSize)));
 end
-rows = expanded(randperm(height(expanded)), :);
-end
-
-function imageOut = localReadTrainingImage(filename, inputSize, enableDeviceAugmentation)
-imageOut = retinascan.io.readAndPreprocessForNetwork(filename, inputSize);
-
-if ~enableDeviceAugmentation
-    return;
-end
-
-imageOut = localApplyDeviceStyleAugmentation(imageOut);
-end
-
-function imageOut = localApplyDeviceStyleAugmentation(imageIn)
-imageOut = im2single(imageIn);
-
-if rand < 0.35
-    sigma = 0.35 + rand * 0.90;
-    imageOut = imgaussfilt(imageOut, sigma);
-end
-
+if ~augment, return; end
+if rand < 0.20, imageOut = imgaussfilt(imageOut, 0.25 + rand * 0.45); end
 if rand < 0.45
-    brightnessShift = -0.08 + rand * 0.16;
-    contrastScale = 0.85 + rand * 0.35;
-    imageOut = (imageOut - 0.5) * contrastScale + 0.5 + brightnessShift;
+    imageOut = (imageOut - 0.5) * (0.9 + rand * 0.2) + 0.5 + (rand - 0.5) * 0.1;
 end
-
-if rand < 0.40
-    colorScale = reshape(0.85 + rand(1, 3) * 0.30, 1, 1, 3);
-    imageOut = imageOut .* colorScale;
+if rand < 0.35, imageOut = imageOut .* reshape(0.9 + rand(1,3) * 0.2, 1, 1, 3); end
+if rand < 0.25
+    [x,y] = meshgrid(linspace(-1,1,size(imageOut,2)), linspace(-1,1,size(imageOut,1)));
+    imageOut = imageOut .* (1 - (0.1 + rand * 0.15) * min(x.^2 + y.^2, 1));
 end
-
-if rand < 0.30
-    imageOut = localApplyVignette(imageOut);
-end
-
-imageOut = min(max(imageOut, 0), 1);
-end
-
-function imageOut = localApplyVignette(imageIn)
-[height, width, ~] = size(imageIn);
-[xGrid, yGrid] = meshgrid(linspace(-1, 1, width), linspace(-1, 1, height));
-radius = sqrt(xGrid.^2 + yGrid.^2);
-strength = 0.10 + rand * 0.22;
-mask = 1 - strength * min(radius.^2, 1);
-imageOut = imageIn .* mask;
+imageOut = single(min(max(imageOut, 0), 1));
 end

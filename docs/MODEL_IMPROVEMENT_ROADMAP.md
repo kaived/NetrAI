@@ -2,6 +2,9 @@
 
 This roadmap starts after SIH Demo 1. The current production/demo model remains `aptos-baseline-v1` until a new model beats it on recorded validation metrics.
 
+The current v2 run instructions and evaluation limitations are in
+[MODEL_V2.md](MODEL_V2.md). MATLAB training is run by the project owner.
+
 ## Goal
 
 Improve RetinaScan AI from a working DR screening prototype into a stronger explainable screening pipeline for rural PHC and hospital workflows.
@@ -12,6 +15,7 @@ A new model can replace `aptos-baseline-v1` only when it satisfies all of these:
 
 - APTOS validation does not degrade meaningfully.
 - IDRiD external validation improves, especially Grade 3 and Grade 4 recall.
+- An untouched external dataset is evaluated after model and calibration choices are frozen.
 - Referable DR sensitivity remains above the target screening threshold.
 - Specificity is measured and reported, not guessed.
 - False negatives are reviewed case-by-case.
@@ -280,6 +284,11 @@ Use DRIVE for vessel segmentation and vessel clarity validation only. Do not mix
 
 Create the combined training index and datastores:
 
+First run `backend/.venv/Scripts/python.exe scripts/prepare_dr_v2.py` from the
+repository root. This audits exact duplicate images and creates the versioned
+train/validation/calibration/benchmark/test assignments. Existing v1 splits are
+not overwritten.
+
 ```matlab
 v2Index = build_multidataset_dr_v2_index();
 v2Stores = create_multidataset_dr_v2_datastores();
@@ -293,24 +302,26 @@ Train the candidate model:
 
 The candidate model uses:
 
-- APTOS fixed train split.
-- IDRiD disease-grading training split.
-- APTOS fixed validation split.
-- IDRiD testing as external holdout.
+- APTOS training data with a separate calibration subset.
+- IDRiD training data split into training, validation, and calibration subsets.
+- APTOS fixed validation assignment with duplicate/conflicting images quarantined.
+- IDRiD testing as a historical benchmark, already examined in earlier experiments.
+- Messidor-2 as external test data, never used to choose thresholds or checkpoints.
 - Grade 3/4 oversampling.
 - Camera/device-style augmentation.
 
-It saves a versioned candidate ONNX model but does not replace the current serving model automatically.
+It saves a candidate under `models/runs/` and does not replace the current serving
+model. A smoke test and MATLAB tests must pass before full training.
 
 ### 6. Referable Threshold Calibration
 
-Keep using:
+V2 uses `calibrate_dr_v2` on the dedicated calibration partition, called by
+`evaluate_dr_v2_candidate`. Do not use `calibrate_idrid_referable_threshold` with
+the IDRiD testing split to select v2 thresholds. Its earlier results are historical
+exploration, not an independent test.
 
-```matlab
-calibration = calibrate_idrid_referable_threshold([], '../models/trained_dr_network.mat', "testing", 0.90);
-```
-
-Only update `MODEL_REFERABLE_THRESHOLD` after reviewing sensitivity, specificity, false negatives, and false positives.
+Temperature and referral threshold must be implemented consistently in both cloud
+and offline runtimes before promotion. The present v1 runtime is unchanged.
 
 ### 7. Simulink District Workflow Simulation
 

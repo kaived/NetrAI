@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, Layers, Info, BrainCircuit } from 'lucide-react';
+import { Eye, Layers, Info } from 'lucide-react';
 import { resolveApiAssetUrl } from '../api';
 import type { ExplanationResult } from '../types';
 import { displayText } from '../utils/display';
@@ -21,18 +21,17 @@ export const ExplainabilityViewer: React.FC<ExplainabilityViewerProps> = ({
   const hasHeatmap = Boolean(isGradeable && heatmapSrc);
   const effectiveOverlayOpacity = hasHeatmap ? Math.max(25, overlayOpacity) : overlayOpacity;
   const explanationText = displayText(explanation.text, 'Explainability note is not available for this case.');
-  const methodText = displayText(explanation.method, 'Not available');
 
   return (
     <div className="bg-white border border-slate-200 rounded-2xl p-6 lg:p-7 shadow-sm space-y-5 h-full flex flex-col">
       <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-5">
         <div className="flex items-start gap-4 sm:gap-5 min-w-0">
           <div className="flex h-12 w-12 sm:h-13 sm:w-13 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-700 shrink-0 mt-0.5 shadow-2xs">
-            <BrainCircuit className="w-6 h-6 sm:w-7 sm:h-7" />
+            <Eye className="w-6 h-6 sm:w-7 sm:h-7" />
           </div>
           <div className="space-y-1 sm:space-y-1.5 min-w-0">
-            <h3 className="text-xl sm:text-2xl font-bold text-slate-950 leading-tight">Explainable AI & Attention Map</h3>
-            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">Grad-CAM style activation highlighting diagnostic retinal features</p>
+            <h3 className="text-xl sm:text-2xl font-bold text-slate-950 leading-tight">Image-Based Attention Map</h3>
+            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">Image contrast for visual review</p>
           </div>
         </div>
       </div>
@@ -50,7 +49,7 @@ export const ExplainabilityViewer: React.FC<ExplainabilityViewerProps> = ({
             {hasHeatmap && (
               <AuthenticatedImage
                 src={heatmapSrc ?? undefined}
-                alt="Backend-generated lesion attention heatmap"
+                alt="Image-based attention heatmap"
                 className="absolute inset-0 m-auto max-h-full max-w-full object-contain pointer-events-none transition-opacity"
                 style={{ opacity: effectiveOverlayOpacity / 100 }}
               />
@@ -58,21 +57,21 @@ export const ExplainabilityViewer: React.FC<ExplainabilityViewerProps> = ({
 
             {isGradeable && !heatmapSrc && (
               <div className="absolute bottom-5 right-5 max-w-xs rounded-xl border border-white/10 bg-black/75 px-4 py-3 text-sm text-slate-200 shadow-lg">
-                Heatmap was not returned by the backend for this case.
+                No heatmap is available for this case.
               </div>
             )}
           </div>
         ) : (
           <div className="text-center text-slate-500 text-base p-6">
             <Eye className="w-12 h-12 mx-auto mb-3 opacity-40" />
-            <span>Upload a fundus image to view explainability heatmap</span>
+            <span>No fundus image available</span>
           </div>
         )}
 
         {hasHeatmap && (
           <div className="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 bg-black/85 backdrop-blur-md px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm text-white flex items-center gap-2.5 sm:gap-3 border border-white/15 shadow-xl whitespace-nowrap z-10">
             <span className="flex items-center gap-1.5 leading-none">
-              <span className="text-slate-300 font-medium">Attention:</span>
+              <span className="text-slate-300 font-medium">Contrast:</span>
               <span className="text-blue-400 font-semibold">Low</span>
             </span>
             <div
@@ -124,7 +123,7 @@ export const ExplainabilityViewer: React.FC<ExplainabilityViewerProps> = ({
         <div className="space-y-1.5 min-w-0 flex-1">
           <p className="font-bold text-sm sm:text-base leading-6 text-indigo-950">{explanationText}</p>
           <p className="text-xs sm:text-sm text-indigo-800/90 leading-relaxed">
-            Method: <strong className="font-semibold">{methodText}</strong>. Visual attribution maps neural network activation layers back to fundus vascular coordinates to assist ophthalmic audit.
+            Image-based attention highlights contrast differences. It does not explain the classifier's prediction or confirm retinal lesions.
           </p>
         </div>
       </div>

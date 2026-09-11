@@ -8,7 +8,8 @@
   }
 
   body {
-    @apply bg-slate-50 text-slate-900 min-h-screen antialiased;
+    background-color: #a8e6cf;
+    @apply text-slate-900 min-h-screen antialiased;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 
@@ -19,6 +20,7 @@
 
 /* Smooth scrolling */
 html {
+  background-color: #a8e6cf;
   scroll-behavior: smooth;
 }
 
