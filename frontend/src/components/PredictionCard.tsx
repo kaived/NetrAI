@@ -3,7 +3,6 @@ import {
   AlertTriangle,
   CheckCircle,
   HelpCircle,
-  Cpu,
   Check
 } from 'lucide-react';
 import type { PredictionResult } from '../types';
@@ -30,7 +29,6 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, isGr
   const confidencePercent = Math.round(prediction.confidence * 100);
   const confidenceLevel = displayText(prediction.confidence_level, getConfidenceLevel(prediction.confidence));
   const confidenceTone = getConfidenceTone(confidenceLevel);
-  const modelVersion = displayText(prediction.model_version, 'Model version unavailable');
 
   return (
     <div className="bg-white border border-slate-200 rounded-2xl p-6 lg:p-7 shadow-sm space-y-6 h-full flex flex-col justify-between">
@@ -158,19 +156,6 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, isGr
         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between text-xs sm:text-sm text-slate-500 mt-4 px-1">
           <span>Grade 0-1: Routine Annual Screening</span>
           <span className="text-rose-600 font-semibold">Grade 2-4: Refer to Eye Specialist</span>
-        </div>
-      </div>
-
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-5 border-t border-slate-100 text-xs sm:text-sm text-slate-500">
-        <div className="flex items-center gap-2 flex-wrap">
-          <Cpu className="w-4 h-4 sm:w-5 sm:h-5 text-teal-600 shrink-0" />
-          <span>Model Architecture:</span>
-          <span className="font-bold text-slate-800 bg-slate-100 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-lg text-xs sm:text-sm">
-            {modelVersion}
-          </span>
-        </div>
-        <div className="text-xs sm:text-sm text-slate-400">
-          Trained on APTOS 2019 Blindness Detection benchmark
         </div>
       </div>
     </div>

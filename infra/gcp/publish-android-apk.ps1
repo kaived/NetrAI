@@ -36,6 +36,27 @@ function Test-GcloudExists {
     }
 }
 
+function Get-ApkSha256 {
+    param([string]$Path)
+
+    if (Get-Command Get-FileHash -ErrorAction SilentlyContinue) {
+        return (Get-FileHash -Algorithm SHA256 -LiteralPath $Path).Hash
+    }
+
+    $stream = [System.IO.File]::OpenRead($Path)
+    try {
+        $sha = [System.Security.Cryptography.SHA256]::Create()
+        try {
+            $hashBytes = $sha.ComputeHash($stream)
+            return ([BitConverter]::ToString($hashBytes) -replace "-", "").ToUpperInvariant()
+        } finally {
+            $sha.Dispose()
+        }
+    } finally {
+        $stream.Dispose()
+    }
+}
+
 $activeAccount = & gcloud auth list --filter=status:ACTIVE --format="value(account)"
 if ($LASTEXITCODE -ne 0 -or -not $activeAccount) {
     throw "No active gcloud account. Run: .\infra\gcp\login.ps1"
@@ -58,7 +79,7 @@ if (-not (Test-GcloudExists storage buckets describe "gs://$Bucket" --project $P
         --no-public-access-prevention
 }
 
-$sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $ApkPath).Hash
+$sha256 = Get-ApkSha256 -Path $ApkPath
 Invoke-Gcloud storage cp $ApkPath "gs://$Bucket/$ObjectPath" `
     --content-type "application/vnd.android.package-archive" `
     --cache-control "public,max-age=300"

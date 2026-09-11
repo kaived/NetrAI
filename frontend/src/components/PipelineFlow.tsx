@@ -38,32 +38,27 @@ export const PipelineFlow: React.FC<PipelineFlowProps> = ({ isLoading, isRestori
     {
       id: 'quality',
       title: 'Image Quality Gate',
-      desc: 'Focus & Illumination',
       icon: ShieldCheck,
       failedIcon: ShieldAlert,
     },
     {
       id: 'preprocess',
       title: 'Preprocessing',
-      desc: 'Crop & Green Filter',
       icon: Layers,
     },
     {
       id: 'model',
       title: 'DR Classification',
-      desc: 'ONNX Deep Net',
       icon: Cpu,
     },
     {
       id: 'decision',
       title: 'Referral Triage',
-      desc: 'ICDR Grade 0-4',
       icon: GitCommit,
     },
     {
       id: 'report',
       title: 'Clinical Report',
-      desc: 'Explainable Summary',
       icon: FileCheck,
     },
   ];
@@ -172,56 +167,45 @@ export const PipelineFlow: React.FC<PipelineFlowProps> = ({ isLoading, isRestori
           let badgeBg = 'bg-slate-50 text-slate-700 border-slate-200';
           let iconColor = 'text-slate-400';
           let titleColor = 'text-slate-800 font-semibold';
-          let descColor = 'text-slate-500';
 
           if (status === 'processing') {
             badgeBg = 'bg-teal-50/90 text-teal-900 border-teal-400 ring-2 ring-teal-400/40 shadow-sm animate-pulse';
             iconColor = 'text-teal-600';
             titleColor = 'text-teal-950 font-extrabold';
-            descColor = 'text-teal-700 font-medium';
           } else if (status === 'success') {
             badgeBg = 'bg-emerald-50/80 text-emerald-900 border-emerald-300 shadow-xs';
             iconColor = 'text-emerald-600';
             titleColor = 'text-emerald-950 font-bold';
-            descColor = 'text-emerald-700';
           } else if (status === 'warning') {
             badgeBg = 'bg-rose-50 text-rose-900 border-rose-300 shadow-xs';
             iconColor = 'text-rose-600';
             titleColor = 'text-rose-950 font-bold';
-            descColor = 'text-rose-700';
           } else if (status === 'failed') {
             badgeBg = 'bg-red-50 text-red-900 border-red-300 shadow-xs';
             iconColor = 'text-red-600';
             titleColor = 'text-red-950 font-bold';
-            descColor = 'text-red-700';
           } else if (status === 'skipped') {
             badgeBg = 'bg-slate-50/90 text-slate-600 border-slate-200';
             iconColor = 'text-slate-400';
             titleColor = 'text-slate-600 font-medium';
-            descColor = 'text-slate-500';
           }
 
           return (
             <div
               key={step.id}
-              className={`flex min-h-[92px] items-center gap-4 p-4 rounded-xl border text-left transition-all ${badgeBg}`}
+              className={`flex items-center gap-3.5 p-3.5 sm:p-4 rounded-xl border text-left transition-all ${badgeBg}`}
             >
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white shadow-sm border border-inherit shrink-0">
+              <div className="flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-white shadow-sm border border-inherit shrink-0">
                 {status === 'processing' ? (
-                  <Loader2 className="w-6 h-6 animate-spin text-teal-600" />
+                  <Loader2 className="w-5 h-5 sm:w-6 sm:h-6 animate-spin text-teal-600" />
                 ) : (
-                  <Icon className={`w-6 h-6 ${iconColor}`} />
+                  <Icon className={`w-5 h-5 sm:w-6 sm:h-6 ${iconColor}`} />
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between">
-                  <span className={`text-base leading-tight ${titleColor}`}>
-                    {step.title}
-                  </span>
-                </div>
-                <p className={`text-sm leading-5 mt-1 ${descColor}`}>
-                  {step.desc}
-                </p>
+                <span className={`text-sm sm:text-base leading-snug block ${titleColor}`}>
+                  {step.title}
+                </span>
               </div>
             </div>
           );

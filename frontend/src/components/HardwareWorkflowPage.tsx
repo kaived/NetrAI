@@ -61,7 +61,7 @@ export const HardwareWorkflowPage: React.FC<HardwareWorkflowPageProps> = ({
             Capture retinal images on the fundus camera. Screen them in NetrAI.
           </h1>
           <p className="mt-4 max-w-xl text-sm leading-relaxed text-slate-600 sm:text-base">
-            NetrAI does not use the mobile camera for retinal capture. It accepts exported JPG, PNG, or TIFF fundus photographs from portable field cameras and hospital tabletop systems.
+            Import retinal fundus photographs to perform automated quality assessment, diabetic retinopathy grading, and clinical referral triage.
           </p>
         </div>
 

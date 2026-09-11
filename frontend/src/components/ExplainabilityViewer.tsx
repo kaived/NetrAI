@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { Eye, Layers, Info } from 'lucide-react';
+import { Eye, Layers } from 'lucide-react';
 import { resolveApiAssetUrl } from '../api';
 import type { ExplanationResult } from '../types';
-import { displayText } from '../utils/display';
 import { AuthenticatedImage } from './AuthenticatedImage';
 
 interface ExplainabilityViewerProps {
@@ -20,7 +19,6 @@ export const ExplainabilityViewer: React.FC<ExplainabilityViewerProps> = ({
   const heatmapSrc = resolveApiAssetUrl(explanation.heatmap_url);
   const hasHeatmap = Boolean(isGradeable && heatmapSrc);
   const effectiveOverlayOpacity = hasHeatmap ? Math.max(25, overlayOpacity) : overlayOpacity;
-  const explanationText = displayText(explanation.text, 'Explainability note is not available for this case.');
 
   return (
     <div className="bg-white border border-slate-200 rounded-2xl p-6 lg:p-7 shadow-sm space-y-5 h-full flex flex-col">
@@ -115,18 +113,6 @@ export const ExplainabilityViewer: React.FC<ExplainabilityViewerProps> = ({
           })()}
         </div>
       )}
-
-      <div className="bg-indigo-50/60 border border-indigo-100 rounded-xl p-4 sm:p-5 text-indigo-950 flex items-start gap-3">
-        <div className="flex items-center justify-center shrink-0 w-5 h-6">
-          <Info className="w-5 h-5 text-indigo-600" />
-        </div>
-        <div className="space-y-1.5 min-w-0 flex-1">
-          <p className="font-bold text-sm sm:text-base leading-6 text-indigo-950">{explanationText}</p>
-          <p className="text-xs sm:text-sm text-indigo-800/90 leading-relaxed">
-            Image-based attention highlights contrast differences. It does not explain the classifier's prediction or confirm retinal lesions.
-          </p>
-        </div>
-      </div>
     </div>
   );
 };

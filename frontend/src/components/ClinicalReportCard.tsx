@@ -6,8 +6,6 @@ import {
   FileDown,
   Copy,
   Check,
-  AlertCircle,
-  Clock,
   Stethoscope
 } from 'lucide-react';
 import { resolveApiAssetUrl } from '../api';
@@ -321,23 +319,10 @@ ${reportDisclaimer}
         >
           <div className="flex items-start gap-3">
             <Stethoscope className="w-5 h-5 sm:w-6 sm:h-6 shrink-0 mt-0.5 text-inherit" />
-            <div className="space-y-1.5 sm:space-y-2 min-w-0 flex-1">
+            <div className="min-w-0 flex-1">
               <h4 className="text-lg sm:text-xl font-bold leading-snug sm:leading-7">{reportSummary}</h4>
-              <p className="text-xs sm:text-base leading-relaxed sm:leading-7 opacity-90">{reportRecommendation}</p>
             </div>
           </div>
-        </div>
-      </div>
-
-      <div className="bg-amber-50/70 border border-amber-200 rounded-xl p-4 sm:p-5 text-xs sm:text-sm text-amber-900 flex items-start gap-3">
-        <div className="flex items-center justify-center shrink-0 w-5 h-5">
-          <AlertCircle className="w-5 h-5 text-amber-700" />
-        </div>
-        <div className="space-y-1 min-w-0 flex-1">
-          <span className="font-bold block leading-5">Medical Screening Disclaimer:</span>
-          <p className="text-xs sm:text-sm leading-relaxed sm:leading-6 text-amber-800">
-            {reportDisclaimer} NetrAI is an automated decision-support triage aid for primary health centers, designed to assist clinical evaluations by certified ophthalmologists and healthcare professionals.
-          </p>
         </div>
       </div>
     </div>

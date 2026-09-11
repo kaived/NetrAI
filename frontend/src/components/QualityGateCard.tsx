@@ -2,9 +2,7 @@ import React from 'react';
 import {
   ShieldCheck,
   ShieldAlert,
-  CheckCircle,
   AlertTriangle,
-  ScanEye,
   AlertCircle
 } from 'lucide-react';
 import type { QualityResult } from '../types';
@@ -161,58 +159,25 @@ export const QualityGateCard: React.FC<QualityGateCardProps> = ({ quality }) => 
         </div>
       </div>
 
-      <div className="mt-5">
-        {quality.warnings && quality.warnings.length > 0 && (
-          <div className="mb-4 bg-amber-50/80 border border-amber-200 rounded-xl p-4 sm:p-5 text-amber-950 space-y-2.5">
-            <div className="font-bold flex items-center gap-2.5 text-sm sm:text-base leading-6 text-amber-950">
-              <ScanEye className="w-5 h-5 text-amber-700 shrink-0" />
-              <span>Capture Advisory</span>
-            </div>
-            {isGradeable && (
-              <p className="text-xs sm:text-sm text-amber-900/90 leading-relaxed">
-                Screening completed, but a more centered fundus image is preferred for higher reliability.
-              </p>
-            )}
-            <div className="space-y-2 text-xs sm:text-sm text-amber-900/90 leading-relaxed">
-              {quality.warnings.map((warning, idx) => (
-                <div key={idx} className="flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                  <span className="flex-1 min-w-0">{displayText(warning, 'Quality warning not available')}</span>
-                </div>
-              ))}
-            </div>
+      {!isGradeable && quality.reasons.length > 0 && (
+        <div className="mt-5 bg-rose-100/70 border border-rose-300 rounded-xl p-4 sm:p-5 text-rose-900 space-y-2.5">
+          <div className="font-bold flex items-center gap-2.5 text-sm sm:text-base leading-6 text-rose-950">
+            <AlertTriangle className="w-5 h-5 text-rose-700 shrink-0" />
+            <span>Quality Gate Rejection Reasons</span>
           </div>
-        )}
-
-        {!isGradeable && quality.reasons.length > 0 && (
-          <div className="bg-rose-100/70 border border-rose-300 rounded-xl p-4 sm:p-5 text-rose-900 space-y-2.5">
-            <div className="font-bold flex items-center gap-2.5 text-sm sm:text-base leading-6 text-rose-950">
-              <AlertTriangle className="w-5 h-5 text-rose-700 shrink-0" />
-              <span>Quality Gate Rejection Reasons</span>
-            </div>
-            <div className="space-y-2 text-xs sm:text-sm text-rose-900/90 leading-relaxed">
-              {quality.reasons.map((reason, idx) => (
-                <div key={idx} className="flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-                  <span className="flex-1 min-w-0">{displayText(reason, 'Quality rejection reason not available')}</span>
-                </div>
-              ))}
-            </div>
-            <p className="text-xs sm:text-sm text-rose-800 pt-1 leading-relaxed">
-              <strong>Action for PHC Operator:</strong> Recapture the fundus photograph after asking patient to steady gaze and adjusting camera illumination.
-            </p>
+          <div className="space-y-2 text-xs sm:text-sm text-rose-900/90 leading-relaxed">
+            {quality.reasons.map((reason, idx) => (
+              <div key={idx} className="flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                <span className="flex-1 min-w-0">{displayText(reason, 'Quality rejection reason not available')}</span>
+              </div>
+            ))}
           </div>
-        )}
-
-        {isGradeable && (
-          <div className="flex items-start gap-2.5 sm:gap-3 text-xs sm:text-sm text-emerald-900 bg-emerald-50/80 border border-emerald-200 p-4 sm:p-5 rounded-xl">
-            <CheckCircle className="w-4 h-4 sm:w-[18px] sm:h-[18px] text-emerald-600 shrink-0 mt-0.5" />
-            <p className="leading-snug sm:leading-relaxed font-medium text-emerald-950 flex-1 min-w-0">
-              Fundus image passed quality threshold. Optical disc and macula regions are adequately resolved for neural network inference.
-            </p>
-          </div>
-        )}
-      </div>
+          <p className="text-xs sm:text-sm text-rose-800 pt-1 leading-relaxed">
+            <strong>Action for PHC Operator:</strong> Recapture the fundus photograph after asking patient to steady gaze and adjusting camera illumination.
+          </p>
+        </div>
+      )}
     </div>
   );
 };
