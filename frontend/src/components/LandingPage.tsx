@@ -40,7 +40,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   return (
     <div className="space-y-8">
       <section className="relative overflow-hidden rounded-3xl border border-slate-200 bg-white p-3.5 sm:p-8 lg:p-12 shadow-sm">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.1fr] xl:grid-cols-[1fr_1.15fr] gap-6 lg:gap-12 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-[1.18fr_1fr] xl:grid-cols-[1.2fr_1.05fr] gap-6 lg:gap-8 xl:gap-10 items-center">
           {/* Left Column: Heading, Subtext, Buttons */}
           <div className="space-y-4 sm:space-y-6">
             <div className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full border border-teal-200 bg-teal-50 px-3 py-1 sm:px-3.5 sm:py-1.5 text-[11px] sm:text-xs font-bold text-teal-800 shadow-2xs whitespace-nowrap">
@@ -58,31 +58,31 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </p>
             </div>
 
-            <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:flex-nowrap lg:gap-3">
               <button
                 type="button"
                 onClick={onStartScreening}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-700 px-5 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-teal-800 active:bg-teal-900"
+                className="inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-xl bg-teal-700 px-3.5 sm:px-4 xl:px-5 py-3 text-xs sm:text-sm font-bold text-white shadow-sm transition-all hover:bg-teal-800 active:bg-teal-900 whitespace-nowrap shrink-0"
               >
-                <Eye className="h-5 w-5" />
-                <span>Start Screening</span>
-                <ArrowRight className="h-4 w-4" />
+                <Eye className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
+                <span className="whitespace-nowrap">Start Screening</span>
+                <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
               </button>
               <button
                 type="button"
                 onClick={onOpenGuide}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 shadow-xs transition-all hover:bg-slate-50 hover:text-slate-950 active:bg-slate-100"
+                className="inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-xl border border-slate-200 bg-white px-3.5 sm:px-4 xl:px-5 py-3 text-xs sm:text-sm font-bold text-slate-700 shadow-xs transition-all hover:bg-slate-50 hover:text-slate-950 active:bg-slate-100 whitespace-nowrap shrink-0"
               >
-                <ClipboardCheck className="h-5 w-5 text-teal-700" />
-                <span>View Clinical Protocol</span>
+                <ClipboardCheck className="h-4 w-4 sm:h-5 sm:w-5 shrink-0 text-teal-700" />
+                <span className="whitespace-nowrap">View Clinical Protocol</span>
               </button>
               <button
                 type="button"
                 onClick={onOpenHardwareWorkflow}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-5 py-3 text-sm font-bold text-teal-800 shadow-xs transition-all hover:border-teal-300 hover:bg-[#c9f2e0] hover:text-teal-900 active:bg-teal-100"
+                className="inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-xl border border-teal-200 bg-teal-50 px-3.5 sm:px-4 xl:px-5 py-3 text-xs sm:text-sm font-bold text-teal-800 shadow-xs transition-all hover:border-teal-300 hover:bg-[#c9f2e0] hover:text-teal-900 active:bg-teal-100 whitespace-nowrap shrink-0"
               >
-                <Camera className="h-5 w-5 text-teal-700" />
-                <span>Camera Workflow</span>
+                <Camera className="h-4 w-4 sm:h-5 sm:w-5 shrink-0 text-teal-700" />
+                <span className="whitespace-nowrap">Camera Workflow</span>
               </button>
             </div>
 
