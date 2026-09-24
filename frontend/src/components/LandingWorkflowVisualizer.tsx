@@ -14,41 +14,18 @@ import {
   FileDown,
   Printer
 } from 'lucide-react';
-
-const STEPS = [
-  {
-    id: 1,
-    title: 'Intake & Eye Selection',
-    shortTitle: '1. Intake',
-    tagline: 'Patient demographic intake and bilateral eye designation (OD / OS).',
-    icon: User,
-  },
-  {
-    id: 2,
-    title: 'Quality Gate Validation',
-    shortTitle: '2. Quality',
-    tagline: 'Automated pre-screening check for blur, illumination, and fundus field.',
-    icon: ShieldCheck,
-  },
-  {
-    id: 3,
-    title: 'Analysis & Heatmap',
-    shortTitle: '3. Analysis',
-    tagline: 'ICDR grading (0-4) with a separate image-based attention map.',
-    icon: Cpu,
-  },
-  {
-    id: 4,
-    title: 'Clinical Triage Report',
-    shortTitle: '4. Referral',
-    tagline: 'Consolidated bilateral referral document with actionable PHC protocols.',
-    icon: FileText,
-  },
-];
+import { useTranslation } from 'react-i18next';
 
 const STEP_DURATION_MS = 4500;
 
 export const LandingWorkflowVisualizer: React.FC = () => {
+  const { t } = useTranslation();
+  const steps = [
+    { id: 1, title: t('visualizer.steps.intakeTitle'), shortTitle: t('visualizer.steps.intakeShort'), tagline: t('visualizer.steps.intakeTagline'), icon: User },
+    { id: 2, title: t('visualizer.steps.qualityTitle'), shortTitle: t('visualizer.steps.qualityShort'), tagline: t('visualizer.steps.qualityTagline'), icon: ShieldCheck },
+    { id: 3, title: t('visualizer.steps.analysisTitle'), shortTitle: t('visualizer.steps.analysisShort'), tagline: t('visualizer.steps.analysisTagline'), icon: Cpu },
+    { id: 4, title: t('visualizer.steps.reportTitle'), shortTitle: t('visualizer.steps.reportShort'), tagline: t('visualizer.steps.reportTagline'), icon: FileText },
+  ];
   const [activeStep, setActiveStep] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [progress, setProgress] = useState(0);
@@ -79,7 +56,7 @@ export const LandingWorkflowVisualizer: React.FC = () => {
   // Advance to next step once progress reaches 100%
   useEffect(() => {
     if (progress >= 100) {
-      setActiveStep((curr) => (curr + 1) % STEPS.length);
+      setActiveStep((curr) => (curr + 1) % steps.length);
       setProgress(0);
     }
   }, [progress]);
@@ -94,12 +71,12 @@ export const LandingWorkflowVisualizer: React.FC = () => {
   };
 
   const handlePrev = () => {
-    setActiveStep((curr) => (curr === 0 ? STEPS.length - 1 : curr - 1));
+    setActiveStep((curr) => (curr === 0 ? steps.length - 1 : curr - 1));
     setProgress(0);
   };
 
   const handleNext = () => {
-    setActiveStep((curr) => (curr + 1) % STEPS.length);
+    setActiveStep((curr) => (curr + 1) % steps.length);
     setProgress(0);
   };
 
@@ -111,7 +88,7 @@ export const LandingWorkflowVisualizer: React.FC = () => {
           <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
             <span className="h-2 w-2 rounded-full bg-teal-600 shrink-0" />
             <span className="text-[10px] sm:text-xs font-extrabold uppercase tracking-wider text-slate-600 truncate">
-              How It Works · Process Visualizer
+              {t('visualizer.title')}
             </span>
           </div>
 
@@ -124,8 +101,8 @@ export const LandingWorkflowVisualizer: React.FC = () => {
                   ? 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                   : 'border-teal-300 bg-teal-50 text-teal-700 hover:bg-teal-100 hover:text-teal-900'
               }`}
-              title={isPlaying ? 'Pause auto-play' : 'Resume auto-play'}
-              aria-label={isPlaying ? 'Pause auto-play' : 'Resume auto-play'}
+              title={isPlaying ? t('visualizer.pause') : t('visualizer.resume')}
+              aria-label={isPlaying ? t('visualizer.pause') : t('visualizer.resume')}
             >
               {isPlaying ? (
                 <Pause className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
@@ -137,8 +114,8 @@ export const LandingWorkflowVisualizer: React.FC = () => {
               type="button"
               onClick={handlePrev}
               className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900 active:scale-95 transition-all cursor-pointer shadow-2xs"
-              title="Previous step"
-              aria-label="Previous step"
+              title={t('visualizer.previous')}
+              aria-label={t('visualizer.previous')}
             >
               <ChevronLeft className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
             </button>
@@ -146,8 +123,8 @@ export const LandingWorkflowVisualizer: React.FC = () => {
               type="button"
               onClick={handleNext}
               className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900 active:scale-95 transition-all cursor-pointer shadow-2xs"
-              title="Next step"
-              aria-label="Next step"
+              title={t('visualizer.next')}
+              aria-label={t('visualizer.next')}
             >
               <ChevronRight className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
             </button>
@@ -156,7 +133,7 @@ export const LandingWorkflowVisualizer: React.FC = () => {
 
         {/* Step Tabs */}
         <div className="grid grid-cols-4 gap-1 sm:gap-1.5">
-          {STEPS.map((step, idx) => {
+          {steps.map((step, idx) => {
             const isActive = activeStep === idx;
             const Icon = step.icon;
             return (
@@ -201,24 +178,24 @@ export const LandingWorkflowVisualizer: React.FC = () => {
         <div className="space-y-0.5 min-w-0 flex-1">
           <div className="flex items-center gap-1.5 sm:gap-2">
             <span className="text-xs sm:text-sm lg:text-base font-extrabold text-slate-900">
-              {STEPS[activeStep].title}
+              {steps[activeStep].title}
             </span>
             <span className="rounded-full bg-teal-100 px-1.5 sm:px-2 py-0.5 text-[9.5px] sm:text-[11px] font-extrabold text-teal-800 whitespace-nowrap shrink-0">
-              Step {activeStep + 1} of 4
+              {t('visualizer.stepOf', { current: activeStep + 1 })}
             </span>
           </div>
           <p className="text-[10px] sm:text-xs lg:text-sm text-slate-600 leading-tight line-clamp-2">
-            {STEPS[activeStep].tagline}
+            {steps[activeStep].tagline}
           </p>
         </div>
 
         <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-          {STEPS.map((_, idx) => (
+          {steps.map((_, idx) => (
             <button
               key={idx}
               type="button"
               onClick={() => handleSelectStep(idx)}
-              aria-label={`Jump to step ${idx + 1}`}
+              aria-label={t('visualizer.jumpTo', { step: idx + 1 })}
               className={`h-1.5 sm:h-2 rounded-full transition-all cursor-pointer ${
                 activeStep === idx ? 'w-4 sm:w-6 bg-teal-700' : 'w-1.5 sm:w-2 bg-slate-200 hover:bg-slate-300'
               }`}
@@ -234,6 +211,7 @@ export const LandingWorkflowVisualizer: React.FC = () => {
    Step 1: Intake Visual (Patient Card & Bilateral Switcher)
 ------------------------------------------------------------- */
 const StepIntakeVisual: React.FC = () => {
+  const { t } = useTranslation();
   return (
     <div className="space-y-2 sm:space-y-3">
       {/* Patient Demographic Bar */}
@@ -243,8 +221,8 @@ const StepIntakeVisual: React.FC = () => {
             PT
           </div>
           <div className="min-w-0">
-            <span className="font-extrabold text-slate-900 text-xs sm:text-sm block truncate">Patient #5802</span>
-            <span className="text-slate-500 text-[10px] sm:text-xs block truncate">Age 58 · Type 2 Diabetes (10 yrs)</span>
+            <span className="font-extrabold text-slate-900 text-xs sm:text-sm block truncate">{t('visualizer.details.patient')}</span>
+            <span className="text-slate-500 text-[10px] sm:text-xs block truncate">{t('visualizer.details.patientInfo')}</span>
           </div>
         </div>
         <span className="rounded-md bg-emerald-100 px-2 py-0.5 sm:px-2.5 sm:py-1 text-[9px] sm:text-xs font-extrabold text-emerald-800 shrink-0">
@@ -257,17 +235,17 @@ const StepIntakeVisual: React.FC = () => {
         <div className="rounded-xl border-2 border-teal-700 bg-teal-50/50 p-2 sm:p-3 text-center shadow-xs">
           <div className="flex items-center justify-center gap-1 sm:gap-1.5 text-teal-900 font-extrabold text-[11px] sm:text-sm">
             <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-teal-700 shrink-0" />
-            <span>OD Right Eye</span>
+            <span>{t('intake.rightEye')} Eye</span>
           </div>
-          <p className="mt-0.5 text-[9.5px] sm:text-xs text-teal-700 font-semibold">Fundus Ready ✓</p>
+          <p className="mt-0.5 text-[9.5px] sm:text-xs text-teal-700 font-semibold">{t('visualizer.details.ready')} ✓</p>
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white p-2 sm:p-3 text-center hover:border-slate-300 transition-colors shadow-2xs">
           <div className="flex items-center justify-center gap-1 sm:gap-1.5 text-slate-600 font-bold text-[11px] sm:text-sm">
             <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-slate-400 shrink-0" />
-            <span>OS Left Eye</span>
+            <span>{t('intake.leftEye')} Eye</span>
           </div>
-          <p className="mt-0.5 text-[9.5px] sm:text-xs text-slate-500">Scheduled</p>
+          <p className="mt-0.5 text-[9.5px] sm:text-xs text-slate-500">{t('visualizer.details.scheduled')}</p>
         </div>
       </div>
 
@@ -278,8 +256,8 @@ const StepIntakeVisual: React.FC = () => {
             <RetinaEyeSvg className="h-5 w-5 sm:h-7 sm:w-7" />
           </div>
           <div className="min-w-0">
-            <span className="text-[11px] sm:text-sm font-extrabold text-slate-900 block truncate">50° Non-Mydriatic Field</span>
-            <span className="text-[9.5px] sm:text-xs text-teal-700 font-semibold block truncate">Macula & Optic Disc Centered</span>
+            <span className="text-[11px] sm:text-sm font-extrabold text-slate-900 block truncate">{t('visualizer.details.field')}</span>
+            <span className="text-[9.5px] sm:text-xs text-teal-700 font-semibold block truncate">{t('visualizer.details.centered')}</span>
           </div>
         </div>
         <span className="rounded-full bg-white px-2 py-0.5 sm:px-2.5 sm:py-1 text-[9.5px] sm:text-xs font-mono font-bold text-teal-800 border border-teal-200 shadow-2xs shrink-0">
@@ -294,15 +272,16 @@ const StepIntakeVisual: React.FC = () => {
    Step 2: Quality Gate Visual (4 Gauge Cards with Badges)
 ------------------------------------------------------------- */
 const StepQualityVisual: React.FC = () => {
+  const { t } = useTranslation();
   return (
     <div className="space-y-2 sm:space-y-3">
       <div className="flex items-center justify-between gap-2 px-0.5 min-w-0">
         <span className="text-[11px] sm:text-sm font-extrabold uppercase tracking-wide text-slate-700 truncate min-w-0">
-          Quality Gate Pre-Check
+          {t('visualizer.details.qualityPrecheck')}
         </span>
         <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] sm:text-xs font-extrabold text-emerald-800 shadow-2xs shrink-0 whitespace-nowrap leading-none">
           <CheckCircle2 className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
-          <span className="whitespace-nowrap">Gradeable Image</span>
+          <span className="whitespace-nowrap">{t('visualizer.details.gradeable')}</span>
         </span>
       </div>
 
@@ -310,60 +289,60 @@ const StepQualityVisual: React.FC = () => {
         {/* Metric 1: Focus */}
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-2 sm:p-3">
           <div className="flex items-center justify-between text-[11px] sm:text-sm">
-            <span className="font-semibold text-slate-700">Focus</span>
+            <span className="font-semibold text-slate-700">{t('quality.focus')}</span>
             <span className="font-extrabold text-slate-950 font-mono text-xs sm:text-base">1.0</span>
           </div>
           <div className="mt-1 sm:mt-1.5 h-1 sm:h-1.5 w-full rounded-full bg-slate-200 overflow-hidden">
             <div className="h-full bg-emerald-500 rounded-full w-[85%]" />
           </div>
           <div className="mt-0.5 sm:mt-1 flex justify-between text-[9px] sm:text-xs text-slate-500">
-            <span>Sharpness</span>
-            <span className="text-emerald-700 font-extrabold">Passed ✓</span>
+            <span>{t('visualizer.details.sharpness')}</span>
+            <span className="text-emerald-700 font-extrabold">{t('visualizer.details.passed')} ✓</span>
           </div>
         </div>
 
         {/* Metric 2: Brightness */}
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-2 sm:p-3">
           <div className="flex items-center justify-between text-[11px] sm:text-sm">
-            <span className="font-semibold text-slate-700">Brightness</span>
+            <span className="font-semibold text-slate-700">{t('quality.brightness')}</span>
             <span className="font-extrabold text-slate-950 font-mono text-xs sm:text-base">0.18</span>
           </div>
           <div className="mt-1 sm:mt-1.5 h-1 sm:h-1.5 w-full rounded-full bg-slate-200 overflow-hidden">
             <div className="h-full bg-emerald-500 rounded-full w-[65%]" />
           </div>
           <div className="mt-0.5 sm:mt-1 flex justify-between text-[9px] sm:text-xs text-slate-500">
-            <span>Illumination</span>
-            <span className="text-emerald-700 font-extrabold">Passed ✓</span>
+            <span>{t('visualizer.details.illumination')}</span>
+            <span className="text-emerald-700 font-extrabold">{t('visualizer.details.passed')} ✓</span>
           </div>
         </div>
 
         {/* Metric 3: Contrast */}
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-2 sm:p-3">
           <div className="flex items-center justify-between text-[11px] sm:text-sm">
-            <span className="font-semibold text-slate-700">Contrast</span>
+            <span className="font-semibold text-slate-700">{t('quality.contrast')}</span>
             <span className="font-extrabold text-slate-950 font-mono text-xs sm:text-base">0.07</span>
           </div>
           <div className="mt-1 sm:mt-1.5 h-1 sm:h-1.5 w-full rounded-full bg-slate-200 overflow-hidden">
             <div className="h-full bg-emerald-500 rounded-full w-[70%]" />
           </div>
           <div className="mt-0.5 sm:mt-1 flex justify-between text-[9px] sm:text-xs text-slate-500">
-            <span>Vessels</span>
-            <span className="text-emerald-700 font-extrabold">Passed ✓</span>
+            <span>{t('visualizer.details.vessels')}</span>
+            <span className="text-emerald-700 font-extrabold">{t('visualizer.details.passed')} ✓</span>
           </div>
         </div>
 
         {/* Metric 4: Compatibility */}
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-2 sm:p-3">
           <div className="flex items-center justify-between text-[11px] sm:text-sm">
-            <span className="font-semibold text-slate-700">Field</span>
+            <span className="font-semibold text-slate-700">{t('visualizer.details.fieldLabel')}</span>
             <span className="font-extrabold text-slate-950 font-mono text-xs sm:text-base">100%</span>
           </div>
           <div className="mt-1 sm:mt-1.5 h-1 sm:h-1.5 w-full rounded-full bg-slate-200 overflow-hidden">
             <div className="h-full bg-emerald-500 rounded-full w-full" />
           </div>
           <div className="mt-0.5 sm:mt-1 flex justify-between text-[9px] sm:text-xs text-slate-500">
-            <span>Standard</span>
-            <span className="text-emerald-700 font-extrabold">Standard ✓</span>
+            <span>{t('quality.standard')}</span>
+            <span className="text-emerald-700 font-extrabold">{t('quality.standard')} ✓</span>
           </div>
         </div>
       </div>
@@ -375,15 +354,16 @@ const StepQualityVisual: React.FC = () => {
    Step 3: Classification Workflow Illustration
 ------------------------------------------------------------- */
 const StepInferenceVisual: React.FC = () => {
+  const { t } = useTranslation();
   return (
     <div className="space-y-2 sm:space-y-3">
       <div className="flex items-center justify-between gap-2 px-0.5 min-w-0">
         <span className="text-[11px] sm:text-sm font-extrabold uppercase tracking-wide text-slate-700 truncate min-w-0">
-          Classification & Attention Map
+          {t('visualizer.details.classificationMap')}
         </span>
         <span className="inline-flex items-center gap-1 rounded-full bg-teal-100 px-2.5 py-1 text-[10px] sm:text-xs font-extrabold text-teal-800 shadow-2xs shrink-0 whitespace-nowrap leading-none">
           <Activity className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-teal-700 animate-pulse shrink-0" />
-          <span className="whitespace-nowrap">Illustration</span>
+          <span className="whitespace-nowrap">{t('visualizer.details.illustration')}</span>
         </span>
       </div>
 
@@ -398,33 +378,33 @@ const StepInferenceVisual: React.FC = () => {
         <div className="flex-1 space-y-1 sm:space-y-1.5 min-w-0">
           <div className="flex items-center justify-between text-[10.5px] sm:text-xs lg:text-sm gap-1">
             <span className="text-slate-500 font-medium shrink-0">
-              Map
+              {t('visualizer.details.map')}
             </span>
             <span className="font-extrabold text-teal-800 text-[10.5px] sm:text-xs lg:text-sm text-right shrink-0">
-              Image contrast
+              {t('visualizer.details.imageContrast')}
             </span>
           </div>
           <div className="flex items-center justify-between text-[10.5px] sm:text-xs lg:text-sm gap-1">
             <span className="text-slate-500 font-medium shrink-0">
-              Grading
+              {t('visualizer.details.grading')}
             </span>
             <span className="font-extrabold text-emerald-700 font-mono text-[11px] sm:text-sm lg:text-base text-right shrink-0">
               ICDR 0-4
             </span>
           </div>
           <div className="flex items-center justify-between text-[10.5px] sm:text-xs lg:text-sm gap-1">
-            <span className="text-slate-500 font-medium shrink-0">Review</span>
+            <span className="text-slate-500 font-medium shrink-0">{t('visualizer.details.review')}</span>
             <span className="font-mono text-slate-700 font-semibold text-[10px] sm:text-xs text-right shrink-0">
-              Clinician
+              {t('visualizer.details.clinician')}
             </span>
           </div>
 
           <div className="pt-0.5 sm:pt-1 flex flex-wrap gap-1 sm:gap-1.5">
             <span className="rounded-md bg-teal-50 border border-teal-200 px-1.5 py-0.5 text-[9px] sm:text-xs font-mono font-bold text-teal-800 shadow-2xs">
-              Screening support
+              {t('visualizer.details.screeningSupport')}
             </span>
             <span className="rounded-md bg-white border border-slate-200 px-1.5 py-0.5 text-[9px] sm:text-xs font-mono font-bold text-slate-700 shadow-2xs">
-              Both eyes
+              {t('visualizer.details.bothEyes')}
             </span>
           </div>
         </div>
@@ -437,14 +417,15 @@ const StepInferenceVisual: React.FC = () => {
    Step 4: Report Visual (Grade Pill, Referral Protocol & PDF)
 ------------------------------------------------------------- */
 const StepReportVisual: React.FC = () => {
+  const { t } = useTranslation();
   return (
     <div className="space-y-2 sm:space-y-3">
       <div className="flex items-center justify-between gap-2 px-0.5 min-w-0">
         <span className="text-[11px] sm:text-sm font-extrabold uppercase tracking-wide text-slate-700 truncate min-w-0">
-          Referral Summary
+          {t('visualizer.details.referralSummary')}
         </span>
         <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2.5 py-1 text-[10px] sm:text-xs font-extrabold text-rose-800 shadow-2xs shrink-0 whitespace-nowrap leading-none">
-          <span className="whitespace-nowrap">Referral Required</span>
+          <span className="whitespace-nowrap">{t('visualizer.details.referralRequired')}</span>
         </span>
       </div>
 
@@ -452,16 +433,16 @@ const StepReportVisual: React.FC = () => {
       <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-2.5 sm:p-4 flex items-center justify-between shadow-2xs gap-2">
         <div className="min-w-0">
           <span className="text-[9.5px] sm:text-xs font-bold uppercase tracking-wide text-amber-900 block truncate">
-            Highest Finding · OD Right Eye
+            {t('visualizer.details.highestFinding')}
           </span>
           <span className="text-xs sm:text-base lg:text-lg font-extrabold text-amber-950 block truncate">
-            Grade 2 (Moderate NPDR)
+            {t('visualizer.details.gradeFinding')}
           </span>
         </div>
         <div className="text-right shrink-0">
-          <span className="text-[9.5px] sm:text-xs text-slate-500 block">Triage Action</span>
+          <span className="text-[9.5px] sm:text-xs text-slate-500 block">{t('visualizer.details.triageAction')}</span>
           <span className="text-[11px] sm:text-sm font-extrabold text-amber-900">
-            Refer in 2-4 wks
+            {t('visualizer.details.referInWeeks')}
           </span>
         </div>
       </div>
@@ -473,7 +454,7 @@ const StepReportVisual: React.FC = () => {
             <FileText className="h-3.5 w-3.5 sm:h-5 sm:w-5" />
           </div>
           <span className="truncate text-slate-800 font-medium text-[11px] sm:text-xs lg:text-sm">
-            Consolidated Bilateral Referral Protocol
+            {t('visualizer.details.bilateralProtocol')}
           </span>
         </div>
         <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
@@ -483,7 +464,7 @@ const StepReportVisual: React.FC = () => {
           </span>
           <span className="inline-flex items-center gap-1 rounded-lg bg-white border border-slate-200 px-2 py-1 text-[10px] sm:text-xs font-bold text-slate-700 shadow-2xs">
             <Printer className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-            <span>Print</span>
+            <span>{t('visualizer.details.print')}</span>
           </span>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ArrowRight,
   Route,
@@ -35,6 +36,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onOpenHardwareWorkflow,
   onOpenGuide,
 }) => {
+  const { t } = useTranslation();
   const pendingCount = offlineQueue.pending + offlineQueue.failed;
 
   return (
@@ -45,16 +47,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <div className="space-y-4 sm:space-y-6">
             <div className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full border border-teal-200 bg-teal-50 px-3 py-1 sm:px-3.5 sm:py-1.5 text-[11px] sm:text-xs font-bold text-teal-800 shadow-2xs whitespace-nowrap">
               <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 text-teal-600" />
-              <span className="hidden sm:inline whitespace-nowrap">Retinal screening support for PHC and eye-care teams</span>
-              <span className="sm:hidden whitespace-nowrap">Retinal screening for PHC & eye care</span>
+              <span className="hidden sm:inline whitespace-nowrap">{t('landing.eyebrow')}</span>
+              <span className="sm:hidden whitespace-nowrap">{t('landing.eyebrowMobile')}</span>
             </div>
 
             <div className="space-y-4">
               <h1 className="text-3xl font-extrabold leading-tight text-slate-950 sm:text-4xl lg:text-5xl xl:text-6xl tracking-tight">
-                Protect sight with faster retinal screening.
+                {t('landing.title')}
               </h1>
               <p className="max-w-xl text-base leading-relaxed text-slate-600 sm:text-lg">
-                Load fundus photos from field cameras, screen both eyes, and produce a clear referral report that helps patients reach care earlier.
+                {t('landing.description')}
               </p>
             </div>
 
@@ -65,7 +67,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 className="inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-xl bg-teal-700 px-3.5 sm:px-4 xl:px-5 py-3 text-xs sm:text-sm font-bold text-white shadow-sm transition-all hover:bg-teal-800 active:bg-teal-900 whitespace-nowrap shrink-0"
               >
                 <Eye className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
-                <span className="whitespace-nowrap">Start Screening</span>
+                <span className="whitespace-nowrap">{t('start_screening')}</span>
                 <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
               </button>
               <button
@@ -74,7 +76,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 className="inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-xl border border-slate-200 bg-white px-3.5 sm:px-4 xl:px-5 py-3 text-xs sm:text-sm font-bold text-slate-700 shadow-xs transition-all hover:bg-slate-50 hover:text-slate-950 active:bg-slate-100 whitespace-nowrap shrink-0"
               >
                 <ClipboardCheck className="h-4 w-4 sm:h-5 sm:w-5 shrink-0 text-teal-700" />
-                <span className="whitespace-nowrap">View Clinical Protocol</span>
+                <span className="whitespace-nowrap">{t('landing.protocol')}</span>
               </button>
               <button
                 type="button"
@@ -82,14 +84,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 className="inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-xl border border-teal-200 bg-teal-50 px-3.5 sm:px-4 xl:px-5 py-3 text-xs sm:text-sm font-bold text-teal-800 shadow-xs transition-all hover:border-teal-300 hover:bg-[#c9f2e0] hover:text-teal-900 active:bg-teal-100 whitespace-nowrap shrink-0"
               >
                 <Camera className="h-4 w-4 sm:h-5 sm:w-5 shrink-0 text-teal-700" />
-                <span className="whitespace-nowrap">Camera Workflow</span>
+                <span className="whitespace-nowrap">{t('landing.cameraWorkflow')}</span>
               </button>
             </div>
 
             {pendingCount > 0 && (
               <div className="flex flex-wrap gap-2 pt-1 text-xs font-bold">
                 <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-amber-800 shadow-2xs">
-                  {pendingCount} saved case{pendingCount === 1 ? '' : 's'} waiting to sync
+                  {t('landing.pendingCases', { count: pendingCount })}
                 </span>
               </div>
             )}
@@ -105,39 +107,39 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <OutcomeCard
           icon={<ShieldCheck className="h-6 w-6" />}
-          title="Find referral cases sooner"
-          copy="Flag patients who need ophthalmologist review before vision loss becomes harder to prevent."
+          title={t('landing.findCases')}
+          copy={t('landing.findCasesHelp')}
         />
         <OutcomeCard
           icon={<WifiOff className="h-6 w-6" />}
-          title="Works during field camps"
-          copy="Screenings can continue when internet drops, with cases saved on the device for later sync."
+          title={t('landing.fieldCamps')}
+          copy={t('landing.fieldCampsHelp')}
         />
         <OutcomeCard
           icon={<FileCheck2 className="h-6 w-6" />}
-          title="One report for both eyes"
-          copy="OD and OS results are kept together so the review handoff stays simple and traceable."
+          title={t('landing.oneReport')}
+          copy={t('landing.oneReportHelp')}
         />
         <OutcomeCard
           icon={<Hospital className="h-6 w-6" />}
-          title="Fits PHC and hospital flow"
-          copy="Use images from portable fundus cameras, tabletop systems, USB transfer, Bluetooth, or gallery import."
+          title={t('landing.fitsFlow')}
+          copy={t('landing.fitsFlowHelp')}
         />
       </section>
 
       <section className="rounded-3xl border border-slate-200 bg-white px-4 py-6 sm:px-10 sm:py-8 lg:px-12 shadow-sm">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
           <div className="space-y-3">
-            <h2 className="text-lg sm:text-xl md:text-2xl font-extrabold text-slate-950 whitespace-nowrap">How a technician uses it</h2>
+            <h2 className="text-lg sm:text-xl md:text-2xl font-extrabold text-slate-950 whitespace-nowrap">{t('landing.technicianTitle')}</h2>
             <p className="max-w-2xl text-sm leading-relaxed text-slate-600 sm:text-base">
-              The app starts with patient intake, accepts fundus photos from the camera workflow, screens both eyes, and keeps a clear queue for saved offline cases.
+              {t('landing.technicianHelp')}
             </p>
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <WorkflowStep icon={<UploadCloud className="h-5 w-5" />} title="Load Photo" copy="Import OD or OS fundus image." />
-            <WorkflowStep icon={<Eye className="h-5 w-5" />} title="Screen Eyes" copy="Complete both eye captures." />
-            <WorkflowStep icon={<CheckCircle2 className="h-5 w-5" />} title="Share Report" copy="Review, print, or sync later." />
+            <WorkflowStep icon={<UploadCloud className="h-5 w-5" />} title={t('landing.loadPhoto')} copy={t('landing.loadPhotoHelp')} />
+            <WorkflowStep icon={<Eye className="h-5 w-5" />} title={t('landing.screenEyes')} copy={t('landing.screenEyesHelp')} />
+            <WorkflowStep icon={<CheckCircle2 className="h-5 w-5" />} title={t('landing.shareReport')} copy={t('landing.shareReportHelp')} />
           </div>
         </div>
       </section>
@@ -147,11 +149,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <div className="max-w-3xl space-y-3">
             <div className="inline-flex items-center gap-2 rounded-full border border-teal-200 bg-teal-50 px-3.5 py-1.5 text-xs font-bold text-teal-800 shadow-2xs">
               <Camera className="h-4 w-4 text-teal-700" />
-              <span>Fundus camera workflow</span>
+              <span>{t('landing.fundusWorkflow')}</span>
             </div>
-            <h2 className="text-2xl font-extrabold text-slate-950">Capture on the fundus camera. Screen in NetrAI.</h2>
+            <h2 className="text-2xl font-extrabold text-slate-950">{t('landing.fundusTitle')}</h2>
             <p className="text-sm leading-relaxed text-slate-600 sm:text-base">
-              NetrAI does not use the phone camera for retinal capture. The technician imports the exported fundus photo from a portable or hospital fundus camera, then completes screening in the app.
+              {t('landing.fundusHelp')}
             </p>
             <button
               type="button"
@@ -159,40 +161,40 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-700 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-teal-800 active:bg-teal-900"
             >
               <Camera className="h-4 w-4" />
-              <span>Open Camera Workflow</span>
+              <span>{t('landing.openCameraWorkflow')}</span>
             </button>
           </div>
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
             <HardwareStep
               icon={<Camera className="h-5 w-5" />}
-              title="Portable fundus camera"
-              copy="For PHC camps and field visits where the camera exports retinal photos to phone or tablet."
+              title={t('landing.portableCamera')}
+              copy={t('landing.portableCameraHelp')}
             />
             <HardwareStep
               icon={<Computer className="h-5 w-5" />}
-              title="Hospital fundus camera"
-              copy="For eye hospitals using tabletop systems that export images from a desktop workflow."
+              title={t('landing.hospitalCamera')}
+              copy={t('landing.hospitalCameraHelp')}
             />
             <HardwareStep
               icon={<Cable className="h-5 w-5" />}
-              title="USB cable"
-              copy="Copy the exported retinal image from camera, phone, tablet, or hospital computer."
+              title={t('landing.usb')}
+              copy={t('landing.usbHelp')}
             />
             <HardwareStep
               icon={<Bluetooth className="h-5 w-5" />}
-              title="Bluetooth"
-              copy="Receive supported image exports when the camera or capture phone allows Bluetooth sharing."
+              title={t('landing.bluetooth')}
+              copy={t('landing.bluetoothHelp')}
             />
             <HardwareStep
               icon={<Wifi className="h-5 w-5" />}
-              title="Wi-Fi or hotspot"
-              copy="Import images through camera hotspot, Wi-Fi Direct, local sharing, or device gallery."
+              title={t('landing.wifi')}
+              copy={t('landing.wifiHelp')}
             />
             <HardwareStep
               icon={<FileImage className="h-5 w-5" />}
-              title="SD card or gallery"
-              copy="Load saved JPG or PNG fundus photos after transfer from memory card or file manager."
+              title={t('landing.sd')}
+              copy={t('landing.sdHelp')}
             />
           </div>
         </div>
