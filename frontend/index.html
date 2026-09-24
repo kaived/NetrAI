@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="NetrAI - Explainable Diabetic Retinopathy Screening for Rural Primary Health Centers" />
-    <meta name="theme-color" content="#a8e6cf" />
+    <meta name="theme-color" content="#0B3D33" />
     <meta name="application-name" content="NetrAI" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="NetrAI" />
@@ -20,10 +20,86 @@
     <title>NetrAI | Rural PHC DR Screening Console</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <style>
+      #boot-splash {
+        position: fixed; inset: 0; z-index: 10000;
+        display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.4rem;
+        background: radial-gradient(ellipse 80% 60% at 50% 42%, #1a2420 0%, #0b1210 55%, #050807 100%);
+        color: #fff; font-family: "DM Sans", system-ui, sans-serif;
+      }
+      #boot-splash .eye-splash__stage { width: min(88vw, 22rem); aspect-ratio: 320 / 220; z-index: 1; }
+      #boot-splash svg { width: 100%; height: 100%; display: block; overflow: visible; }
+      #boot-splash .gaze { animation: boot-saccade 3.4s cubic-bezier(0.22, 0.61, 0.36, 1) infinite; }
+      #boot-splash .lid-u { animation: boot-blink-u 3.8s ease-in-out infinite; }
+      #boot-splash .lid-l { animation: boot-blink-l 3.8s ease-in-out infinite; }
+      #boot-splash .copy { text-align: center; z-index: 1; }
+      #boot-splash .brand {
+        margin: 0; font-size: 1.35rem; font-weight: 650; letter-spacing: 0.08em;
+        text-transform: uppercase; color: rgba(236, 248, 242, 0.92);
+      }
+      #boot-splash .tag { margin: 0.35rem 0 0; font-size: 0.82rem; color: rgba(180, 210, 195, 0.62); }
+      @keyframes boot-saccade {
+        0%,12%{transform:translate(0,0)} 18%,28%{transform:translate(14px,-3px)} 34%,44%{transform:translate(-12px,4px)}
+        50%,60%{transform:translate(8px,6px)} 66%,76%{transform:translate(-6px,-5px)} 84%,100%{transform:translate(2px,0)}
+      }
+      @keyframes boot-blink-u { 0%,38%,48%,100%{transform:translateY(-34px)} 41%,44%{transform:translateY(28px)} }
+      @keyframes boot-blink-l { 0%,38%,48%,100%{transform:translateY(18px)} 41%,44%{transform:translateY(-14px)} }
+    </style>
   </head>
-  <body class="bg-[#a8e6cf] text-slate-900 antialiased font-sans selection:bg-teal-100 selection:text-teal-900">
+  <body class="bg-canvas text-slate-900 antialiased font-sans selection:bg-mint-soft selection:text-forest">
+    <div id="boot-splash" role="status" aria-label="Loading NetrAI">
+      <div class="eye-splash__stage" aria-hidden="true">
+        <svg viewBox="0 0 320 220" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="bSclera" cx="48%" cy="42%" r="62%">
+              <stop offset="0%" stop-color="#ffffff"/><stop offset="55%" stop-color="#f4f1ea"/><stop offset="100%" stop-color="#d9d2c6"/>
+            </radialGradient>
+            <radialGradient id="bIris" cx="42%" cy="38%" r="58%">
+              <stop offset="0%" stop-color="#5a8f72"/><stop offset="35%" stop-color="#2f6b52"/>
+              <stop offset="75%" stop-color="#184a38"/><stop offset="100%" stop-color="#071c16"/>
+            </radialGradient>
+            <clipPath id="bAperture">
+              <path d="M28 110 C78 48, 242 48, 292 110 C242 172, 78 172, 28 110 Z"/>
+            </clipPath>
+          </defs>
+          <ellipse cx="160" cy="118" rx="128" ry="78" fill="rgba(0,0,0,0.28)"/>
+          <g class="gaze" clip-path="url(#bAperture)">
+            <ellipse cx="160" cy="110" rx="138" ry="92" fill="url(#bSclera)"/>
+            <circle cx="160" cy="110" r="48" fill="url(#bIris)"/>
+            <circle cx="160" cy="110" r="47" fill="none" stroke="rgba(0,0,0,0.4)" stroke-width="2"/>
+            <circle cx="160" cy="110" r="17.5" fill="#050505"/>
+            <ellipse cx="148" cy="98" rx="7.5" ry="5.2" fill="rgba(255,255,255,0.88)" transform="rotate(-18 148 98)"/>
+          </g>
+          <path d="M28 110 C78 48, 242 48, 292 110 C242 172, 78 172, 28 110 Z" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="1.4"/>
+          <g class="lid-u">
+            <path d="M20 112 C70 28, 250 28, 300 112 C250 78, 70 78, 20 112 Z" fill="#3a2a24"/>
+          </g>
+          <g class="lid-l">
+            <path d="M22 108 C74 168, 246 168, 298 108 C246 138, 74 138, 22 108 Z" fill="#2a1d18"/>
+          </g>
+        </svg>
+      </div>
+      <div class="copy">
+        <p class="brand">NetrAI</p>
+        <p class="tag">Preparing retinal screening…</p>
+      </div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      window.addEventListener("DOMContentLoaded", function () {
+        var boot = document.getElementById("boot-splash");
+        if (!boot) return;
+        var observer = new MutationObserver(function () {
+          if (document.querySelector(".eye-splash:not(#boot-splash)")) {
+            boot.remove();
+            observer.disconnect();
+          }
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+        setTimeout(function () { if (boot && boot.parentNode) boot.remove(); }, 4000);
+      });
+    </script>
   </body>
 </html>

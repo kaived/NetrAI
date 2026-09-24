@@ -13,9 +13,22 @@ import {
   preprocessImageForAptosV1,
 } from "./imageProcessing";
 
+// Load ORT wasm assets via Vite ?url so they are not dynamically imported from
+// /public (Vite 6 blocks that). Relative path avoids package "exports" limits.
+import ortWasmMjsUrl from "../../node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.mjs?url";
+import ortWasmBinaryUrl from "../../node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.wasm?url";
+
 let sessionPromise: Promise<import("onnxruntime-web/wasm").InferenceSession> | null = null;
 const OFFLINE_MODEL_LOAD_TIMEOUT_MS = 90_000;
 const OFFLINE_INFERENCE_TIMEOUT_MS = 60_000;
+
+function configureOrtWasmPaths(ort: typeof import("onnxruntime-web/wasm")) {
+  ort.env.wasm.wasmPaths = {
+    "ort-wasm-simd-threaded.mjs": ortWasmMjsUrl,
+    "ort-wasm-simd-threaded.wasm": ortWasmBinaryUrl,
+  };
+  ort.env.wasm.numThreads = 1;
+}
 
 export async function runOfflineAptosV1Screening(
   file: File,
@@ -104,8 +117,7 @@ async function getOfflineSession(): Promise<import("onnxruntime-web/wasm").Infer
 
   sessionPromise = withTimeout(
     import("onnxruntime-web/wasm").then(async (ort) => {
-      ort.env.wasm.wasmPaths = "/ort/";
-      ort.env.wasm.numThreads = 1;
+      configureOrtWasmPaths(ort);
 
       return ort.InferenceSession.create(OFFLINE_MODEL_URL, {
         executionProviders: ["wasm"],
@@ -118,8 +130,9 @@ async function getOfflineSession(): Promise<import("onnxruntime-web/wasm").Infer
       if (error instanceof Error && error.message.includes("Offline APTOS model did not load in time")) {
         throw error;
       }
+      const detail = error instanceof Error ? error.message : String(error);
       throw new Error(
-        "Offline screening model is not available on this device. Reconnect to the internet for cloud screening, or install the latest NetrAI APK with the offline model included.",
+        `Offline screening model failed to load (${OFFLINE_MODEL_URL}). ${detail} Reconnect for cloud screening, or ensure the ONNX model is available locally.`,
       );
   });
 

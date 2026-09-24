@@ -21,6 +21,22 @@ export default {
           900: '#134e4a',
           950: '#042f2e',
         },
+        // Refera-inspired clinical palette
+        forest: {
+          DEFAULT: '#0B3D33',
+          soft: '#124A3E',
+          deep: '#082E27',
+        },
+        mint: {
+          DEFAULT: '#8FD9B8',
+          soft: '#C8F0DC',
+          strong: '#6BC49A',
+          ink: '#0B3D33',
+        },
+        canvas: {
+          DEFAULT: '#F2F3F5',
+          muted: '#E8EAED',
+        },
         clinical: {
           blue: '#0284c7',
           amber: '#d97706',
@@ -30,7 +46,7 @@ export default {
         }
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+        sans: ['DM Sans', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
         mono: ['JetBrains Mono', 'Fira Code', 'Consolas', 'monospace'],
       },
       animation: {

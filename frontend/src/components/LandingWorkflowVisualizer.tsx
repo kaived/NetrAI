@@ -104,13 +104,13 @@ export const LandingWorkflowVisualizer: React.FC = () => {
   };
 
   return (
-    <div className="relative w-full rounded-2xl sm:rounded-3xl border border-slate-200 bg-white p-3.5 sm:p-5 lg:p-6 transition-all flex flex-col justify-between">
+    <div className="relative w-full rounded-xl sm:rounded-2xl border border-slate-200 bg-white p-3.5 sm:p-5 lg:p-5 transition-all flex flex-col justify-between shadow-sm">
       {/* Top Bar: Pipeline Stage Tabs & Controls */}
       <div className="space-y-2 sm:space-y-2.5 border-b border-slate-100 pb-1.5 sm:pb-2">
         <div className="flex items-center justify-between gap-1.5 sm:gap-2">
           <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-            <span className="h-2 w-2 rounded-full bg-teal-600 shrink-0" />
-            <span className="text-[10px] sm:text-xs font-extrabold uppercase tracking-wider text-slate-600 truncate">
+            <span className="h-2 w-2 rounded-full bg-mint-strong shrink-0" />
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 truncate">
               How It Works · Process Visualizer
             </span>
           </div>
@@ -122,7 +122,7 @@ export const LandingWorkflowVisualizer: React.FC = () => {
               className={`flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-lg border transition-all cursor-pointer shadow-2xs active:scale-95 ${
                 isPlaying
                   ? 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                  : 'border-teal-300 bg-teal-50 text-teal-700 hover:bg-teal-100 hover:text-teal-900'
+                  : 'border-mint-strong/50 bg-mint-soft text-forest hover:bg-mint'
               }`}
               title={isPlaying ? 'Pause auto-play' : 'Resume auto-play'}
               aria-label={isPlaying ? 'Pause auto-play' : 'Resume auto-play'}
@@ -166,18 +166,18 @@ export const LandingWorkflowVisualizer: React.FC = () => {
                 onClick={() => handleSelectStep(idx)}
                 className={`group relative flex flex-col items-center justify-center rounded-lg sm:rounded-xl px-1 py-1.5 sm:px-3 sm:py-2 text-center transition-all cursor-pointer ${
                   isActive
-                    ? 'bg-teal-50 text-teal-900 font-extrabold border border-teal-200 shadow-2xs'
+                    ? 'bg-mint-soft text-forest font-bold border border-mint-strong/40 shadow-2xs'
                     : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
                 }`}
               >
                 <div className="flex items-center justify-center gap-0.5 sm:gap-1.5 min-w-0 w-full">
-                  <Icon className={`h-3 w-3 sm:h-4 sm:w-4 shrink-0 ${isActive ? 'text-teal-700' : 'text-slate-400 group-hover:text-slate-600'}`} />
+                  <Icon className={`h-3 w-3 sm:h-4 sm:w-4 shrink-0 ${isActive ? 'text-forest' : 'text-slate-400 group-hover:text-slate-600'}`} />
                   <span className="text-[9.5px] xs:text-[10px] sm:text-xs lg:text-sm truncate leading-tight">{step.shortTitle}</span>
                 </div>
                 {isActive && (
-                  <div className="absolute bottom-0 inset-x-1 sm:inset-x-2 h-0.5 sm:h-1 rounded-full bg-teal-200 overflow-hidden">
+                  <div className="absolute bottom-0 inset-x-1 sm:inset-x-2 h-0.5 sm:h-1 rounded-full bg-mint overflow-hidden">
                     <div
-                      className="h-full bg-teal-700 transition-all duration-75 ease-linear"
+                      className="h-full bg-forest transition-all duration-75 ease-linear"
                       style={{ width: `${progress}%` }}
                     />
                   </div>
@@ -203,7 +203,7 @@ export const LandingWorkflowVisualizer: React.FC = () => {
             <span className="text-xs sm:text-sm lg:text-base font-extrabold text-slate-900">
               {STEPS[activeStep].title}
             </span>
-            <span className="rounded-full bg-teal-100 px-1.5 sm:px-2 py-0.5 text-[9.5px] sm:text-[11px] font-extrabold text-teal-800 whitespace-nowrap shrink-0">
+            <span className="rounded-full bg-mint-soft px-1.5 sm:px-2 py-0.5 text-[9.5px] sm:text-[11px] font-extrabold text-forest whitespace-nowrap shrink-0">
               Step {activeStep + 1} of 4
             </span>
           </div>
@@ -220,7 +220,7 @@ export const LandingWorkflowVisualizer: React.FC = () => {
               onClick={() => handleSelectStep(idx)}
               aria-label={`Jump to step ${idx + 1}`}
               className={`h-1.5 sm:h-2 rounded-full transition-all cursor-pointer ${
-                activeStep === idx ? 'w-4 sm:w-6 bg-teal-700' : 'w-1.5 sm:w-2 bg-slate-200 hover:bg-slate-300'
+                activeStep === idx ? 'w-4 sm:w-6 bg-forest' : 'w-1.5 sm:w-2 bg-slate-200 hover:bg-slate-300'
               }`}
             />
           ))}
@@ -239,7 +239,7 @@ const StepIntakeVisual: React.FC = () => {
       {/* Patient Demographic Bar */}
       <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/80 px-2.5 py-2 sm:px-4 sm:py-3 gap-2">
         <div className="flex items-center gap-2 min-w-0">
-          <div className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-teal-100 text-teal-800 font-extrabold text-[10px] sm:text-xs shrink-0 shadow-2xs">
+          <div className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-mint-soft text-forest font-extrabold text-[10px] sm:text-xs shrink-0 shadow-2xs">
             PT
           </div>
           <div className="min-w-0">
@@ -254,12 +254,12 @@ const StepIntakeVisual: React.FC = () => {
 
       {/* Bilateral Eye Switcher Simulation */}
       <div className="grid grid-cols-2 gap-1.5 sm:gap-3">
-        <div className="rounded-xl border-2 border-teal-700 bg-teal-50/50 p-2 sm:p-3 text-center shadow-xs">
-          <div className="flex items-center justify-center gap-1 sm:gap-1.5 text-teal-900 font-extrabold text-[11px] sm:text-sm">
-            <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-teal-700 shrink-0" />
+        <div className="rounded-xl border-2 border-forest bg-mint-soft/50 p-2 sm:p-3 text-center shadow-xs">
+          <div className="flex items-center justify-center gap-1 sm:gap-1.5 text-forest font-extrabold text-[11px] sm:text-sm">
+            <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-forest shrink-0" />
             <span>OD Right Eye</span>
           </div>
-          <p className="mt-0.5 text-[9.5px] sm:text-xs text-teal-700 font-semibold">Fundus Ready ✓</p>
+          <p className="mt-0.5 text-[9.5px] sm:text-xs text-forest font-semibold">Fundus Ready ✓</p>
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white p-2 sm:p-3 text-center hover:border-slate-300 transition-colors shadow-2xs">
@@ -272,17 +272,17 @@ const StepIntakeVisual: React.FC = () => {
       </div>
 
       {/* Camera Capture Target Visualizer */}
-      <div className="relative rounded-xl overflow-hidden border border-teal-200/90 bg-teal-50/50 p-2 sm:p-3 flex items-center justify-between text-slate-900 shadow-2xs gap-2">
+      <div className="relative rounded-xl overflow-hidden border border-mint-strong/40 bg-mint-soft/50 p-2 sm:p-3 flex items-center justify-between text-slate-900 shadow-2xs gap-2">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-          <div className="h-8 w-8 sm:h-11 sm:w-11 rounded-lg sm:rounded-xl bg-white border border-teal-200 flex items-center justify-center text-teal-700 shrink-0 shadow-xs">
+          <div className="h-8 w-8 sm:h-11 sm:w-11 rounded-lg sm:rounded-xl bg-white border border-mint-strong/40 flex items-center justify-center text-forest shrink-0 shadow-xs">
             <RetinaEyeSvg className="h-5 w-5 sm:h-7 sm:w-7" />
           </div>
           <div className="min-w-0">
             <span className="text-[11px] sm:text-sm font-extrabold text-slate-900 block truncate">50° Non-Mydriatic Field</span>
-            <span className="text-[9.5px] sm:text-xs text-teal-700 font-semibold block truncate">Macula & Optic Disc Centered</span>
+            <span className="text-[9.5px] sm:text-xs text-forest font-semibold block truncate">Macula & Optic Disc Centered</span>
           </div>
         </div>
-        <span className="rounded-full bg-white px-2 py-0.5 sm:px-2.5 sm:py-1 text-[9.5px] sm:text-xs font-mono font-bold text-teal-800 border border-teal-200 shadow-2xs shrink-0">
+        <span className="rounded-full bg-white px-2 py-0.5 sm:px-2.5 sm:py-1 text-[9.5px] sm:text-xs font-mono font-bold text-forest border border-mint-strong/40 shadow-2xs shrink-0">
           RAW 1080p
         </span>
       </div>
@@ -381,8 +381,8 @@ const StepInferenceVisual: React.FC = () => {
         <span className="text-[11px] sm:text-sm font-extrabold uppercase tracking-wide text-slate-700 truncate min-w-0">
           Classification & Attention Map
         </span>
-        <span className="inline-flex items-center gap-1 rounded-full bg-teal-100 px-2.5 py-1 text-[10px] sm:text-xs font-extrabold text-teal-800 shadow-2xs shrink-0 whitespace-nowrap leading-none">
-          <Activity className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-teal-700 animate-pulse shrink-0" />
+        <span className="inline-flex items-center gap-1 rounded-full bg-mint-soft px-2.5 py-1 text-[10px] sm:text-xs font-extrabold text-forest shadow-2xs shrink-0 whitespace-nowrap leading-none">
+          <Activity className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-forest animate-pulse shrink-0" />
           <span className="whitespace-nowrap">Illustration</span>
         </span>
       </div>
@@ -392,7 +392,7 @@ const StepInferenceVisual: React.FC = () => {
         <div className="relative h-16 w-16 sm:h-24 sm:w-24 lg:h-28 lg:w-28 rounded-full overflow-hidden border-2 border-amber-300/80 bg-gradient-to-br from-amber-100 via-orange-50 to-amber-200/50 shrink-0 flex items-center justify-center shadow-inner text-amber-900">
           <RetinaEyeSvg className="h-11 w-11 sm:h-18 sm:w-18 lg:h-22 lg:w-22 text-amber-900/70" />
           {/* Scanning Beam */}
-          <div className="absolute inset-x-0 h-1 sm:h-1.5 bg-gradient-to-r from-transparent via-teal-600 to-transparent animate-bounce opacity-70" />
+          <div className="absolute inset-x-0 h-1 sm:h-1.5 bg-gradient-to-r from-transparent via-mint-strong to-transparent animate-bounce opacity-70" />
         </div>
 
         <div className="flex-1 space-y-1 sm:space-y-1.5 min-w-0">
@@ -400,7 +400,7 @@ const StepInferenceVisual: React.FC = () => {
             <span className="text-slate-500 font-medium shrink-0">
               Map
             </span>
-            <span className="font-extrabold text-teal-800 text-[10.5px] sm:text-xs lg:text-sm text-right shrink-0">
+            <span className="font-extrabold text-forest text-[10.5px] sm:text-xs lg:text-sm text-right shrink-0">
               Image contrast
             </span>
           </div>
@@ -420,7 +420,7 @@ const StepInferenceVisual: React.FC = () => {
           </div>
 
           <div className="pt-0.5 sm:pt-1 flex flex-wrap gap-1 sm:gap-1.5">
-            <span className="rounded-md bg-teal-50 border border-teal-200 px-1.5 py-0.5 text-[9px] sm:text-xs font-mono font-bold text-teal-800 shadow-2xs">
+            <span className="rounded-md bg-mint-soft border border-mint-strong/40 px-1.5 py-0.5 text-[9px] sm:text-xs font-mono font-bold text-forest shadow-2xs">
               Screening support
             </span>
             <span className="rounded-md bg-white border border-slate-200 px-1.5 py-0.5 text-[9px] sm:text-xs font-mono font-bold text-slate-700 shadow-2xs">
@@ -469,7 +469,7 @@ const StepReportVisual: React.FC = () => {
       {/* Clinical Guidance Protocol */}
       <div className="rounded-xl border border-slate-200 bg-slate-50 p-2 sm:p-3 text-xs sm:text-sm text-slate-700 flex items-center justify-between gap-2 shadow-2xs">
         <div className="flex items-center gap-2 min-w-0">
-          <div className="flex h-7 w-7 sm:h-9 sm:w-9 items-center justify-center rounded-lg bg-teal-100 text-teal-800 shrink-0 shadow-2xs">
+          <div className="flex h-7 w-7 sm:h-9 sm:w-9 items-center justify-center rounded-lg bg-mint-soft text-forest shrink-0 shadow-2xs">
             <FileText className="h-3.5 w-3.5 sm:h-5 sm:w-5" />
           </div>
           <span className="truncate text-slate-800 font-medium text-[11px] sm:text-xs lg:text-sm">
@@ -477,7 +477,7 @@ const StepReportVisual: React.FC = () => {
           </span>
         </div>
         <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-          <span className="inline-flex items-center gap-1 rounded-lg bg-teal-700 px-2 py-1 text-[10px] sm:text-xs font-bold text-white shadow-2xs">
+          <span className="inline-flex items-center gap-1 rounded-lg bg-forest px-2 py-1 text-[10px] sm:text-xs font-bold text-white shadow-2xs">
             <FileDown className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
             <span>PDF</span>
           </span>

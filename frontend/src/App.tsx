@@ -411,10 +411,18 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#a8e6cf] flex flex-col font-sans text-slate-950">
-      <Header onOpenGuide={() => setIsGuideOpen(true)} />
+    <div className="min-h-screen bg-canvas flex flex-col font-sans text-slate-950">
+      <Header
+        onOpenGuide={() => setIsGuideOpen(true)}
+        onStartScreening={handleOpenScreening}
+        onOpenHardwareWorkflow={handleOpenHardwareWorkflow}
+        onGoHome={handleBackToLanding}
+        activeNav={
+          isHardwareWorkflowOpen ? 'hardware' : isScreeningOpen ? 'screening' : 'home'
+        }
+      />
 
-      <main className="flex-1 w-full max-w-[1760px] mx-auto px-6 lg:px-10 pb-8 pt-[88px] sm:pt-[92px] space-y-8">
+      <main className="flex-1 w-full max-w-[1760px] mx-auto px-4 sm:px-6 lg:px-10 pb-8 pt-[88px] sm:pt-[96px] space-y-5 sm:space-y-6">
         {!isScreeningOpen && !isHardwareWorkflowOpen ? (
           <LandingPage
             isOnline={isOnline}
@@ -434,11 +442,10 @@ export function App() {
               <button
                 type="button"
                 onClick={handleBackToLanding}
-                className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-sm transition-colors hover:border-teal-200 hover:bg-teal-50 hover:text-teal-800 sm:px-4 sm:text-sm"
+                className="inline-flex items-center justify-center gap-2 text-sm font-medium text-slate-400 transition-colors hover:text-forest sm:px-0"
               >
                 <ArrowLeft className="h-4 w-4" />
-                <span className="sm:hidden">Back</span>
-                <span className="hidden sm:inline">Back</span>
+                <span>Back to Screening Home</span>
               </button>
             </div>
 
@@ -722,10 +729,10 @@ export function App() {
         )}
       </main>
 
-      <footer className="mt-auto border-t border-slate-200 bg-white py-4 sm:py-5 no-print">
+      <footer className="mt-auto border-t border-slate-200/80 bg-white py-4 sm:py-5 no-print">
         <div className="max-w-[1760px] mx-auto px-4 sm:px-6 lg:px-10 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-4">
-          <p className="text-xs sm:text-sm text-slate-600 text-center sm:text-left">
-            <span className="font-semibold text-slate-800">NetrAI</span>
+          <p className="text-xs sm:text-sm text-slate-500 text-center sm:text-left">
+            <span className="font-semibold text-forest">NetrAI</span>
             <span className="mx-2 text-slate-300">•</span>
             <span>Rural Primary Health Center DR Screening & Triage</span>
           </p>
