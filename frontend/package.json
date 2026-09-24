@@ -25,10 +25,12 @@
     "@capacitor/app": "^8.1.1",
     "@capacitor/core": "^8.5.1",
     "@capacitor/network": "^8.0.1",
+    "i18next": "^26.4.2",
     "lucide-react": "^0.468.0",
     "onnxruntime-web": "^1.29.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-i18next": "^17.0.15",
     "zod": "^4.5.1"
   },
   "devDependencies": {

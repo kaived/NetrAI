@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import type { PredictionResult } from '../types';
 import { displayText, formatGradeLabel, getTriageDisplay } from '../utils/display';
+import { useTranslation } from 'react-i18next';
 
 interface PredictionCardProps {
   prediction: PredictionResult;
@@ -22,6 +23,7 @@ const ICDR_STAGES = [
 ];
 
 export const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, isGradeable }) => {
+  const { t } = useTranslation();
   const grade = prediction.icdr_grade;
   const triage = getTriageDisplay(prediction);
   const referable = triage.positive;
@@ -62,7 +64,7 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, isGr
           <div className="space-y-1 sm:space-y-1.5 min-w-0">
             <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
               <span className="text-xs uppercase font-bold tracking-wider opacity-75">
-                Screening Triage Result
+                {t('prediction.triageResult')}
               </span>
               <span
                 className={`px-2.5 py-0.5 text-[11px] sm:text-xs font-extrabold uppercase rounded-full whitespace-nowrap ${
@@ -74,30 +76,30 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, isGr
                 }`}
               >
                 {!isGradeable
-                  ? 'Recapture Required'
+                  ? t('prediction.recapture')
                   : referable
-                  ? 'Referable DR'
-                  : 'Non-Referable DR'}
+                  ? t('prediction.referable')
+                  : t('prediction.nonReferable')}
                 </span>
             </div>
             <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight leading-tight">
               {!isGradeable
-                ? 'Ungradeable Fundus Scan'
+                ? t('prediction.ungradeable')
                 : referable
-                ? `Referral Indicated: ${predictionLabel.toUpperCase()}`
-                : `No Referral Required (${predictionLabel})`}
+                ? t('prediction.referral', { label: predictionLabel.toUpperCase() })
+                : t('prediction.noReferral', { label: predictionLabel })}
             </h2>
           </div>
         </div>
 
         {isGradeable && (
           <div className="flex flex-wrap sm:flex-nowrap lg:flex-col items-center sm:items-end justify-between gap-2.5 w-full lg:w-auto pt-3.5 lg:pt-0 border-t lg:border-t-0 border-inherit/40 shrink-0">
-            <span className="text-xs sm:text-sm font-semibold opacity-80 whitespace-nowrap">Model Confidence</span>
+            <span className="text-xs sm:text-sm font-semibold opacity-80 whitespace-nowrap">{t('prediction.confidence')}</span>
             <div className="flex items-baseline gap-1 my-0.5">
               <span className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-none">{confidencePercent}%</span>
             </div>
             <span className={`rounded-full px-2.5 sm:px-3 py-0.5 text-[10px] sm:text-xs font-extrabold uppercase whitespace-nowrap shadow-2xs ${confidenceTone}`}>
-              {confidenceLevel} confidence
+              {confidenceLevel}
             </span>
           </div>
         )}
@@ -106,12 +108,12 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, isGr
       <div>
         <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between mb-3.5">
           <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-700">
-            International Clinical DR (ICDR) Scale
+            {t('prediction.scale')}
           </span>
           <span className="text-xs sm:text-sm text-slate-500 whitespace-nowrap">
-            Predicted Grade:{' '}
+            {t('prediction.predicted')}{' '}
             <strong className="text-slate-900 font-bold">
-              {grade !== null && grade !== undefined ? `Grade ${grade} (${predictionLabel})` : 'No Grade'}
+              {grade !== null && grade !== undefined ? `Grade ${grade} (${predictionLabel})` : t('prediction.noGrade')}
             </strong>
           </span>
         </div>
@@ -145,7 +147,7 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, isGr
                 {isSelected && (
                   <div className="mt-2.5 inline-flex items-center justify-center gap-1 px-2.5 py-0.5 text-[10px] sm:text-xs font-bold bg-teal-700 text-white rounded-full shadow-xs mx-auto print:bg-teal-700 print:text-white print:border print:border-teal-700">
                     <Check className="w-3 h-3 print:stroke-[3]" />
-                    <span>MATCH</span>
+                    <span>{t('prediction.match')}</span>
                   </div>
                 )}
               </div>
@@ -154,8 +156,8 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, isGr
         </div>
 
         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between text-xs sm:text-sm text-slate-500 mt-4 px-1">
-          <span>Grade 0-1: Routine Annual Screening</span>
-          <span className="text-rose-600 font-semibold">Grade 2-4: Refer to Eye Specialist</span>
+          <span>{t('prediction.routine')}</span>
+          <span className="text-rose-600 font-semibold">{t('prediction.refer')}</span>
         </div>
       </div>
     </div>

@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import type { ConnectionStatus } from '../offline/network';
 import type { OfflineQueueSummary, OfflineScreeningRecord } from '../types';
+import { useTranslation } from 'react-i18next';
 
 type OfflineQueuePanelProps = {
   summary: OfflineQueueSummary;
@@ -30,11 +31,12 @@ export const OfflineQueuePanel: React.FC<OfflineQueuePanelProps> = ({
   onSyncNow,
   onRetryCase,
 }) => {
+  const { t } = useTranslation();
   const syncableCount = summary.pending + summary.failed;
   const records = summary.records.slice(0, 8);
   const isOnline = connectionStatus === 'online';
   const isChecking = connectionStatus === 'checking' || connectionStatus === 'idle';
-  const statusLabel = isOnline ? 'Online' : isChecking ? 'Checking' : connectionStatus === 'offline' ? 'Offline' : 'Cloud unavailable';
+  const statusLabel = isOnline ? t('offline.online') : isChecking ? t('offline.checking') : connectionStatus === 'offline' ? t('offline.offline') : t('offline.unavailable');
   const statusMessage = isOnline
     ? syncNotice ?? 'Cloud sync is available. Failed uploads remain saved on this device for retry.'
     : isChecking
@@ -52,7 +54,7 @@ export const OfflineQueuePanel: React.FC<OfflineQueuePanelProps> = ({
           </div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-sm sm:text-base font-extrabold text-slate-950">Offline Queue</h3>
+              <h3 className="text-sm sm:text-base font-extrabold text-slate-950">{t('offline.title')}</h3>
               <span role="status" className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${isOnline ? 'bg-emerald-100 text-emerald-800' : isChecking ? 'bg-slate-100 text-slate-600' : 'bg-amber-100 text-amber-800'}`}>
                 {statusLabel}
               </span>
@@ -75,15 +77,15 @@ export const OfflineQueuePanel: React.FC<OfflineQueuePanelProps> = ({
           className="inline-flex items-center justify-center gap-2 rounded-lg border border-teal-700 bg-teal-700 px-4 py-2 text-xs sm:text-sm font-bold text-white shadow-xs transition-colors hover:bg-teal-800 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
         >
           <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
-          <span>{isSyncing ? 'Syncing...' : 'Sync Now'}</span>
+          <span>{isSyncing ? t('offline.syncing') : t('offline.sync')}</span>
         </button>
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <QueueMetric label="Pending" value={summary.pending} tone="amber" />
-        <QueueMetric label="Synced" value={summary.synced} tone="emerald" />
-        <QueueMetric label="Failed" value={summary.failed} tone="rose" />
-        <QueueMetric label="Last Synced" value={formatTime(summary.last_synced_at)} tone="slate" />
+        <QueueMetric label={t('offline.pending')} value={summary.pending} tone="amber" />
+        <QueueMetric label={t('offline.synced')} value={summary.synced} tone="emerald" />
+        <QueueMetric label={t('offline.failed')} value={summary.failed} tone="rose" />
+        <QueueMetric label={t('offline.lastSynced')} value={formatTime(summary.last_synced_at, t)} tone="slate" />
       </div>
 
       <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50">
@@ -102,7 +104,7 @@ export const OfflineQueuePanel: React.FC<OfflineQueuePanelProps> = ({
         ) : (
           <div className="flex items-center gap-3 px-4 py-4 text-sm text-slate-500">
             <Database className="h-4 w-4 shrink-0" />
-            <span>No offline cases saved on this device yet.</span>
+            <span>{t('offline.none')}</span>
           </div>
         )}
       </div>
@@ -143,6 +145,7 @@ const OfflineQueueRow: React.FC<OfflineQueueRowProps> = ({
   isSyncing,
   onRetryCase,
 }) => {
+  const { t } = useTranslation();
   const eyeCount = record.result.completed_eyes?.length ?? 0;
   const status = record.sync_status;
   const isFailed = status === 'failed';
@@ -155,8 +158,8 @@ const OfflineQueueRow: React.FC<OfflineQueueRowProps> = ({
           <StatusBadge status={status} />
         </div>
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
-          <span>{eyeCount}/2 eyes</span>
-          <span>Updated {formatTime(record.updated_at)}</span>
+          <span>{t('offline.eyes', { count: eyeCount })}</span>
+          <span>{t('offline.updated', { time: formatTime(record.updated_at, t) })}</span>
         </div>
         {isFailed && record.last_sync_error && (
           <p className="mt-1 max-w-xl break-words text-xs font-medium text-rose-700" title={record.last_sync_error}>
@@ -174,7 +177,7 @@ const OfflineQueueRow: React.FC<OfflineQueueRowProps> = ({
             className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800 transition-colors hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
-            <span>Retry Failed Sync</span>
+            <span>{t('offline.retry')}</span>
           </button>
         </div>
       )}
@@ -183,11 +186,12 @@ const OfflineQueueRow: React.FC<OfflineQueueRowProps> = ({
 };
 
 const StatusBadge: React.FC<{ status: OfflineScreeningRecord['sync_status'] }> = ({ status }) => {
+  const { t } = useTranslation();
   if (status === 'synced') {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-800">
         <CheckCircle2 className="h-3 w-3" />
-        Synced
+        {t('offline.synced')}
       </span>
     );
   }
@@ -196,7 +200,7 @@ const StatusBadge: React.FC<{ status: OfflineScreeningRecord['sync_status'] }> =
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-bold text-rose-800">
         <AlertTriangle className="h-3 w-3" />
-        Failed
+        {t('offline.failed')}
       </span>
     );
   }
@@ -204,7 +208,7 @@ const StatusBadge: React.FC<{ status: OfflineScreeningRecord['sync_status'] }> =
   return (
     <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-800">
       <Clock3 className="h-3 w-3" />
-      Pending
+      {t('offline.pending')}
     </span>
   );
 };
@@ -213,14 +217,14 @@ function compactCaseId(caseId: string): string {
   return caseId.length > 22 ? `...${caseId.slice(-14)}` : caseId;
 }
 
-function formatTime(value: string | null): string {
+function formatTime(value: string | null, t: (key: string) => string): string {
   if (!value) {
-    return 'Never';
+    return t('common.never');
   }
 
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
-    return 'Unknown';
+    return t('common.unknown');
   }
 
   return date.toLocaleString([], {

@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import type { QualityResult } from '../types';
 import { displayText } from '../utils/display';
+import { useTranslation } from 'react-i18next';
 
 interface QualityGateCardProps {
   quality: QualityResult;
@@ -20,6 +21,7 @@ const QUALITY_THRESHOLDS = {
 };
 
 export const QualityGateCard: React.FC<QualityGateCardProps> = ({ quality }) => {
+  const { t } = useTranslation();
   const isGradeable = quality.is_gradeable;
 
   const focusPercent = Math.min(100, Math.round((quality.focus_score / (QUALITY_THRESHOLDS.minFocusScore * 4)) * 100));
@@ -54,7 +56,7 @@ export const QualityGateCard: React.FC<QualityGateCardProps> = ({ quality }) => 
             </div>
             <div className="space-y-1 sm:space-y-1.5">
               <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                <h3 className="text-xl sm:text-2xl font-bold text-slate-950 leading-tight">Image Quality Gate</h3>
+                <h3 className="text-xl sm:text-2xl font-bold text-slate-950 leading-tight">{t('quality.title')}</h3>
                 <span
                   className={`px-3 py-1 text-xs font-extrabold uppercase tracking-wide rounded-full ${
                     isGradeable
@@ -62,10 +64,10 @@ export const QualityGateCard: React.FC<QualityGateCardProps> = ({ quality }) => 
                       : 'bg-rose-100 text-rose-800'
                   }`}
                 >
-                  {isGradeable ? 'PASS • Gradeable' : 'REJECTED • Ungradeable'}
+                  {isGradeable ? t('quality.pass') : t('quality.rejected')}
                 </span>
               </div>
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">Automated pre-inference clarity, artifact, and fundus compatibility assessment</p>
+              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">{t('quality.description')}</p>
             </div>
           </div>
         </div>
@@ -73,7 +75,7 @@ export const QualityGateCard: React.FC<QualityGateCardProps> = ({ quality }) => 
         <div className="grid grid-cols-2 gap-2.5 sm:gap-4">
           <div className="bg-slate-50 p-3 sm:p-4 rounded-xl border border-slate-200 flex flex-col justify-between min-w-0">
             <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-1.5 sm:gap-2 mb-2 min-w-0">
-              <span className="min-w-0 truncate text-[11px] font-semibold leading-tight text-slate-700 sm:text-sm">Focus Score</span>
+              <span className="min-w-0 truncate text-[11px] font-semibold leading-tight text-slate-700 sm:text-sm">{t('quality.focus')}</span>
               <span className="shrink-0 text-right text-[13px] font-extrabold leading-none text-slate-900 tabular-nums sm:text-lg">
                 {quality.focus_score.toFixed(1)}
               </span>
@@ -87,14 +89,14 @@ export const QualityGateCard: React.FC<QualityGateCardProps> = ({ quality }) => 
               />
             </div>
             <div className="flex items-center justify-between text-[11px] sm:text-xs text-slate-500 mt-1 gap-1 whitespace-nowrap">
-              <span>Blur</span>
+              <span>{t('quality.blur')}</span>
               <span className="font-medium">Hard min {QUALITY_THRESHOLDS.minFocusScore.toFixed(2)}</span>
             </div>
           </div>
 
           <div className="bg-slate-50 p-3 sm:p-4 rounded-xl border border-slate-200 flex flex-col justify-between min-w-0">
             <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-1.5 sm:gap-2 mb-2 min-w-0">
-              <span className="min-w-0 truncate text-[11px] font-semibold leading-tight text-slate-700 sm:text-sm">Brightness</span>
+              <span className="min-w-0 truncate text-[11px] font-semibold leading-tight text-slate-700 sm:text-sm">{t('quality.brightness')}</span>
               <span className="shrink-0 text-right text-[13px] font-extrabold leading-none text-slate-900 tabular-nums sm:text-lg">
                 {quality.brightness.toFixed(2)}
               </span>
@@ -110,14 +112,14 @@ export const QualityGateCard: React.FC<QualityGateCardProps> = ({ quality }) => 
               />
             </div>
             <div className="flex items-center justify-between text-[11px] sm:text-xs text-slate-500 mt-1 gap-1 whitespace-nowrap">
-              <span>Dark</span>
+              <span>{t('quality.dark')}</span>
               <span className="font-medium">Min {QUALITY_THRESHOLDS.minBrightness.toFixed(2)}</span>
             </div>
           </div>
 
           <div className="bg-slate-50 p-3 sm:p-4 rounded-xl border border-slate-200 flex flex-col justify-between min-w-0">
             <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-1.5 sm:gap-2 mb-2 min-w-0">
-              <span className="min-w-0 truncate text-[11px] font-semibold leading-tight text-slate-700 sm:text-sm">Contrast</span>
+              <span className="min-w-0 truncate text-[11px] font-semibold leading-tight text-slate-700 sm:text-sm">{t('quality.contrast')}</span>
               <span className="shrink-0 text-right text-[13px] font-extrabold leading-none text-slate-900 tabular-nums sm:text-lg">
                 {quality.contrast.toFixed(2)}
               </span>
@@ -131,14 +133,14 @@ export const QualityGateCard: React.FC<QualityGateCardProps> = ({ quality }) => 
               />
             </div>
             <div className="flex items-center justify-between text-[11px] sm:text-xs text-slate-500 mt-1 gap-1 whitespace-nowrap">
-              <span>Low</span>
+              <span>{t('quality.low')}</span>
               <span className="font-medium">Min {QUALITY_THRESHOLDS.minContrast.toFixed(2)}</span>
             </div>
           </div>
 
           <div className="bg-slate-50 p-3 sm:p-4 rounded-xl border border-slate-200 flex flex-col justify-between min-w-0">
             <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-1.5 sm:gap-2 mb-2 min-w-0">
-              <span className="min-w-0 truncate text-[11px] font-semibold leading-tight text-slate-700 sm:text-sm" title="Fundus Compatibility">Compatibility</span>
+              <span className="min-w-0 truncate text-[11px] font-semibold leading-tight text-slate-700 sm:text-sm" title={t('quality.compatibility')}>{t('quality.compatibility')}</span>
               <span className="shrink-0 text-right text-[13px] font-extrabold leading-none text-slate-900 tabular-nums sm:text-lg">
                 {compatibilityPercent}%
               </span>
@@ -152,8 +154,8 @@ export const QualityGateCard: React.FC<QualityGateCardProps> = ({ quality }) => 
               />
             </div>
             <div className="flex items-center justify-between text-[11px] sm:text-xs text-slate-500 mt-1 gap-1 whitespace-nowrap">
-              <span>Low</span>
-              <span className="font-medium">Standard</span>
+              <span>{t('quality.low')}</span>
+              <span className="font-medium">{t('quality.standard')}</span>
             </div>
           </div>
         </div>
@@ -163,7 +165,7 @@ export const QualityGateCard: React.FC<QualityGateCardProps> = ({ quality }) => 
         <div className="mt-5 bg-rose-100/70 border border-rose-300 rounded-xl p-4 sm:p-5 text-rose-900 space-y-2.5">
           <div className="font-bold flex items-center gap-2.5 text-sm sm:text-base leading-6 text-rose-950">
             <AlertTriangle className="w-5 h-5 text-rose-700 shrink-0" />
-            <span>Quality Gate Rejection Reasons</span>
+            <span>{t('quality.reasons')}</span>
           </div>
           <div className="space-y-2 text-xs sm:text-sm text-rose-900/90 leading-relaxed">
             {quality.reasons.map((reason, idx) => (
@@ -174,7 +176,7 @@ export const QualityGateCard: React.FC<QualityGateCardProps> = ({ quality }) => 
             ))}
           </div>
           <p className="text-xs sm:text-sm text-rose-800 pt-1 leading-relaxed">
-            <strong>Action for PHC Operator:</strong> Recapture the fundus photograph after asking patient to steady gaze and adjusting camera illumination.
+            <strong>{t('quality.operator')}</strong> {t('quality.operatorHelp')}
           </p>
         </div>
       )}

@@ -1,6 +1,7 @@
 import React from 'react';
 import { ShieldCheck, Cpu, GitCommit, FileCheck, Layers, Loader2, ShieldAlert } from 'lucide-react';
 import type { CaseResult, EyeCode, EyeScreeningResult } from '../types';
+import { useTranslation } from 'react-i18next';
 
 interface PipelineFlowProps {
   isLoading: boolean;
@@ -10,6 +11,7 @@ interface PipelineFlowProps {
 }
 
 export const PipelineFlow: React.FC<PipelineFlowProps> = ({ isLoading, isRestoring = false, result, activeEye }) => {
+  const { t } = useTranslation();
   const targetEye = activeEye ?? (result?.patient?.eye as EyeCode | undefined);
   const eyeResult: EyeScreeningResult | CaseResult | null =
     targetEye && result?.eyes?.[targetEye]
@@ -37,28 +39,28 @@ export const PipelineFlow: React.FC<PipelineFlowProps> = ({ isLoading, isRestori
   const steps = [
     {
       id: 'quality',
-      title: 'Image Quality Gate',
+      title: t('pipeline.quality'),
       icon: ShieldCheck,
       failedIcon: ShieldAlert,
     },
     {
       id: 'preprocess',
-      title: 'Preprocessing',
+      title: t('pipeline.preprocessing'),
       icon: Layers,
     },
     {
       id: 'model',
-      title: 'DR Classification',
+      title: t('pipeline.classification'),
       icon: Cpu,
     },
     {
       id: 'decision',
-      title: 'Referral Triage',
+      title: t('pipeline.triage'),
       icon: GitCommit,
     },
     {
       id: 'report',
-      title: 'Clinical Report',
+      title: t('pipeline.report'),
       icon: FileCheck,
     },
   ];
@@ -95,7 +97,7 @@ export const PipelineFlow: React.FC<PipelineFlowProps> = ({ isLoading, isRestori
       return (
         <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200 shadow-xs">
           <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-500" />
-          <span>Status: Restoring Saved Screening</span>
+          <span>{t('pipeline.restoring')}</span>
         </span>
       );
     }
@@ -104,7 +106,7 @@ export const PipelineFlow: React.FC<PipelineFlowProps> = ({ isLoading, isRestori
       return (
         <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-teal-50 text-teal-700 border border-teal-200 shadow-xs animate-pulse">
           <Loader2 className="w-3.5 h-3.5 animate-spin text-teal-600" />
-          <span>Status: Running Image Quality Gate (1/5 Stages)</span>
+          <span>{t('pipeline.running')}</span>
         </span>
       );
     }
@@ -113,7 +115,7 @@ export const PipelineFlow: React.FC<PipelineFlowProps> = ({ isLoading, isRestori
       return (
         <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200 shadow-xs">
           <span className="h-2 w-2 rounded-full bg-slate-400"></span>
-          <span>Status: {targetEye === 'OD' ? 'OD Right Eye' : 'OS Left Eye'} (Pending Capture)</span>
+          <span>{targetEye} {t('pipeline.pendingCapture')}</span>
         </span>
       );
     }
@@ -133,10 +135,10 @@ export const PipelineFlow: React.FC<PipelineFlowProps> = ({ isLoading, isRestori
           <span className={`h-2 w-2 rounded-full ${isPass ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
           <span>
             {allBilateralImagesGradeable
-              ? 'Status: Both Eyes Complete (5/5 Stages)'
+              ? t('pipeline.bothComplete')
               : isPass
-              ? `Status: ${eyePrefix}Complete (5/5 Stages)`
-              : `Status: ${eyePrefix}Quality Gate Flagged (1/5 Stages)`}
+              ? `${eyePrefix}${t('pipeline.complete')}`
+              : `${eyePrefix}${t('pipeline.flagged')}`}
           </span>
         </span>
       );
@@ -145,7 +147,7 @@ export const PipelineFlow: React.FC<PipelineFlowProps> = ({ isLoading, isRestori
     return (
       <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200 shadow-xs">
         <span className="h-2 w-2 rounded-full bg-slate-400"></span>
-        <span>Status: Standby (0/5 Stages)</span>
+        <span>{t('pipeline.standby')}</span>
       </span>
     );
   };
@@ -154,7 +156,7 @@ export const PipelineFlow: React.FC<PipelineFlowProps> = ({ isLoading, isRestori
     <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm no-print">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-5">
         <h3 className="text-base font-extrabold uppercase tracking-wide text-slate-700">
-          RetinaScan Automated Screening Pipeline
+          {t('pipeline.title')}
         </h3>
         {getStatusBadge()}
       </div>

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ArrowLeft, ShieldAlert, FileText, Eye } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { ApiError, getCase, resolveApiAssetUrl } from './api';
 import type {
   CaseResult,
@@ -38,6 +39,7 @@ const DEFAULT_PATIENT_INFO: PatientInfo = {
 };
 
 export function App() {
+  const { t, i18n } = useTranslation();
   const [initialCaseId] = useState<string | null>(() => {
     if (isInstalledAppShell()) {
       clearCaseIdFromUrl();
@@ -437,8 +439,7 @@ export function App() {
                 className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-sm transition-colors hover:border-teal-200 hover:bg-teal-50 hover:text-teal-800 sm:px-4 sm:text-sm"
               >
                 <ArrowLeft className="h-4 w-4" />
-                <span className="sm:hidden">Back</span>
-                <span className="hidden sm:inline">Back</span>
+                <span>{t('common.back')}</span>
               </button>
             </div>
 
@@ -474,15 +475,15 @@ export function App() {
                 />
                 <div className="flex-1">
                   <span className="font-bold block text-base">
-                    {hasValidationErrors ? 'Incomplete Intake Details' : 'Screening Analysis Error'}
+                    {hasValidationErrors ? t('errors.incompleteIntake') : t('errors.analysis')}
                   </span>
                   <p className={`mt-1 text-sm ${hasValidationErrors ? 'text-amber-800' : 'text-rose-700'}`}>
                     {error}
                   </p>
                   <p className={`mt-2 text-sm ${hasValidationErrors ? 'text-amber-700' : 'text-rose-600'}`}>
                     {hasValidationErrors
-                      ? 'Your selected fundus image is still kept. Complete the highlighted fields and run analysis again.'
-                      : 'Please check backend connectivity or try uploading another fundus image.'}
+                      ? t('errors.incompleteIntakeHelp')
+                      : t('errors.analysisHelp')}
                   </p>
                 </div>
                 <button
@@ -491,7 +492,7 @@ export function App() {
                     hasValidationErrors ? 'text-amber-700 hover:text-amber-950' : 'text-rose-600 hover:text-rose-900'
                   }`}
                 >
-                  Dismiss
+                  {t('common.dismiss')}
                 </button>
               </div>
             )}
@@ -531,13 +532,13 @@ export function App() {
                   </div>
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm sm:text-base font-bold text-slate-950">Diagnostic Eye Switcher</span>
+                      <span className="text-sm sm:text-base font-bold text-slate-950">{t('results.eyeSwitcher')}</span>
                       <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-teal-100 text-teal-900 border border-teal-200 whitespace-nowrap">
                         {activeViewEye === 'OD' ? 'OD (Right Eye)' : 'OS (Left Eye)'} Active
                       </span>
                     </div>
                     <p className="text-xs text-slate-500 mt-1 sm:mt-0.5 leading-relaxed">
-                      Toggle to inspect individual eye quality, DR grade, and heatmap. Full bilateral details are included on export.
+                      {t('results.eyeSwitcherHelp')}
                     </p>
                   </div>
                 </div>
@@ -664,13 +665,13 @@ export function App() {
 
               <div className="max-w-3xl space-y-3">
                 <div className="inline-flex items-center gap-2 px-4 py-1.5 text-xs sm:text-sm font-bold uppercase tracking-wider bg-teal-50 text-teal-700 border border-teal-200 rounded-full">
-                  Diagnostic Report Console
+                  {t('results.reportConsole')}
                 </div>
-                <h3 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight">
-                  Clinical Screening Report & Triage
+                <h3 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold">
+                  {t('app_title')}
                 </h3>
                 <p className="text-sm sm:text-base lg:text-lg text-slate-600 leading-relaxed max-w-2xl mx-auto">
-                  Upload a real fundus image to generate the automated quality gate score, ICDR severity classification, image-based attention map, and PHC referral guidance.
+                  {t('results.reportConsoleHelp')}
                 </p>
               </div>
 
@@ -678,40 +679,40 @@ export function App() {
                 <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200/90 space-y-2.5 hover:bg-slate-100/70 transition-all shadow-xs">
                   <div className="font-bold text-teal-900 flex items-center gap-2.5 text-base">
                     <span className="w-7 h-7 rounded-full bg-teal-100 text-teal-800 flex items-center justify-center text-xs font-extrabold">1</span>
-                    Quality Gate
+                    {t('features.qualityGate')}
                   </div>
                   <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                    Assesses focus sharpness, illumination, and artifact clearance.
+                    {t('features.qualityGateHelp')}
                   </p>
                 </div>
 
                 <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200/90 space-y-2.5 hover:bg-slate-100/70 transition-all shadow-xs">
                   <div className="font-bold text-teal-900 flex items-center gap-2.5 text-base">
                     <span className="w-7 h-7 rounded-full bg-teal-100 text-teal-800 flex items-center justify-center text-xs font-extrabold">2</span>
-                    ICDR DR Grade
+                    {t('features.icdr')}
                   </div>
                   <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                    5-stage classification (0 to 4) with statistical confidence.
+                    {t('features.icdrHelp')}
                   </p>
                 </div>
 
                 <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200/90 space-y-2.5 hover:bg-slate-100/70 transition-all shadow-xs">
                   <div className="font-bold text-teal-900 flex items-center gap-2.5 text-base">
                     <span className="w-7 h-7 rounded-full bg-teal-100 text-teal-800 flex items-center justify-center text-xs font-extrabold">3</span>
-                    Image-Based Attention
+                    {t('features.attention')}
                   </div>
                   <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                    Image contrast map for visual review.
+                    {t('features.attentionHelp')}
                   </p>
                 </div>
 
                 <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200/90 space-y-2.5 hover:bg-slate-100/70 transition-all shadow-xs">
                   <div className="font-bold text-teal-900 flex items-center gap-2.5 text-base">
                     <span className="w-7 h-7 rounded-full bg-teal-100 text-teal-800 flex items-center justify-center text-xs font-extrabold">4</span>
-                    Referral Protocol
+                    {t('features.referral')}
                   </div>
                   <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                    Actionable PHC triage recommendations & printable sheet.
+                    {t('features.referralHelp')}
                   </p>
                 </div>
               </div>
@@ -727,10 +728,10 @@ export function App() {
           <p className="text-xs sm:text-sm text-slate-600 text-center sm:text-left">
             <span className="font-semibold text-slate-800">NetrAI</span>
             <span className="mx-2 text-slate-300">•</span>
-            <span>Rural Primary Health Center DR Screening & Triage</span>
+            <span>{t('footer.subtitle')}</span>
           </p>
           <p className="text-xs sm:text-sm text-slate-400 text-center sm:text-right">
-            For medical screening support only • Requires certified ophthalmologist review
+            {t('footer.disclaimer')}
           </p>
         </div>
       </footer>
