@@ -30,37 +30,37 @@ export const HardwareWorkflowPage: React.FC<HardwareWorkflowPageProps> = ({
   onBack,
   onStartScreening,
 }) => (
-  <div className="space-y-6 sm:space-y-8">
-    <div className="no-print flex flex-wrap items-center gap-3">
+  <div className="space-y-5 sm:space-y-6">
+    <div className="no-print flex flex-wrap items-center justify-between gap-3">
       <button
         type="button"
         onClick={onBack}
-        className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-sm transition-colors hover:border-teal-200 hover:bg-teal-50 hover:text-teal-800 sm:px-4 sm:text-sm"
+        className="inline-flex items-center justify-center gap-2 text-sm font-medium text-slate-400 transition-colors hover:text-forest"
       >
         <ArrowLeft className="h-4 w-4" />
-        <span>Back</span>
+        <span>Back to Screening Home</span>
       </button>
       <button
         type="button"
         onClick={onStartScreening}
-        className="inline-flex items-center justify-center gap-2 rounded-lg bg-teal-700 px-3 py-2 text-xs font-bold text-white shadow-sm transition-colors hover:bg-teal-800 sm:px-4 sm:text-sm"
+        className="inline-flex items-center justify-center gap-2 rounded-lg bg-mint px-4 py-2.5 text-sm font-semibold text-forest shadow-sm transition-colors hover:bg-mint-strong"
       >
         <Eye className="h-4 w-4" />
         <span>Start Screening</span>
       </button>
     </div>
 
-    <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+    <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
       <div className="grid grid-cols-1 lg:grid-cols-[0.95fr_1.05fr]">
-        <div className="border-b border-slate-200 bg-white px-6 py-8 text-slate-950 sm:px-10 sm:py-12 lg:border-b-0 lg:border-r">
-          <div className="inline-flex items-center gap-2 rounded-full border border-teal-200 bg-teal-50 px-3.5 py-1.5 text-xs font-bold text-teal-800 shadow-2xs whitespace-nowrap">
-            <Camera className="h-4 w-4 text-teal-700" />
+        <div className="border-b border-slate-100 bg-white px-6 py-7 text-slate-950 sm:px-10 sm:py-9 lg:border-b-0 lg:border-r">
+          <div className="inline-flex items-center gap-1.5 rounded-md bg-mint-soft px-2.5 py-1 text-xs font-semibold text-forest whitespace-nowrap">
+            <Camera className="h-3.5 w-3.5" />
             <span>Camera Workflow</span>
           </div>
-          <h1 className="mt-5 max-w-2xl text-3xl font-extrabold leading-tight tracking-tight text-slate-950 sm:text-4xl lg:text-5xl">
+          <h1 className="mt-4 max-w-2xl text-2xl font-bold leading-tight tracking-tight text-slate-900 sm:text-3xl lg:text-[2rem]">
             Capture retinal images on the fundus camera. Screen them in NetrAI.
           </h1>
-          <p className="mt-4 max-w-xl text-sm leading-relaxed text-slate-600 sm:text-base">
+          <p className="mt-3 max-w-xl text-sm leading-relaxed text-slate-500 sm:text-[15px]">
             Import retinal fundus photographs to perform automated quality assessment, diabetic retinopathy grading, and clinical referral triage.
           </p>
         </div>
@@ -115,7 +115,7 @@ export const HardwareWorkflowPage: React.FC<HardwareWorkflowPageProps> = ({
       />
     </section>
 
-    <section className="rounded-3xl border border-slate-200 bg-white px-5 py-6 shadow-sm sm:px-8 sm:py-8">
+    <section className="rounded-2xl border border-slate-200/80 bg-white px-5 py-6 shadow-sm sm:px-8 sm:py-8">
       <div className="mb-5 max-w-3xl space-y-2">
         <h2 className="text-2xl font-extrabold text-slate-950">Supported transfer paths</h2>
         <p className="text-sm leading-relaxed text-slate-600 sm:text-base">
@@ -161,7 +161,7 @@ type WorkflowBandProps = {
 
 const WorkflowBand: React.FC<WorkflowBandProps> = ({ icon, title, copy }) => (
   <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
-    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-700">
+    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-mint-soft text-forest">
       {icon}
     </div>
     <div className="min-w-0">
@@ -179,9 +179,9 @@ type WorkflowSurfaceProps = {
 };
 
 const WorkflowSurface: React.FC<WorkflowSurfaceProps> = ({ icon, title, copy, items }) => (
-  <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+  <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm sm:p-7">
     <div className="flex items-start gap-4">
-      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-teal-200 bg-teal-50 text-teal-700">
+      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-mint-strong/40 bg-mint-soft text-forest">
         {icon}
       </div>
       <div className="min-w-0">
@@ -192,7 +192,7 @@ const WorkflowSurface: React.FC<WorkflowSurfaceProps> = ({ icon, title, copy, it
     <div className="mt-5 grid grid-cols-1 gap-2">
       {items.map((item) => (
         <div key={item} className="flex items-start gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">
-          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-teal-700" />
+          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-forest" />
           <span>{item}</span>
         </div>
       ))}
@@ -202,7 +202,7 @@ const WorkflowSurface: React.FC<WorkflowSurfaceProps> = ({ icon, title, copy, it
 
 const TransferPath: React.FC<WorkflowBandProps> = ({ icon, title, copy }) => (
   <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-    <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-white text-teal-700 shadow-2xs">
+    <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-white text-forest shadow-2xs">
       {icon}
     </div>
     <h3 className="text-sm font-extrabold text-slate-950 sm:text-base">{title}</h3>
@@ -212,7 +212,7 @@ const TransferPath: React.FC<WorkflowBandProps> = ({ icon, title, copy }) => (
 
 const StatusBlock: React.FC<WorkflowBandProps> = ({ icon, title, copy }) => (
   <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-    <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-teal-50 text-teal-700">
+    <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-mint-soft text-forest">
       {icon}
     </div>
     <h2 className="text-base font-extrabold text-slate-950">{title}</h2>

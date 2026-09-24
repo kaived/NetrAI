@@ -5,12 +5,15 @@
 @layer base {
   :root {
     --color-fundus-bg: #0d0705;
+    --color-forest: #0B3D33;
+    --color-mint: #8FD9B8;
+    --color-canvas: #F2F3F5;
   }
 
   body {
-    background-color: #a8e6cf;
+    background-color: #F2F3F5;
     @apply text-slate-900 min-h-screen antialiased;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    font-feature-settings: "ss01", "ss02";
   }
 
   input, button, select, textarea {
@@ -20,7 +23,7 @@
 
 /* Smooth scrolling */
 html {
-  background-color: #a8e6cf;
+  background-color: #F2F3F5;
   scroll-behavior: smooth;
 }
 
@@ -75,5 +78,277 @@ html {
     border: 1px solid #94a3b8 !important;
     box-shadow: none !important;
     break-inside: avoid;
+  }
+}
+
+/* ——— Realistic moving-eye splash loader ——— */
+.eye-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.4rem;
+  background: radial-gradient(ellipse 80% 60% at 50% 42%, #1a2420 0%, #0b1210 55%, #050807 100%);
+  color: #fff;
+  transition: opacity 0.55s ease, visibility 0.55s ease, transform 0.55s ease;
+}
+
+.eye-splash--leave {
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(1.02);
+  pointer-events: none;
+}
+
+.eye-splash__vignette {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 46%, rgba(80, 140, 110, 0.12), transparent 42%),
+    radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, 0.55) 100%);
+  pointer-events: none;
+}
+
+.eye-splash__stage {
+  position: relative;
+  z-index: 1;
+  width: min(88vw, 22rem);
+  aspect-ratio: 320 / 220;
+}
+
+.eye-splash__svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+
+.eye-splash__gaze {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: eye-splash-saccade 3.4s cubic-bezier(0.22, 0.61, 0.36, 1) infinite;
+  will-change: transform;
+}
+
+.eye-splash__iris-spin {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.eye-splash__pupil-breathe {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: eye-splash-pupil 3.4s ease-in-out infinite;
+  will-change: transform;
+}
+
+.eye-splash__lid-upper {
+  transform-box: fill-box;
+  transform-origin: 160px 70px;
+  animation: eye-splash-blink-upper 3.8s ease-in-out infinite;
+}
+
+.eye-splash__lid-lower {
+  transform-box: fill-box;
+  transform-origin: 160px 150px;
+  animation: eye-splash-blink-lower 3.8s ease-in-out infinite;
+}
+
+.eye-splash__copy {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.eye-splash__brand {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(236, 248, 242, 0.92);
+}
+
+.eye-splash__tag {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 450;
+  letter-spacing: 0.02em;
+  color: rgba(180, 210, 195, 0.62);
+}
+
+/* Natural-ish saccades with brief holds */
+@keyframes eye-splash-saccade {
+  0%, 12% { transform: translate(0px, 0px); }
+  18%, 28% { transform: translate(14px, -3px); }
+  34%, 44% { transform: translate(-12px, 4px); }
+  50%, 60% { transform: translate(8px, 6px); }
+  66%, 76% { transform: translate(-6px, -5px); }
+  84%, 100% { transform: translate(2px, 0px); }
+}
+
+@keyframes eye-splash-pupil {
+  0%, 100% { transform: scale(1); }
+  40% { transform: scale(0.92); }
+  70% { transform: scale(1.05); }
+}
+
+@keyframes eye-splash-blink-upper {
+  0%, 38%, 48%, 100% { transform: translateY(-34px); }
+  41%, 44% { transform: translateY(28px); }
+}
+
+@keyframes eye-splash-blink-lower {
+  0%, 38%, 48%, 100% { transform: translateY(18px); }
+  41%, 44% { transform: translateY(-14px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eye-splash__gaze,
+  .eye-splash__pupil-breathe,
+  .eye-splash__lid-upper,
+  .eye-splash__lid-lower {
+    animation: none !important;
+  }
+}
+
+@media print {
+  .eye-splash {
+    display: none !important;
+  }
+}
+
+/* ——— Playful OD/OS blinking eyes ——— */
+.blink-eyes {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+  user-select: none;
+  padding: 0.45rem 0.65rem 0.4rem;
+  border-radius: 1rem;
+  background: linear-gradient(180deg, rgba(143, 217, 184, 0.14), rgba(11, 61, 51, 0.04));
+  border: 1px solid rgba(11, 61, 51, 0.1);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  outline: none;
+}
+
+.blink-eyes--play:hover,
+.blink-eyes--play:focus-visible {
+  transform: translateY(-1px);
+  border-color: rgba(11, 61, 51, 0.22);
+  box-shadow: 0 8px 20px rgba(11, 61, 51, 0.08);
+}
+
+.blink-eyes--play:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.blink-eyes__row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.65rem;
+}
+
+.blink-eyes__unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.12rem;
+}
+
+.blink-eyes__eye {
+  width: 3.85rem;
+  height: auto;
+  overflow: visible;
+  display: block;
+}
+
+.blink-eyes__label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #0b3d33;
+  opacity: 0.45;
+}
+
+.blink-eyes__hint {
+  margin: 0;
+  font-size: 0.62rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: rgba(11, 61, 51, 0.5);
+  white-space: nowrap;
+  min-height: 0.9rem;
+}
+
+.blink-eyes__iris {
+  transition: transform 0.08s linear;
+  will-change: transform;
+}
+
+.blink-eyes__lid--upper,
+.blink-eyes__lid--lower {
+  transition: transform 0.08s ease-out;
+}
+
+.blink-eyes__lid--upper {
+  transform-box: fill-box;
+  transform-origin: 60px 22px;
+  transform: translateY(-14px);
+}
+
+.blink-eyes__lid--lower {
+  transform-box: fill-box;
+  transform-origin: 60px 58px;
+  transform: translateY(8px);
+}
+
+.blink-eyes__lid--upper.is-closed {
+  transform: translateY(12px);
+}
+
+.blink-eyes__lid--lower.is-closed {
+  transform: translateY(-6px);
+}
+
+@media (min-width: 640px) {
+  .blink-eyes {
+    padding: 0.55rem 0.85rem 0.45rem;
+  }
+
+  .blink-eyes__eye {
+    width: 4.6rem;
+  }
+
+  .blink-eyes__row {
+    gap: 0.85rem;
+  }
+
+  .blink-eyes__label {
+    font-size: 0.68rem;
+  }
+
+  .blink-eyes__hint {
+    font-size: 0.68rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .blink-eyes__iris,
+  .blink-eyes__lid--upper,
+  .blink-eyes__lid--lower,
+  .blink-eyes {
+    transition: none !important;
   }
 }
