@@ -1,0 +1,11 @@
+{
+  "translation": {
+    "app_title": "Clinical Screening Report & Triage",
+    "app_subtitle": "Upload a real fundus image to generate the automated quality gate score.",
+    "footer_text": "For medical screening support only — Requires certified ophthalmologist review",
+    "lang_english": "English",
+    "lang_hindi": "हिंदी",
+    "lang_telugu": "తెలుగు",
+    "start_screening": "Start Screening"
+  }
+}

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ArrowRight,
   Route,
@@ -35,6 +36,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onOpenHardwareWorkflow,
   onOpenGuide,
 }) => {
+  const { t } = useTranslation();
   const pendingCount = offlineQueue.pending + offlineQueue.failed;
 
   return (
@@ -65,7 +67,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 className="inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-xl bg-teal-700 px-3.5 sm:px-4 xl:px-5 py-3 text-xs sm:text-sm font-bold text-white shadow-sm transition-all hover:bg-teal-800 active:bg-teal-900 whitespace-nowrap shrink-0"
               >
                 <Eye className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
-                <span className="whitespace-nowrap">Start Screening</span>
+                <span className="whitespace-nowrap">{t('start_screening')}</span>
                 <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
               </button>
               <button

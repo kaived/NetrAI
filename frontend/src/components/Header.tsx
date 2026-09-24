@@ -2,14 +2,15 @@ import React from 'react';
 import { BookOpen, Download } from 'lucide-react';
 import netrAiLogo from '../assets/NetrAI_Logo.webp';
 import { isInstalledAppShell } from '../utils/runtime';
+import { useTranslation } from 'react-i18next';
 
 interface HeaderProps {
   onOpenGuide: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({
-  onOpenGuide,
-}) => {
+export const Header: React.FC<HeaderProps> = ({ onOpenGuide }) => {
+  const { i18n } = useTranslation();
+
   const androidApkUrl = import.meta.env.VITE_ANDROID_APK_URL?.trim();
   const shouldShowAndroidApkButton = Boolean(androidApkUrl) && !isInstalledAppShell();
 
@@ -27,7 +28,16 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+          <div className="flex shrink-0 items-center gap-2 sm:gap-4">
+            
+            {/* --- OUR NEW LANGUAGE SWITCHER --- */}
+            <div className="flex gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200">
+              <button onClick={() => i18n.changeLanguage('en')} className="px-2 py-1 text-xs font-bold rounded-md bg-white shadow-sm text-teal-800">EN</button>
+              <button onClick={() => i18n.changeLanguage('hi')} className="px-2 py-1 text-xs font-bold rounded-md hover:bg-white hover:shadow-sm text-slate-600 hover:text-teal-800">हिंदी</button>
+              <button onClick={() => i18n.changeLanguage('te')} className="px-2 py-1 text-xs font-bold rounded-md hover:bg-white hover:shadow-sm text-slate-600 hover:text-teal-800">తెలుగు</button>
+            </div>
+            {/* -------------------------------- */}
+
             {shouldShowAndroidApkButton ? (
               <a
                 href={androidApkUrl}
@@ -45,10 +55,9 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={onOpenGuide}
               className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-100 px-1.5 py-1.5 text-[11px] font-semibold leading-none text-slate-700 shadow-sm transition-colors hover:bg-slate-200 hover:text-slate-900 sm:gap-2 sm:px-3.5 sm:py-1.5 sm:text-sm sm:leading-normal lg:px-4 lg:py-2"
-              title="View ICDR DR Grading & Image Quality Clinical Protocol"
             >
               <BookOpen className="w-3 h-3 text-teal-600 sm:w-4 sm:h-4" />
-              <span>Clinical Protocol</span>
+              <span className="hidden sm:inline">Clinical Protocol</span>
             </button>
           </div>
         </div>
